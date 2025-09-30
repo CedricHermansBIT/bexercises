@@ -291,6 +291,7 @@ class ExerciseApp {
     resetCode() {
         if (confirm('Are you sure you want to reset your code? This will remove all your changes.')) {
             this.codeEditor.setValue('#!/bin/bash\n\n# Write your solution here\n');
+            this.updateExerciseProgress(this.currentExercise.id, code, false);
             this.saveProgress();
         }
     }
