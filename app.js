@@ -291,7 +291,7 @@ class ExerciseApp {
     resetCode() {
         if (confirm('Are you sure you want to reset your code? This will remove all your changes.')) {
             this.codeEditor.setValue('#!/bin/bash\n\n# Write your solution here\n');
-            this.updateExerciseProgress(this.currentExercise.id, code, false);
+            this.updateExerciseProgress(this.currentExercise.id, '#!/bin/bash\n\n# Write your solution here\n', false);
             this.saveProgress();
         }
     }
@@ -346,7 +346,7 @@ class ExerciseApp {
         document.getElementById('show-solution').addEventListener('click', () => this.showSolution());
 
         // Terminal controls
-        document.getElementById('clear-terminal').addEventListener('click', () => this.clearTerminal());
+        //document.getElementById('clear-terminal').addEventListener('click', () => this.clearTerminal());
         document.getElementById('run-script').addEventListener('click', () => this.runScriptInTerminal());
 
         // Handle browser back/forward
