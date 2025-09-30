@@ -340,7 +340,7 @@ class ExerciseApp {
 
     setupEventListeners() {
         document.getElementById('run-tests').addEventListener('click', () => this.runTests());
-        document.getElementById('test-interactive').addEventListener('click', () => this.testInteractive());
+        //document.getElementById('test-interactive').addEventListener('click', () => this.testInteractive());
         document.getElementById('reset-code').addEventListener('click', () => this.resetCode());
         document.getElementById('show-solution').addEventListener('click', () => this.showSolution());
 
