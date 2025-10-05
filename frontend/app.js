@@ -87,7 +87,12 @@ class ExerciseApp {
 		// fetch exercise list from server
 		try {
 			const resp = await fetch('https://bikc.howest.be/bexercises/api/exercises');
-			if (!resp.ok) throw new Error('Failed to fetch exercises');
+			if (!resp.ok) {
+				if (resp.status === 403) {
+					this.showVPNNotification();
+				}
+				throw new Error('Failed to fetch exercises');
+			}
 			const exercisesFromServer = await resp.json();
 
 			// reuse existing code for UI generation
@@ -206,6 +211,8 @@ class ExerciseApp {
 				expectedOutput: r.expectedOutput,
 				expectedExitCode: r.expectedExitCode,
 				actualOutput: r.actualOutput,
+				exitCode: r.exitCode,
+				stderr: r.stderr || '',
 				error: r.error || (r.timedOut ? 'TIMEOUT' : null),
 				passed: r.passed
 			}));
@@ -285,19 +292,45 @@ class ExerciseApp {
 			testDiv.className = `test-result ${result.passed ? 'passed' : 'failed'}`;
 
 			const title = document.createElement('h4');
-			title.textContent = `Test ${result.testNumber}: ${result.passed ? 'PASSED' : 'FAILED'}`;
+			const statusIcon = result.passed ? '✓' : '✗';
+			title.innerHTML = `<span class="status-icon">${statusIcon}</span> Test ${result.testNumber}: ${result.passed ? 'PASSED' : 'FAILED'}`;
 			testDiv.appendChild(title);
 
 			const details = document.createElement('div');
 			details.className = 'test-details';
 
+			const tabId = `test-${result.testNumber}`;
 			details.innerHTML = `
-				<p><strong>Arguments:</strong> ${result.arguments.join(', ')}</p>
-				<p><strong>Expected Output:</strong></p>
-				<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>
-				<p><strong>Actual Output:</strong></p>
-				<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>
-				${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
+				<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
+				
+				<div class="result-tabs">
+					<button class="result-tab active" data-tab="${tabId}-output">Output ${result.actualOutput === result.expectedOutput ? '✓' : '✗'}</button>
+					<button class="result-tab" data-tab="${tabId}-stderr">Stderr ${(!result.stderr || result.stderr.trim() === '') ? '✓' : '⚠'}</button>
+					<button class="result-tab" data-tab="${tabId}-exit">Exit Code ${result.exitCode === result.expectedExitCode ? '✓' : '✗'}</button>
+				</div>
+				
+				<div class="result-tab-content active" id="${tabId}-output">
+					<div class="output-comparison">
+						<div class="output-section">
+							<strong>Expected Output:</strong>
+							<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>
+						</div>
+						<div class="output-section">
+							<strong>Actual Output:</strong>
+							<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>
+						</div>
+					</div>
+				</div>
+				
+				<div class="result-tab-content" id="${tabId}-stderr">
+					<strong>Standard Error:</strong>
+					<pre><code>${this.escapeHtml(result.stderr || '(no stderr output)')}</code></pre>
+				</div>
+				
+				<div class="result-tab-content" id="${tabId}-exit">
+					<p><strong>Expected Exit Code:</strong> ${result.expectedExitCode}</p>
+					<p><strong>Actual Exit Code:</strong> ${result.exitCode}</p>
+					${result.error ? `<p class="error"><strong>Error:</strong> ${result.error}</p>` : ''}
 			`;
 
 			testDiv.appendChild(details);
@@ -310,10 +343,48 @@ class ExerciseApp {
 		summary.className = 'test-summary';
 		summary.innerHTML = `<h4>Summary: ${passedCount}/${results.length} tests passed</h4>`;
 		resultsContainer.insertBefore(summary, resultsContainer.firstChild);
+
+		// Add tab switching functionality
+		this.setupResultTabs();
+	}
+
+	setupResultTabs() {
+		const tabs = document.querySelectorAll('.result-tab');
+		tabs.forEach(tab => {
+			tab.addEventListener('click', (e) => {
+				const targetId = e.target.dataset.tab;
+				const parent = e.target.closest('.test-details');
+				
+				// Remove active from all tabs and contents in this test
+				parent.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+				parent.querySelectorAll('.result-tab-content').forEach(c => c.classList.remove('active'));
+				
+				// Add active to clicked tab and its content
+				e.target.classList.add('active');
+				document.getElementById(targetId).classList.add('active');
+			});
+		});
+	}
+
+	showVPNNotification() {
+		const notification = document.createElement('div');
+		notification.className = 'vpn-notification';
+		notification.innerHTML = `
+			<div class="vpn-notification-content">
+				<h3>🔒 VPN Connection Required</h3>
+				<p>Access to the exercises requires a VPN connection to the organization network.</p>
+				<p>Please connect to your VPN and refresh the page.</p>
+				<button onclick="location.reload()">Refresh Page</button>
+			</div>
+		`;
+		document.body.appendChild(notification);
 	}
 
 	displayError(message) {
 		const resultsContainer = document.getElementById('test-results');
+		if (message.includes('403') || message.includes('Forbidden')) {
+			this.showVPNNotification();
+		}
 		resultsContainer.innerHTML = `<div class="test-result failed"><h4>Error</h4><p>${message}</p></div>`;
 	}
 

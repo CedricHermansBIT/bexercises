@@ -13,6 +13,17 @@ const app = express();
 app.use(morgan('combined'));
 app.use(bodyParser.json({ limit: '200kb' }));
 
+// CORS middleware
+app.use((req, res, next) => {
+	res.header('Access-Control-Allow-Origin', '*');
+	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+	res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+	if (req.method === 'OPTIONS') {
+		return res.sendStatus(200);
+	}
+	next();
+});
+
 // Load exercises (server side). Keep testCases & solutions here.
 // Example structure used below; replace with your real data file
 const EXERCISES_INTERNAL_PATH = path.join(__dirname, 'exercises-internal.json');

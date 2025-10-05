@@ -429,6 +429,138 @@ pre code {
     padding: 0;
 }
 
+/* VPN Notification */
+.vpn-notification {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.vpn-notification-content {
+    background: white;
+    padding: 2rem 3rem;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.vpn-notification-content h3 {
+    color: #dc2626;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.vpn-notification-content p {
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+
+.vpn-notification-content button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 1rem;
+}
+
+.vpn-notification-content button:hover {
+    opacity: 0.9;
+}
+
+/* Result Tabs */
+.result-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.result-tab {
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    color: #64748b;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.result-tab:hover {
+    color: #334155;
+}
+
+.result-tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.result-tab-content {
+    display: none;
+    padding: 1rem 0;
+}
+
+.result-tab-content.active {
+    display: block;
+}
+
+.output-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.output-section {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.output-section strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #475569;
+}
+
+.test-result .status-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.test-result.passed .status-icon {
+    color: #16a34a;
+}
+
+.test-result.failed .status-icon {
+    color: #dc2626;
+}
+
+.test-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.test-summary h4 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
 @media (max-width: 1024px) {
     .container {
         grid-template-areas:
@@ -446,6 +578,10 @@ pre code {
     }
 
     .exercise-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .output-comparison {
         grid-template-columns: 1fr;
     }
 }
