@@ -1,0 +1,20 @@
+# Dockerfile.runner
+FROM debian:bookworm-slim
+
+# Create non-root user
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	    bash \
+	    ca-certificates \
+	    coreutils \
+	    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user and group
+RUN groupadd -g 1000 runner \
+&& useradd -r -u 1000 -g runner -d /home/runner -m runner \
+&& mkdir -p /home/runner && chown runner:runner /home/runner
+
+# Minimal entrypoint — the server will run "bash /tmp/script.sh"
+USER runner
+WORKDIR /home/runner
+ENTRYPOINT ["/bin/bash"]
+

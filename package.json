@@ -1,0 +1,15 @@
+{
+	"name": "bash-exec-server",
+	"version": "1.0.0",
+	"description": "Server to run bash exercise tests in ephemeral containers",
+	"main": "server.js",
+	"scripts": {
+		"start": "node server.js"
+	},
+	"dependencies": {
+		"express": "^4.18.2",
+		"body-parser": "^1.20.2",
+		"uuid": "^9.0.0",
+		"morgan": "^1.10.0"
+	}
+}
