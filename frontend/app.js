@@ -179,16 +179,19 @@ class ExerciseApp {
 		}, 0);
 
 		this.updateCompletionStatus(exerciseId);
-			document.querySelectorAll('.exercise-item').forEach(item => item.classList.remove('active'));
-			const active = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-			if (active) active.classList.add('active');
+		document.querySelectorAll('.exercise-item').forEach(item => item.classList.remove('active'));
+		const active = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+		if (active) active.classList.add('active');
 
-			document.getElementById('test-results').innerHTML = '<p class="no-results">Run tests to see results here.</p>';
+		document.getElementById('test-results').innerHTML = '<p class="no-results">Run tests to see results here.</p>';
+		
+		// Load and display statistics for this exercise
+		this.loadExerciseStatistics(exerciseId);
 
-		} catch (err) {
-			console.error(err);
-			this.displayError('Failed to load exercise metadata');
-		}
+	} catch (err) {
+		console.error(err);
+		this.displayError('Failed to load exercise metadata');
+	}
 	}
 
 	updateCompletionStatus(exerciseId) {
@@ -471,6 +474,17 @@ class ExerciseApp {
 				${failureBreakdown}
 			</div>
 		`;
+	}
+
+	async loadExerciseStatistics(exerciseId) {
+		try {
+			const resp = await fetch(`https://bikc.howest.be/bexercises/api/statistics/${encodeURIComponent(exerciseId)}`);
+			if (!resp.ok) return;
+			const stats = await resp.json();
+			this.displayStatistics(stats);
+		} catch (err) {
+			console.error('Failed to load statistics:', err);
+		}
 	}
 
 	displayError(message) {
