@@ -135,6 +135,8 @@ Edit `exercises-internal.json` to add new exercises:
 {
   "id": "my-exercise",
   "title": "My Exercise Title",
+  "chapter": "Shell scripting",
+  "order": 15,
   "description": "Exercise description with examples...",
   "solution": "#!/bin/bash\necho 'solution'",
   "testCases": [
@@ -151,6 +153,15 @@ Edit `exercises-internal.json` to add new exercises:
   ]
 }
 ```
+
+**Exercise Fields:**
+- `id` - Unique identifier (kebab-case)
+- `title` - Display title for the exercise
+- `chapter` - Chapter/category name (e.g., "Shell scripting", "Additional exercises")
+- `order` - Numeric order within the chapter (used for sorting)
+- `description` - Problem description with examples
+- `solution` - Reference solution (not exposed to frontend)
+- `testCases` - Array of test cases
 
 **Test Case Fields:**
 - `arguments` - Command-line arguments passed to script
@@ -197,7 +208,15 @@ Returns list of all exercises (without solutions or test cases)
   {
     "id": "script-args",
     "title": "Command line arguments",
+    "chapter": "Shell scripting",
+    "order": 1,
     "description": "...",
+    "solution": "..."
+  }
+]
+```
+
+Exercises are grouped by `chapter` and sorted by `order` in the frontend.
     "solution": "..."
   }
 ]

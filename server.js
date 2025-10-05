@@ -283,7 +283,9 @@ app.get('/api/exercises', async (req, res) => {
 		id: ex.id,
 		title: ex.title,
 		description: ex.description,
-		solution: ex.solution
+		solution: ex.solution,
+		chapter: ex.chapter,
+		order: ex.order
 	}));
 	res.json(stripped);
 });

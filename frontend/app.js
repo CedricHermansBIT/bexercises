@@ -95,27 +95,52 @@ class ExerciseApp {
 			}
 			const exercisesFromServer = await resp.json();
 
-			// reuse existing code for UI generation
+			// Group exercises by chapter
+			const chapters = {};
 			exercisesFromServer.forEach(exercise => {
-				const li = document.createElement('li');
-				const link = document.createElement('a');
-				link.href = '#';
-				link.className = 'exercise-item';
-				link.textContent = exercise.title;
-				link.dataset.exerciseId = exercise.id;
-
-				if (this.progress[exercise.id]?.completed) {
-					link.classList.add('completed');
+				const chapter = exercise.chapter || 'Uncategorized';
+				if (!chapters[chapter]) {
+					chapters[chapter] = [];
 				}
+				chapters[chapter].push(exercise);
+			});
 
-				link.addEventListener('click', (e) => {
-					e.preventDefault();
-					// Load details for this exercise
-					this.loadExercise(exercise.id);
+			// Sort exercises within each chapter by order
+			Object.keys(chapters).forEach(chapter => {
+				chapters[chapter].sort((a, b) => (a.order || 999) - (b.order || 999));
+			});
+
+			// Render chapters in order: Shell scripting first, then others
+			const chapterOrder = ['Shell scripting', 'Additional exercises'];
+			const remainingChapters = Object.keys(chapters).filter(c => !chapterOrder.includes(c));
+			const allChapters = [...chapterOrder, ...remainingChapters].filter(c => chapters[c]);
+
+			allChapters.forEach(chapterName => {
+				const chapterHeader = document.createElement('li');
+				chapterHeader.className = 'chapter-header';
+				chapterHeader.innerHTML = `<h3>${chapterName}</h3>`;
+				menu.appendChild(chapterHeader);
+
+				chapters[chapterName].forEach((exercise, index) => {
+					const li = document.createElement('li');
+					const link = document.createElement('a');
+					link.href = '#';
+					link.className = 'exercise-item';
+					link.innerHTML = `<span class="exercise-number">${index + 1}.</span> ${exercise.title}`;
+					link.dataset.exerciseId = exercise.id;
+
+					if (this.progress[exercise.id]?.completed) {
+						link.classList.add('completed');
+					}
+
+					link.addEventListener('click', (e) => {
+						e.preventDefault();
+						this.loadExercise(exercise.id);
+					});
+
+					li.appendChild(link);
+					menu.appendChild(li);
 				});
-
-				li.appendChild(link);
-				menu.appendChild(li);
 			});
 		} catch (err) {
 			console.error(err);

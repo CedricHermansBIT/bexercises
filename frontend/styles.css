@@ -79,6 +79,33 @@ header h1 {
     margin-bottom: 0.5rem;
 }
 
+.chapter-header {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.chapter-header:first-child {
+    margin-top: 0;
+}
+
+.chapter-header h3 {
+    color: #667eea;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.exercise-number {
+    display: inline-block;
+    min-width: 1.5rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
 .exercise-item {
     display: block;
     padding: 0.75rem 1rem;
