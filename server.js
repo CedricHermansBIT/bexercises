@@ -115,7 +115,7 @@ async function createTempScript(scriptContents) {
     }
   } catch (err) {
     // Log but continue; cleanup will happen later
-    console.error('Warning while prepping script path:', err && err.message ? err.message : err);
+    //console.error('Warning while prepping script path:', err && err.message ? err.message : err);
   }
 
   // Ensure parent directory exists (should exist because mkdtemp created tmpdir)
@@ -135,7 +135,7 @@ async function createTempScript(scriptContents) {
     throw new Error(`Failed to create script file at ${scriptPath} (not a regular file)`);
   }
 
-  console.error(`Created script file: tmpdir=${tmpdir}, scriptPath=${scriptPath}`);
+  //console.error(`Created script file: tmpdir=${tmpdir}, scriptPath=${scriptPath}`);
   return { tmpdir, scriptPath };
 }
 
@@ -143,7 +143,7 @@ async function createTempScript(scriptContents) {
 // fixturePermissions is optional: { "filename": 0o755, ... }
 async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
   const copiedFiles = [];
-  console.error(`copyFixtures called with fixturePermissions:`, JSON.stringify(fixturePermissions));
+  //console.error(`copyFixtures called with fixturePermissions:`, JSON.stringify(fixturePermissions));
   for (const fixtureName of fixtures) {
     const sourcePath = path.join(FIXTURES_DIR, fixtureName);
     const destPath = path.join(tmpdir, fixtureName);
@@ -151,7 +151,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
     try {
       // Check if fixture exists
       if (!fsSync.existsSync(sourcePath)) {
-        console.error(`Warning: fixture ${fixtureName} not found at ${sourcePath}`);
+        //console.error(`Warning: fixture ${fixtureName} not found at ${sourcePath}`);
         continue;
       }
       
@@ -162,7 +162,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
       let mode;
       if (fixturePermissions && fixturePermissions[fixtureName] !== undefined) {
         mode = fixturePermissions[fixtureName];
-        console.error(`Using explicit permissions for ${fixtureName}: ${mode} (0o${mode.toString(8)})`);
+        //console.error(`Using explicit permissions for ${fixtureName}: ${mode} (0o${mode.toString(8)})`);
       } else {
         const stat = await fsPromises.stat(sourcePath);
         mode = stat.mode;
@@ -170,9 +170,9 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
       await fsPromises.chmod(destPath, mode);
       
       copiedFiles.push(fixtureName);
-      console.error(`Copied fixture: ${fixtureName} to ${destPath} with mode ${(mode & 0o777).toString(8)}`);
+      //console.error(`Copied fixture: ${fixtureName} to ${destPath} with mode ${(mode & 0o777).toString(8)}`);
     } catch (err) {
-      console.error(`Error copying fixture ${fixtureName}:`, err.message);
+      //console.error(`Error copying fixture ${fixtureName}:`, err.message);
     }
   }
   return copiedFiles;
@@ -217,15 +217,15 @@ async function runScriptInContainer(tmpdir, args = [], inputs=[], timeoutMs = PE
     ];
 
     // Log the docker command for debugging
-    console.error('Docker command:', dockerArgs.join(' '));
-    console.error('Shell command:', shellCommand);
-    console.error('Args:', args);
+    //console.error('Docker command:', dockerArgs.join(' '));
+    //console.error('Shell command:', shellCommand);
+    //console.error('Args:', args);
 
     const docker = spawn('docker', dockerArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
     
     // Add spawn error logging
     docker.on('spawn', () => {
-      console.error('Docker process spawned successfully');
+      //console.error('Docker process spawned successfully');
     });
 
     let stdout = '';
@@ -262,7 +262,7 @@ async function runScriptInContainer(tmpdir, args = [], inputs=[], timeoutMs = PE
 
     docker.on('close', (code, signal) => {
       clearTimeout(killTimer);
-      console.error(`Docker process closed. Code: ${code}, Signal: ${signal}, TimedOut: ${timedOut}`);
+      //console.error(`Docker process closed. Code: ${code}, Signal: ${signal}, TimedOut: ${timedOut}`);
       const exitCode = timedOut ? -1 : code;
       resolve({ 
         stdout: normalizeOutput(stdout), 
@@ -318,7 +318,7 @@ app.post('/api/exercises/:id/run', async (req, res) => {
 
 		// Create temp script
 		const { tmpdir, scriptPath } = await createTempScript(body.script);
-		console.log(scriptPath)
+		//console.log(scriptPath)
 		// For each test case, run script in container with arguments
 		const results = [];
 		for (let i = 0; i < ex.testCases.length; i++) {
@@ -330,7 +330,7 @@ app.post('/api/exercises/:id/run', async (req, res) => {
 			}
 			
 			// run with args
-			console.log("DEBUG: ",tc.input)
+			//console.log("DEBUG: ",tc.input)
 			// IMPORTANT: arguments are provided as list of strings
 			const r = await runScriptInContainer(tmpdir, tc.arguments || [], tc.input || [], PER_TEST_TIMEOUT_MS);
 
@@ -359,7 +359,7 @@ results.push({
   error: r.error,
   passed
 });
-console.log(results)
+//console.log(results)
 		}
 
 		// cleanup
@@ -368,23 +368,23 @@ console.log(results)
 			try {
 			  await removeRecursive(tmpdir);
 			} catch (e) {
-			  console.error('Cleanup failed:', e);
+			  //console.error('Cleanup failed:', e);
 			}
 		} catch (e) {
 			// ignore cleanup errors but log
-			console.error('Cleanup failed:', e);
+			//console.error('Cleanup failed:', e);
 		}
 
 		res.json({ results });
 
 	} catch (err) {
-		console.error(err);
+		//console.error(err);
 		res.status(500).json({ error: 'internal error', detail: err.message });
 	}
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-	console.log(`Bash execution server listening on port ${PORT}`);
+	//console.log(`Bash execution server listening on port ${PORT}`);
 });
 

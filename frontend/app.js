@@ -130,7 +130,7 @@ class ExerciseApp {
 			if (!resp.ok) return;
 			const exercise = await resp.json();
 			this.currentExercise = exercise;
-			console.log(exercise);
+			//console.log(exercise);
 			// update url, UI, description and code editor as before
 			const url = new URL(window.location);
 			url.searchParams.set('exercise', exerciseId);
@@ -201,7 +201,7 @@ class ExerciseApp {
 			}
 
 			const data = await resp.json();
-			console.log(data);
+			//console.log(data);
 			const results = data.results || [];
 			// Adapt display
 			// Map server results to the format your existing displayTestResults expects:
