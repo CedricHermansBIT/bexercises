@@ -27,6 +27,7 @@ app.use((req, res, next) => {
 // Load exercises (server side). Keep testCases & solutions here.
 // Example structure used below; replace with your real data file
 const EXERCISES_INTERNAL_PATH = path.join(__dirname, 'exercises-internal.json');
+const STATISTICS_PATH = path.join(__dirname, 'statistics.json');
 
 // Config: tweak these to taste / infra
 const RUNNER_IMAGE = 'bexercises-runner:latest';
@@ -38,6 +39,24 @@ const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 async function loadExercisesInternal() {
 	const txt = await fs.readFile(EXERCISES_INTERNAL_PATH, 'utf8');
 	return JSON.parse(txt);
+}
+
+async function loadStatistics() {
+	try {
+		const txt = await fs.readFile(STATISTICS_PATH, 'utf8');
+		return JSON.parse(txt);
+	} catch (err) {
+		// If file doesn't exist, return empty stats
+		return {};
+	}
+}
+
+async function saveStatistics(stats) {
+	try {
+		await fs.writeFile(STATISTICS_PATH, JSON.stringify(stats, null, 2), 'utf8');
+	} catch (err) {
+		console.error('Failed to save statistics:', err);
+	}
 }
 
 function normalizeOutput(s) {
@@ -377,11 +396,71 @@ results.push({
 			//console.error('Cleanup failed:', e);
 		}
 
-		res.json({ results });
+		// Track statistics
+		const allPassed = results.every(r => r.passed);
+		const stats = await loadStatistics();
+		
+		if (!stats[id]) {
+			stats[id] = {
+				totalAttempts: 0,
+				successfulAttempts: 0,
+				failedAttempts: 0,
+				lastAttempt: null,
+				failureReasons: {}
+			};
+		}
+		
+		stats[id].totalAttempts++;
+		stats[id].lastAttempt = new Date().toISOString();
+		
+		if (allPassed) {
+			stats[id].successfulAttempts++;
+		} else {
+			stats[id].failedAttempts++;
+			// Track failure reasons
+			const failedTests = results.filter(r => !r.passed);
+			failedTests.forEach(test => {
+				let reason = 'unknown';
+				if (test.timedOut) {
+					reason = 'timeout';
+				} else if (test.exitCode !== test.expectedExitCode) {
+					reason = 'wrong_exit_code';
+				} else if (test.actualOutput !== test.expectedOutput) {
+					reason = 'wrong_output';
+				} else if (test.error) {
+					reason = 'error';
+				}
+				stats[id].failureReasons[reason] = (stats[id].failureReasons[reason] || 0) + 1;
+			});
+		}
+		
+		await saveStatistics(stats);
+
+		res.json({ results, statistics: stats[id] });
 
 	} catch (err) {
 		//console.error(err);
 		res.status(500).json({ error: 'internal error', detail: err.message });
+	}
+});
+
+// Get statistics for an exercise or all exercises
+app.get('/api/statistics/:id?', async (req, res) => {
+	const id = req.params.id;
+	const stats = await loadStatistics();
+	
+	if (id) {
+		// Return stats for specific exercise
+		res.json(stats[id] || {
+			totalAttempts: 0,
+			successfulAttempts: 0,
+			failedAttempts: 0,
+			lastAttempt: null,
+			failureReasons: {}
+		});
+	} else {
+		// Return all stats
+		res.json(stats);
 	}
 });
 

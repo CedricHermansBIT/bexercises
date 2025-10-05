@@ -243,6 +243,11 @@ class ExerciseApp {
 			}));
 
 			this.displayTestResults(mapped);
+			
+			// Update statistics display
+			if (data.statistics) {
+				this.displayStatistics(data.statistics);
+			}
 
 			const allPassed = mapped.length > 0 && mapped.every(tt => tt.passed);
 			this.updateExerciseProgress(this.currentExercise.id, code, allPassed);
@@ -403,6 +408,64 @@ class ExerciseApp {
 			</div>
 		`;
 		document.body.appendChild(notification);
+	}
+
+	displayStatistics(stats) {
+		const statsContainer = document.getElementById('statistics-panel');
+		if (!statsContainer) return;
+
+		const successRate = stats.totalAttempts > 0 
+			? ((stats.successfulAttempts / stats.totalAttempts) * 100).toFixed(1)
+			: 0;
+
+		let failureBreakdown = '';
+		if (stats.failedAttempts > 0 && stats.failureReasons) {
+			const reasons = Object.entries(stats.failureReasons)
+				.map(([reason, count]) => {
+					const icon = {
+						'timeout': '⏱️',
+						'wrong_exit_code': '🚪',
+						'wrong_output': '📝',
+						'error': '❌',
+						'unknown': '❓'
+					}[reason] || '❓';
+					const label = {
+						'timeout': 'Timeout',
+						'wrong_exit_code': 'Wrong Exit Code',
+						'wrong_output': 'Wrong Output',
+						'error': 'Error',
+						'unknown': 'Unknown'
+					}[reason] || reason;
+					return `<div class="failure-reason">${icon} ${label}: ${count}</div>`;
+				})
+				.join('');
+			failureBreakdown = `<div class="failure-breakdown">${reasons}</div>`;
+		}
+
+		statsContainer.innerHTML = `
+			<div class="stats-content">
+				<h4>📊 Exercise Statistics</h4>
+				<div class="stats-grid">
+					<div class="stat-item">
+						<span class="stat-label">Total Attempts:</span>
+						<span class="stat-value">${stats.totalAttempts}</span>
+					</div>
+					<div class="stat-item">
+						<span class="stat-label">Success Rate:</span>
+						<span class="stat-value">${successRate}%</span>
+					</div>
+					<div class="stat-item success">
+						<span class="stat-label">✓ Successful:</span>
+						<span class="stat-value">${stats.successfulAttempts}</span>
+					</div>
+					<div class="stat-item failed">
+						<span class="stat-label">✗ Failed:</span>
+						<span class="stat-value">${stats.failedAttempts}</span>
+					</div>
+				</div>
+				${failureBreakdown}
+			</div>
+		`;
 	}
 
 	displayError(message) {
