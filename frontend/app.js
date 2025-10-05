@@ -161,19 +161,24 @@ class ExerciseApp {
 			url.searchParams.set('exercise', exerciseId);
 			window.history.pushState({}, '', url);
 
-			document.getElementById('welcome-screen').style.display = 'none';
-			document.getElementById('exercise-view').style.display = 'block';
-			document.getElementById('exercise-title').textContent = exercise.title;
+		document.getElementById('welcome-screen').style.display = 'none';
+		document.getElementById('exercise-view').style.display = 'block';
+		document.getElementById('exercise-title').textContent = exercise.title;
 
-			const descriptionDiv = document.getElementById('exercise-description');
-			descriptionDiv.innerHTML = marked.parse(exercise.description);
+		const descriptionDiv = document.getElementById('exercise-description');
+		descriptionDiv.innerHTML = marked.parse(exercise.description);
 
-			// Load saved code or default
-			const savedCode = this.progress[exerciseId]?.code;
-			const startingCode = savedCode || '#!/bin/bash\n\n# Write your solution here\n';
-			this.codeEditor.setValue(startingCode);
+		// Load saved code or default
+		const savedCode = this.progress[exerciseId]?.code;
+		const startingCode = savedCode || '#!/bin/bash\n\n# Write your solution here\n';
+		this.codeEditor.setValue(startingCode);
+		
+		// Refresh CodeMirror to fix layout after showing the exercise view
+		setTimeout(() => {
+			this.codeEditor.refresh();
+		}, 0);
 
-			this.updateCompletionStatus(exerciseId);
+		this.updateCompletionStatus(exerciseId);
 			document.querySelectorAll('.exercise-item').forEach(item => item.classList.remove('active'));
 			const active = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
 			if (active) active.classList.add('active');
