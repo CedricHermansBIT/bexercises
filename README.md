@@ -366,7 +366,7 @@ curl -X POST http://localhost:3000/api/exercises/script-args/run \
 
 ## License
 
-[Specify your license here]
+This project is licensed under the terms of the MIT license.
 
 ## Acknowledgments
 
