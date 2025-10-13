@@ -556,7 +556,7 @@ class ExerciseApp {
 		document.getElementById('run-tests').addEventListener('click', () => this.runTests());
 		//document.getElementById('test-interactive').addEventListener('click', () => this.testInteractive());
 		document.getElementById('reset-code').addEventListener('click', () => this.resetCode());
-		document.getElementById('show-solution').addEventListener('click', () => this.showSolution());
+		//document.getElementById('show-solution').addEventListener('click', () => this.showSolution());
 
 		// Terminal controls
 		//document.getElementById('clear-terminal').addEventListener('click', () => this.clearTerminal());
