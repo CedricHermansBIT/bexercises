@@ -1,4 +1,5 @@
 // server.js
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { spawn } = require('child_process');
@@ -8,10 +9,60 @@ const os = require('os');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const morgan = require('morgan');
+const session = require('express-session');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 app.use(morgan('combined'));
 app.use(bodyParser.json({ limit: '200kb' }));
+
+// Serve static files from the frontend directory
+app.use(express.static(path.join(__dirname, 'frontend')));
+
+// Session configuration
+app.use(session({
+	secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+	resave: false,
+	saveUninitialized: false,
+	cookie: {
+		secure: process.env.NODE_ENV === 'production', // HTTPS in production
+		maxAge: 24 * 60 * 60 * 1000 // 24 hours
+	}
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Configure Google OAuth Strategy
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+	passport.use(new GoogleStrategy({
+		clientID: process.env.GOOGLE_CLIENT_ID,
+		clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+		callbackURL: process.env.CALLBACK_URL || '/auth/google/callback'
+	},
+	(accessToken, refreshToken, profile, done) => {
+		// Create user object from Google profile
+		const user = {
+			id: profile.id,
+			email: profile.emails && profile.emails[0] ? profile.emails[0].value : null,
+			name: profile.displayName,
+			picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null
+		};
+		return done(null, user);
+	}));
+
+	passport.serializeUser((user, done) => {
+		done(null, user);
+	});
+
+	passport.deserializeUser((user, done) => {
+		done(null, user);
+	});
+} else {
+	console.warn('WARNING: Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env file');
+}
 
 // CORS middleware
 app.use((req, res, next) => {
@@ -22,6 +73,55 @@ app.use((req, res, next) => {
 		return res.sendStatus(200);
 	}
 	next();
+});
+
+// ---------- Authentication Routes ----------
+
+// Middleware to check if user is authenticated (optional - for protecting routes)
+function ensureAuthenticated(req, res, next) {
+	if (req.isAuthenticated()) {
+		return next();
+	}
+	res.status(401).json({ error: 'Not authenticated' });
+}
+
+// Initiate Google OAuth
+app.get('/auth/google',
+	passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// Google OAuth callback
+app.get('/auth/google/callback',
+	passport.authenticate('google', { failureRedirect: '/' }),
+	(req, res) => {
+		// Successful authentication
+		res.redirect('/');
+	}
+);
+
+// Logout
+app.get('/auth/logout', (req, res) => {
+	req.logout((err) => {
+		if (err) {
+			return res.status(500).json({ error: 'Logout failed' });
+		}
+		res.redirect('/');
+	});
+});
+
+// Get current user info
+app.get('/auth/user', (req, res) => {
+	if (req.isAuthenticated()) {
+		res.json({
+			authenticated: true,
+			user: req.user
+		});
+	} else {
+		res.json({
+			authenticated: false,
+			user: null
+		});
+	}
 });
 
 // Load exercises (server side). Keep testCases & solutions here.

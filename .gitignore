@@ -1,0 +1,30 @@
+# Environment variables
+.env
+
+# Temporary files
+tmp/
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# User data (if storing locally)
+users.json
+sessions/
+

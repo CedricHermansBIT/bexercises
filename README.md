@@ -5,6 +5,7 @@ An interactive web-based platform for learning and practicing Bash scripting thr
 ## Features
 
 - ✅ **Interactive Code Editor** - Write Bash scripts with syntax highlighting powered by CodeMirror
+- 🔐 **Google Authentication** - Secure login with Google OAuth 2.0 (optional)
 - 🧪 **Automated Test Suites** - Each exercise includes multiple test cases with expected outputs
 - 🐳 **Isolated Execution** - Scripts run in ephemeral Docker containers for security and consistency
 - 📈 **Progress Tracking** - Track your completion status across all exercises
@@ -68,6 +69,20 @@ Each exercise includes:
    ```
    
    The server will start on port 3000 by default.
+
+### Google Authentication Setup (Optional)
+
+The platform supports Google OAuth 2.0 authentication. To enable it:
+
+1. **Follow the detailed setup guide**: See [GOOGLE_AUTH_SETUP.md](GOOGLE_AUTH_SETUP.md) for complete instructions
+
+2. **Quick setup**:
+   - Create a Google Cloud project
+   - Configure OAuth consent screen
+   - Create OAuth 2.0 credentials
+   - Copy `.env.example` to `.env` and add your credentials
+   
+3. **Without authentication**: The platform works without authentication. If you skip this step, users won't see the login button, but all features will work.
 
 ### Systemd Service (Optional)
 
