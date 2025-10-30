@@ -121,6 +121,31 @@ async function deleteExercise(id) {
 	await saveExercisesInternal(filtered);
 }
 
+/**
+ * Reorder exercises (admin only)
+ * @param {Array} exercises - Array of exercises with updated order
+ * @returns {Promise<void>}
+ */
+async function reorderExercises(exercises) {
+	// Load current exercises to preserve all fields
+	const current = await loadExercisesInternal();
+
+	// Update order and chapter for provided exercises
+	const updated = exercises.map(ex => {
+		const existing = current.find(e => e.id === ex.id);
+		if (!existing) {
+			throw new Error(`Exercise ${ex.id} not found`);
+		}
+		return {
+			...existing,
+			order: ex.order,
+			chapter: ex.chapter
+		};
+	});
+
+	await saveExercisesInternal(updated);
+}
+
 module.exports = {
 	loadExercisesInternal,
 	getAllExercises,
@@ -128,6 +153,7 @@ module.exports = {
 	getExerciseWithTests,
 	createExercise,
 	updateExercise,
-	deleteExercise
+	deleteExercise,
+	reorderExercises
 };
 

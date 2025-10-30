@@ -1078,6 +1078,25 @@ body {
 .sidebar-header {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sidebar-header .action-btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+.reorder-actions {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 0.5rem;
+}
+
+.reorder-actions .action-btn {
+    flex: 1;
 }
 
 .exercises-list {
@@ -1106,10 +1125,25 @@ body {
     align-items: center;
     justify-content: space-between;
     transition: var(--transition);
+    cursor: move;
 }
 
 .exercise-item:hover {
     background: var(--surface);
+}
+
+.exercise-item.dragging {
+    opacity: 0.5;
+}
+
+.drag-handle {
+    color: var(--text-muted);
+    margin-right: 0.5rem;
+    cursor: grab;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
 }
 
 .exercise-name {
@@ -1200,6 +1234,15 @@ body {
     font-size: 0.9rem;
 }
 
+.chapter-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chapter-input-group .form-input {
+    flex: 1;
+}
+
 .form-input,
 .form-textarea {
     width: 100%;
@@ -1250,6 +1293,75 @@ body {
     margin-top: 2rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border-color);
+}
+
+/* Test Cases */
+.test-case-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.test-case-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.test-case-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-group-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.form-group-inline label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.form-group-inline .form-input {
+    font-size: 0.85rem;
+    padding: 0.5rem;
+}
+
+/* Fixtures */
+.fixture-list {
+    margin-top: 0.5rem;
+}
+
+.no-fixtures {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.fixture-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.fixture-name {
+    color: var(--text-primary);
+    font-size: 0.85rem;
 }
 
 .test-preview {

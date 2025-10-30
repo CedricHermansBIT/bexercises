@@ -45,9 +45,20 @@
                     <button class="action-btn primary" id="new-exercise-btn">
                         <span>+</span> New Exercise
                     </button>
+                    <button class="action-btn" id="reorder-mode-btn">
+                        <span>⇅</span> Reorder
+                    </button>
                 </div>
                 <div class="exercises-list" id="exercises-list">
                     <!-- Exercise list will be populated here -->
+                </div>
+                <div id="reorder-actions" class="reorder-actions" style="display: none;">
+                    <button class="action-btn primary" id="save-order-btn">
+                        <span>✓</span> Save Order
+                    </button>
+                    <button class="action-btn" id="cancel-order-btn">
+                        Cancel
+                    </button>
                 </div>
             </div>
 
@@ -71,16 +82,20 @@
 
                         <div class="form-group">
                             <label for="exercise-chapter">Chapter</label>
-                            <select id="exercise-chapter" class="form-input">
-                                <option value="Shell scripting">Shell scripting</option>
-                                <option value="Additional exercises">Additional exercises</option>
-                            </select>
+                            <div class="chapter-input-group">
+                                <select id="exercise-chapter" class="form-input">
+                                    <option value="Shell scripting">Shell scripting</option>
+                                    <option value="Additional exercises">Additional exercises</option>
+                                    <option value="__new__">+ Create New Chapter</option>
+                                </select>
+                                <input type="text" id="new-chapter-input" class="form-input" placeholder="New chapter name" style="display: none;">
+                            </div>
                         </div>
 
                         <div class="form-group">
                             <label for="exercise-order">Order</label>
                             <input type="number" id="exercise-order" class="form-input" placeholder="1">
-                            <small class="form-hint">Order within chapter</small>
+                            <small class="form-hint">Order within chapter (will be auto-assigned if using drag & drop)</small>
                         </div>
 
                         <div class="form-group">
@@ -94,6 +109,26 @@
 
 # Write the solution here
 </textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Test Cases</label>
+                            <div id="test-cases-container">
+                                <!-- Test cases will be added here -->
+                            </div>
+                            <button type="button" class="action-btn" id="add-test-case-btn">
+                                <span>+</span> Add Test Case
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fixture-files">Fixture Files</label>
+                            <input type="file" id="fixture-files" multiple style="display: none;">
+                            <button type="button" class="action-btn" id="upload-fixtures-btn">
+                                <span>📁</span> Upload Fixture Files
+                            </button>
+                            <div id="fixture-list" class="fixture-list"></div>
+                            <small class="form-hint">Files that will be available in the test environment</small>
                         </div>
 
                         <div class="form-actions">

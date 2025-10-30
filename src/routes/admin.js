@@ -3,11 +3,60 @@ const express = require('express');
 const requireAdmin = require('../middleware/adminAuth');
 const exerciseService = require('../services/exerciseService');
 const dockerService = require('../services/dockerService');
+const fs = require('fs').promises;
+const path = require('path');
+const config = require('../config');
 
 const router = express.Router();
 
 // All routes require admin authentication
 router.use(requireAdmin);
+
+/**
+ * POST /api/admin/exercises/reorder
+ * Reorder exercises (must be before :id routes to avoid conflicts)
+ */
+router.post('/exercises/reorder', async (req, res) => {
+	try {
+		const { exercises } = req.body;
+
+		if (!exercises || !Array.isArray(exercises)) {
+			return res.status(400).json({ error: 'Invalid exercises array' });
+		}
+
+		await exerciseService.reorderExercises(exercises);
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error reordering exercises:', error);
+		res.status(500).json({
+			error: 'Failed to reorder exercises',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * GET /api/admin/exercises/:id/full
+ * Get complete exercise with test cases (admin only)
+ */
+router.get('/exercises/:id/full', async (req, res) => {
+	try {
+		const exercise = await exerciseService.getExerciseWithTests(req.params.id);
+
+		if (!exercise) {
+			return res.status(404).json({ error: 'Exercise not found' });
+		}
+
+		res.json(exercise);
+	} catch (error) {
+		console.error('Error fetching exercise:', error);
+		res.status(500).json({
+			error: 'Failed to load exercise',
+			detail: error.message
+		});
+	}
+});
 
 /**
  * POST /api/admin/test-solution
@@ -50,14 +99,12 @@ router.post('/exercises', async (req, res) => {
 			return res.status(400).json({ error: 'Missing required fields' });
 		}
 
-		// Create test cases from expected output
-		const testCases = [];
-		if (exerciseData.expectedOutput) {
-			testCases.push({
-				arguments: [],
-				expectedOutput: exerciseData.expectedOutput,
-				expectedExitCode: 0
-			});
+		// Save fixture files if provided
+		if (exerciseData.fixtures && Array.isArray(exerciseData.fixtures)) {
+			for (const fixture of exerciseData.fixtures) {
+				const fixturePath = path.join(config.paths.fixtures, fixture.name);
+				await fs.writeFile(fixturePath, fixture.content, 'utf8');
+			}
 		}
 
 		const exercise = {
@@ -65,7 +112,7 @@ router.post('/exercises', async (req, res) => {
 			title: exerciseData.title,
 			description: exerciseData.description || '',
 			solution: exerciseData.solution,
-			testCases: testCases,
+			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
 			order: exerciseData.order || 0
 		};
@@ -99,14 +146,12 @@ router.put('/exercises/:id', async (req, res) => {
 		const exerciseData = req.body;
 		const exerciseId = req.params.id;
 
-		// Create test cases from expected output
-		const testCases = [];
-		if (exerciseData.expectedOutput) {
-			testCases.push({
-				arguments: [],
-				expectedOutput: exerciseData.expectedOutput,
-				expectedExitCode: 0
-			});
+		// Save fixture files if provided
+		if (exerciseData.fixtures && Array.isArray(exerciseData.fixtures)) {
+			for (const fixture of exerciseData.fixtures) {
+				const fixturePath = path.join(config.paths.fixtures, fixture.name);
+				await fs.writeFile(fixturePath, fixture.content, 'utf8');
+			}
 		}
 
 		const exercise = {
@@ -114,7 +159,7 @@ router.put('/exercises/:id', async (req, res) => {
 			title: exerciseData.title,
 			description: exerciseData.description || '',
 			solution: exerciseData.solution,
-			testCases: testCases,
+			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
 			order: exerciseData.order || 0
 		};

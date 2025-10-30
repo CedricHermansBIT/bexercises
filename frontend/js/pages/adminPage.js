@@ -12,6 +12,10 @@ class AdminPage {
         this.currentExercise = null;
         this.solutionEditor = null;
         this.testOutput = null;
+        this.testCases = [];
+        this.fixtureFiles = [];
+        this.reorderMode = false;
+        this.originalOrder = null;
 
         this.init();
     }
@@ -66,32 +70,70 @@ class AdminPage {
     }
 
     setupEventListeners() {
-        document.getElementById('back-to-languages').addEventListener('click', () => {
+        const addListener = (id, event, handler) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener(event, handler);
+            } else {
+                console.warn(`Element with id '${id}' not found`);
+            }
+        };
+
+        addListener('back-to-languages', 'click', () => {
             window.location.href = './languages.html';
         });
 
-        document.getElementById('new-exercise-btn').addEventListener('click', () => {
+        addListener('new-exercise-btn', 'click', () => {
             this.createNewExercise();
         });
 
-        document.getElementById('test-solution-btn').addEventListener('click', () => {
+        addListener('test-solution-btn', 'click', () => {
             this.testSolution();
         });
 
-        document.getElementById('save-exercise-btn').addEventListener('click', () => {
+        addListener('save-exercise-btn', 'click', () => {
             this.saveExercise();
         });
 
-        document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+        addListener('cancel-edit-btn', 'click', () => {
             this.cancelEdit();
         });
 
-        document.getElementById('modify-solution-btn').addEventListener('click', () => {
+        addListener('modify-solution-btn', 'click', () => {
             this.modifyProceed();
         });
 
-        document.getElementById('discard-btn').addEventListener('click', () => {
+        addListener('discard-btn', 'click', () => {
             this.discardExercise();
+        });
+
+        addListener('add-test-case-btn', 'click', () => {
+            this.addTestCase();
+        });
+
+        addListener('upload-fixtures-btn', 'click', () => {
+            const fixtureInput = document.getElementById('fixture-files');
+            if (fixtureInput) fixtureInput.click();
+        });
+
+        addListener('fixture-files', 'change', (e) => {
+            this.handleFixtureUpload(e);
+        });
+
+        addListener('exercise-chapter', 'change', (e) => {
+            this.handleChapterChange(e);
+        });
+
+        addListener('reorder-mode-btn', 'click', () => {
+            this.toggleReorderMode();
+        });
+
+        addListener('save-order-btn', 'click', () => {
+            this.saveNewOrder();
+        });
+
+        addListener('cancel-order-btn', 'click', () => {
+            this.cancelReorder();
         });
     }
 
@@ -145,14 +187,23 @@ class AdminPage {
         Object.keys(chapters).sort().forEach(chapter => {
             const chapterDiv = document.createElement('div');
             chapterDiv.className = 'exercise-group';
+            chapterDiv.dataset.chapter = chapter;
             chapterDiv.innerHTML = `<div class="group-title">${chapter}</div>`;
 
             chapters[chapter].sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(ex => {
                 const item = document.createElement('div');
                 item.className = 'exercise-item';
+                item.dataset.id = ex.id;
+                item.dataset.chapter = chapter;
+                item.draggable = this.reorderMode;
+
+                const dragHandleDisplay = this.reorderMode ? 'inline' : 'none';
+                const actionsDisplay = this.reorderMode ? 'none' : 'flex';
+
                 item.innerHTML = `
+                    <span class="drag-handle" style="display: ${dragHandleDisplay}">⋮⋮</span>
                     <span class="exercise-name">${ex.order}. ${ex.title}</span>
-                    <div class="exercise-actions">
+                    <div class="exercise-actions" style="display: ${actionsDisplay}">
                         <button class="icon-btn" data-action="edit" data-id="${ex.id}" title="Edit">
                             <span>✎</span>
                         </button>
@@ -161,30 +212,40 @@ class AdminPage {
                         </button>
                     </div>
                 `;
+
+                if (this.reorderMode) {
+                    this.addDragListeners(item);
+                }
+
                 chapterDiv.appendChild(item);
             });
 
             list.appendChild(chapterDiv);
         });
 
-        // Add event listeners
-        list.querySelectorAll('[data-action="edit"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.closest('button').dataset.id;
-                this.editExercise(id);
+        if (!this.reorderMode) {
+            // Add event listeners for edit/delete
+            list.querySelectorAll('[data-action="edit"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('button').dataset.id;
+                    this.editExercise(id);
+                });
             });
-        });
 
-        list.querySelectorAll('[data-action="delete"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.closest('button').dataset.id;
-                this.deleteExercise(id);
+            list.querySelectorAll('[data-action="delete"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('button').dataset.id;
+                    this.deleteExercise(id);
+                });
             });
-        });
+        }
     }
 
     createNewExercise() {
         this.currentExercise = null;
+        this.testCases = [];
+        this.fixtureFiles = [];
+
         document.getElementById('editor-title').textContent = 'New Exercise';
         document.getElementById('exercise-id').value = '';
         document.getElementById('exercise-id').disabled = false;
@@ -193,6 +254,10 @@ class AdminPage {
         document.getElementById('exercise-order').value = '';
         document.getElementById('exercise-description').value = '';
         this.solutionEditor.setValue('#!/bin/bash\n\n# Write the solution here\n');
+
+        this.renderTestCases();
+        this.renderFixtures();
+        this.updateChapterOptions();
 
         document.getElementById('admin-welcome').style.display = 'none';
         document.getElementById('exercise-editor').style.display = 'block';
@@ -206,8 +271,10 @@ class AdminPage {
 
     async editExercise(id) {
         try {
-            const exercise = await this.apiService.getExercise(id);
+            const exercise = await this.apiService.getExerciseWithTests(id);
             this.currentExercise = exercise;
+            this.testCases = exercise.testCases || [];
+            this.fixtureFiles = exercise.fixtures || [];
 
             document.getElementById('editor-title').textContent = 'Edit Exercise';
             document.getElementById('exercise-id').value = exercise.id;
@@ -217,6 +284,10 @@ class AdminPage {
             document.getElementById('exercise-order').value = exercise.order || '';
             document.getElementById('exercise-description').value = exercise.description;
             this.solutionEditor.setValue(exercise.solution);
+
+            this.renderTestCases();
+            this.renderFixtures();
+            this.updateChapterOptions();
 
             document.getElementById('admin-welcome').style.display = 'none';
             document.getElementById('exercise-editor').style.display = 'block';
@@ -279,14 +350,27 @@ class AdminPage {
     }
 
     async saveExercise() {
+        const chapterSelect = document.getElementById('exercise-chapter');
+        const newChapterInput = document.getElementById('new-chapter-input');
+        let chapter = chapterSelect.value;
+
+        if (chapter === '__new__') {
+            chapter = newChapterInput.value.trim();
+            if (!chapter) {
+                alert('Please enter a chapter name');
+                return;
+            }
+        }
+
         const exerciseData = {
             id: document.getElementById('exercise-id').value.trim(),
             title: document.getElementById('exercise-title').value.trim(),
-            chapter: document.getElementById('exercise-chapter').value,
+            chapter: chapter,
             order: parseInt(document.getElementById('exercise-order').value) || 0,
             description: document.getElementById('exercise-description').value.trim(),
             solution: this.solutionEditor.getValue(),
-            expectedOutput: this.testOutput
+            testCases: this.testCases,
+            fixtures: this.fixtureFiles
         };
 
         // Validation
@@ -297,11 +381,6 @@ class AdminPage {
 
         if (!/^[a-z0-9-]+$/.test(exerciseData.id)) {
             alert('Exercise ID must contain only lowercase letters, numbers, and hyphens');
-            return;
-        }
-
-        if (!this.testOutput) {
-            alert('Please test the solution first');
             return;
         }
 
@@ -352,9 +431,277 @@ class AdminPage {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // Test Cases Management
+    addTestCase() {
+        this.testCases.push({
+            arguments: [],
+            expectedOutput: '',
+            expectedExitCode: 0,
+            stdin: ''
+        });
+        this.renderTestCases();
+    }
+
+    removeTestCase(index) {
+        this.testCases.splice(index, 1);
+        this.renderTestCases();
+    }
+
+    renderTestCases() {
+        const container = document.getElementById('test-cases-container');
+        container.innerHTML = '';
+
+        this.testCases.forEach((testCase, index) => {
+            const testCaseDiv = document.createElement('div');
+            testCaseDiv.className = 'test-case-item';
+            testCaseDiv.innerHTML = `
+                <div class="test-case-header">
+                    <span>Test Case ${index + 1}</span>
+                    <button type="button" class="icon-btn delete" data-index="${index}">
+                        <span>🗑</span>
+                    </button>
+                </div>
+                <div class="test-case-fields">
+                    <div class="form-group-inline">
+                        <label>Arguments (comma-separated)</label>
+                        <input type="text" class="form-input" data-field="arguments" data-index="${index}" 
+                               value="${(testCase.arguments || []).join(', ')}" placeholder="arg1, arg2, arg3">
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected Output</label>
+                        <textarea class="form-input" data-field="expectedOutput" data-index="${index}" 
+                                  rows="3" placeholder="Expected output...">${testCase.expectedOutput || ''}</textarea>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected Exit Code</label>
+                        <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}" 
+                               value="${testCase.expectedExitCode || 0}">
+                    </div>
+                    <div class="form-group-inline">
+                        <label>STDIN (optional)</label>
+                        <textarea class="form-input" data-field="stdin" data-index="${index}" 
+                                  rows="2" placeholder="Input lines...">${testCase.stdin || ''}</textarea>
+                    </div>
+                </div>
+            `;
+            container.appendChild(testCaseDiv);
+        });
+
+        // Add event listeners
+        container.querySelectorAll('[data-field]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const field = e.target.dataset.field;
+                let value = e.target.value;
+
+                if (field === 'arguments') {
+                    value = value.split(',').map(s => s.trim()).filter(s => s);
+                } else if (field === 'expectedExitCode') {
+                    value = parseInt(value) || 0;
+                }
+
+                this.testCases[index][field] = value;
+            });
+        });
+
+        container.querySelectorAll('.icon-btn.delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.closest('button').dataset.index);
+                this.removeTestCase(index);
+            });
+        });
+    }
+
+    // Fixture Files Management
+    async handleFixtureUpload(e) {
+        const files = Array.from(e.target.files);
+        for (const file of files) {
+            const content = await this.readFileAsText(file);
+            this.fixtureFiles.push({
+                name: file.name,
+                content: content
+            });
+        }
+        this.renderFixtures();
+        e.target.value = ''; // Reset input
+    }
+
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    }
+
+    removeFixture(index) {
+        this.fixtureFiles.splice(index, 1);
+        this.renderFixtures();
+    }
+
+    renderFixtures() {
+        const list = document.getElementById('fixture-list');
+        if (!list) {
+            console.warn('fixture-list not found');
+            return;
+        }
+
+        list.innerHTML = '';
+
+        if (this.fixtureFiles.length === 0) {
+            list.innerHTML = '<p class="no-fixtures">No fixtures uploaded</p>';
+            return;
+        }
+
+        this.fixtureFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'fixture-item';
+            item.innerHTML = `
+                <span class="fixture-name">📄 ${file.name}</span>
+                <button type="button" class="icon-btn delete" data-index="${index}">
+                    <span>🗑</span>
+                </button>
+            `;
+            list.appendChild(item);
+        });
+
+        list.querySelectorAll('.icon-btn.delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.closest('button').dataset.index);
+                this.removeFixture(index);
+            });
+        });
+    }
+
+    // Chapter Management
+    handleChapterChange(e) {
+        const select = e.target;
+        const newChapterInput = document.getElementById('new-chapter-input');
+
+        if (select.value === '__new__') {
+            newChapterInput.style.display = 'block';
+            newChapterInput.focus();
+        } else {
+            newChapterInput.style.display = 'none';
+        }
+    }
+
+    updateChapterOptions() {
+        const select = document.getElementById('exercise-chapter');
+        const chapters = new Set();
+
+        this.exercises.forEach(ex => {
+            if (ex.chapter) chapters.add(ex.chapter);
+        });
+
+        const currentValue = select.value;
+        select.innerHTML = '';
+
+        Array.from(chapters).sort().forEach(chapter => {
+            const option = document.createElement('option');
+            option.value = chapter;
+            option.textContent = chapter;
+            select.appendChild(option);
+        });
+
+        const newOption = document.createElement('option');
+        newOption.value = '__new__';
+        newOption.textContent = '+ Create New Chapter';
+        select.appendChild(newOption);
+
+        if (currentValue && currentValue !== '__new__') {
+            select.value = currentValue;
+        }
+    }
+
+    // Drag & Drop Reordering
+    toggleReorderMode() {
+        this.reorderMode = !this.reorderMode;
+
+        if (this.reorderMode) {
+            this.originalOrder = JSON.parse(JSON.stringify(this.exercises));
+            document.getElementById('reorder-mode-btn').classList.add('active');
+            document.getElementById('reorder-actions').style.display = 'flex';
+        } else {
+            document.getElementById('reorder-mode-btn').classList.remove('active');
+            document.getElementById('reorder-actions').style.display = 'none';
+        }
+
+        this.populateExerciseList();
+    }
+
+    addDragListeners(item) {
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', item.dataset.id);
+            item.classList.add('dragging');
+        });
+
+        item.addEventListener('dragend', (e) => {
+            item.classList.remove('dragging');
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const dragging = document.querySelector('.dragging');
+            const group = item.closest('.exercise-group');
+
+            if (dragging && dragging.dataset.chapter === item.dataset.chapter) {
+                const siblings = [...group.querySelectorAll('.exercise-item:not(.dragging)')];
+                const nextSibling = siblings.find(sibling => {
+                    const box = sibling.getBoundingClientRect();
+                    return e.clientY < box.top + box.height / 2;
+                });
+
+                if (nextSibling) {
+                    group.insertBefore(dragging, nextSibling);
+                } else {
+                    group.appendChild(dragging);
+                }
+            }
+        });
+    }
+
+    async saveNewOrder() {
+        const newOrder = [];
+        const groups = document.querySelectorAll('.exercise-group');
+
+        groups.forEach(group => {
+            const chapter = group.dataset.chapter;
+            const items = group.querySelectorAll('.exercise-item');
+
+            items.forEach((item, index) => {
+                const id = item.dataset.id;
+                const exercise = this.exercises.find(ex => ex.id === id);
+                if (exercise) {
+                    newOrder.push({
+                        ...exercise,
+                        order: index + 1,
+                        chapter: chapter
+                    });
+                }
+            });
+        });
+
+        try {
+            await this.apiService.reorderExercises(newOrder);
+            this.exercises = newOrder;
+            this.toggleReorderMode();
+            alert('Order saved successfully!');
+        } catch (error) {
+            alert('Failed to save order: ' + error.message);
+        }
+    }
+
+    cancelReorder() {
+        this.exercises = this.originalOrder;
+        this.originalOrder = null;
+        this.toggleReorderMode();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     new AdminPage();
 });
-

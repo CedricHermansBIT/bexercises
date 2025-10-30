@@ -1,121 +1,91 @@
 [
   {
-    "id": "case-statements",
-    "title": "Case Statements",
-    "description": "Write a bash script that takes a single argument and uses a case statement to perform different actions based on the value of the argument. The script should:\n\n1. Print \u201cYou chose the red pill. Welcome to the Matrix!\u201d if the argument is \u201cred\u201d.\n2. Print \u201cYou chose the blue pill. Enjoy your reality!\u201d if the argument is \u201cblue\u201d.\n3. Print \u201cYou chose the green pill. Time to go green!\u201d if the argument is \u201cgreen\u201d.\n4. Print \u201cInvalid choice. Please choose red, blue, or green.\u201d for any other argument.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./case.sh red\nYou chose the red pill. Welcome to the Matrix!\n\n$ ./case.sh blue\nYou chose the blue pill. Enjoy your reality!\n\n$ ./case.sh green\nYou chose the green pill. Time to go green!\n\n$ ./case.sh yellow\nInvalid choice. Please choose red, blue, or green.\n```\n",
-    "solution": "#!/bin/bash\n\nchoice=\"$1\"\n\ncase \"$choice\" in\n    red)\n        echo \"You chose the red pill. Welcome to the Matrix!\"\n        ;;\n    blue)\n        echo \"You chose the blue pill. Enjoy your reality!\"\n        ;;\n    green)\n        echo \"You chose the green pill. Time to go green!\"\n        ;;\n    *)\n        echo \"Invalid choice. Please choose red, blue, or green.\"\n        ;;\nesac\n",
+    "id": "fastq-file-summary",
+    "title": "FASTQ File Summary",
+    "description": "The FASTQ format is a text-based format for storing both a biological sequence (usually nucleotide sequence) and its corresponding quality scores.\n\nA FASTQ file normally uses four lines per sequence:\n\n- Line 1 begins with a ‘@’ character and is followed by a sequence identifier and an optional description (like a FASTA title line).\n- Line 2 is the raw sequence letters.\n- Line 3 begins with a ‘+’ character and is optionally followed by the same sequence identifier (and any description) again.\n- Line 4 encodes the quality values (using ASCII characters) for the sequence in Line 2 and must contain the same number of symbols as letters in the sequence.\nTo summarize the information in a FASTQ file, write a script called FASTQ_summary.sh that:\n\n1. Asks for the name of a FASTQ file (e.g., FASTQ.txt) and the name of an output file (e.g., output_file.txt) in an interactive way.\n2. Iterates over the FASTQ file and adds the raw sequences (line numbers 2) to the output file.\n3. Also print the sequences to the standard output.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./FASTQ_summary.sh\nEnter the name of the FASTQ file: FASTQ.txt\nEnter the name of the output file: output_file.txt\nProcessing FASTQ.txt...\nTGTTGAATTGAGAGCTTGTGTTNAGTAGATAGTTGA\t\nCCCACGTATCCAAGTCGAAGAGNAATTGATTTTCCC\t\nAGGGAGGGAGGGAGTGAGATTGNTTCGATCGCCAAT\t\nCTGGGTTTTTGTGTTATTGAGANTCTGAGTTTGAGA\t\nTTGTTCCTTGACGAGATTGGTGNGGCTTACGATGAG\t\nGATCGGAAGAGCTCGTATGCCGNCTTCTGCTTGAAA\t\nGCATCGAAGCCAACCTCGAACTNCTGGCCGTGGCCG\t\nTAAGCGTGTGGATCTAAACAATNACAAGGAGACTTT\t\nTATCGTCGCTATCGGGAGCTTTNTCTAGATCGGAAG\t\nTGCCGTTGATTAGTCCATTCTCNGAAGGAGAGATAC\t\nATGTCTCGCAAACCGGAAAACANACGTTAAGTCCGG\t\nGTCCCTCGTTTACAGACTCAGANGTGAATAGAAAAG\nSequences have been written to output_file.txt\n\n$ ./FASTQ_summary.sh\nEnter the name of the FASTQ file: FASTQ2.txt\nEnter the name of the output file: output_file.txt\nError: FASTQ2.txt does not exist.\n\n$ echo $?\n1\n```\n",
+    "solution": "#!/bin/bash\n\nread -p \"Enter the name of the FASTQ file: \" fastq_file\nread -p \"Enter the name of the output file: \" output_file\n\nif [ ! -f \"$fastq_file\" ]; then\n    echo \"Error: $fastq_file does not exist.\"\n    exit 1\nfi\n\necho \"Processing $fastq_file...\"\n# Clear the output file\n> \"$output_file\"\n\ni=0\nwhile read line\ndo\n    i=$((i+1))\n    if [ $((i%4)) -eq 2 ]\n    then\n        echo $line | tee -a $output_file\n    fi\ndone < $fastq_file\n\necho \"Sequences have been written to output_file.txt\"",
     "testCases": [
       {
-        "arguments": [
-          "red"
+        "arguments": [],
+        "expectedOutput": "Processing FASTQ.txt...\nTGTTGAATTGAGAGCTTGTGTTNAGTAGATAGTTGA\nCCCACGTATCCAAGTCGAAGAGNAATTGATTTTCCC\nAGGGAGGGAGGGAGTGAGATTGNTTCGATCGCCAAT\nCTGGGTTTTTGTGTTATTGAGANTCTGAGTTTGAGA\nTTGTTCCTTGACGAGATTGGTGNGGCTTACGATGAG\nGATCGGAAGAGCTCGTATGCCGNCTTCTGCTTGAAA\nGCATCGAAGCCAACCTCGAACTNCTGGCCGTGGCCG\nTAAGCGTGTGGATCTAAACAATNACAAGGAGACTTT\nTATCGTCGCTATCGGGAGCTTTNTCTAGATCGGAAG\nTGCCGTTGATTAGTCCATTCTCNGAAGGAGAGATAC\nATGTCTCGCAAACCGGAAAACANACGTTAAGTCCGG\nGTCCCTCGTTTACAGACTCAGANGTGAATAGAAAAG\nSequences have been written to output_file.txt\n",
+        "expectedExitCode": 0,
+        "input": [
+          "FASTQ.txt",
+          "output_file.txt"
         ],
-        "expectedOutput": "You chose the red pill. Welcome to the Matrix!\n",
-        "expectedExitCode": 0
+        "fixtures": [
+          "FASTQ.txt"
+        ]
       },
       {
-        "arguments": [
-          "blue"
-        ],
-        "expectedOutput": "You chose the blue pill. Enjoy your reality!\n",
-        "expectedExitCode": 0
-      },
-      {
-        "arguments": [
-          "green"
-        ],
-        "expectedOutput": "You chose the green pill. Time to go green!\n",
-        "expectedExitCode": 0
-      },
-      {
-        "arguments": [
-          "yellow"
-        ],
-        "expectedOutput": "Invalid choice. Please choose red, blue, or green.\n",
-        "expectedExitCode": 0
-      },
-      {
-        "arguments": [
-          "Hello"
-        ],
-        "expectedOutput": "Invalid choice. Please choose red, blue, or green.\n",
-        "expectedExitCode": 0
+        "arguments": [],
+        "expectedOutput": "Error: FASTQ2.txt does not exist.\n",
+        "expectedExitCode": 1,
+        "input": [
+          "FASTQ2.txt",
+          "output_file.txt"
+        ]
       }
     ],
-    "chapter": "Shell scripting",
-    "order": 11
+    "chapter": "Additional exercises",
+    "order": 1
   },
   {
-    "id": "script-args2",
-    "title": "Command line argument verification",
-    "description": "Write a bash script that prints \"My name is $1 and I am $2 years old.\" where $1 and $2 are the first and second arguments passed to the script, respectively. The script should not print any additional characters or whitespace.\n\nAdditionally, check that the number of arguments passed to the script is exactly 2. If the number of arguments is different, print the following error message: \"name_of_script_here error: you must supply two arguments\" (where `name_of_script_here` is the name of the script, dynamically determined).\n\n```console?lang=bash&promtp=$\n$ ./script-args Alice\n\"name_of_script_here error: you must supply two arguments\" \n$ echo $?\n1\n$ ./script-args Alice 30\nMy name is Alice and I am 30 years old.\n$ echo $?\n0\n$ ./script-args Alice 30 40\n\"name_of_script_here error: you must supply two arguments\"\n$ echo $?\n1\n```",
-    "solution": "#!/bin/bash\nif [ $# -ne 2 ] \nthen\n    echo \"$0 error: you must supply two arguments\" \n    exit 1\nelse\n    echo \"My name is $1 and I am $2 years old.\" \nfi\n",
+    "id": "multiplication-table",
+    "title": "Multiplication Table",
+    "description": "Write a bash script that prompts the user to input a number and then uses a for loop to print the multiplication table of that number up to 10.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./multiplication_table.sh\nEnter a number: 5\n5 x 1 = 5\n5 x 2 = 10\n5 x 3 = 15\n5 x 4 = 20\n5 x 5 = 25\n5 x 6 = 30\n5 x 7 = 35\n5 x 8 = 40\n5 x 9 = 45\n5 x 10 = 50\n\n```\n",
+    "solution": "#!/bin/bash\n\nread -p \"Enter a number: \" number\n\nfor i in $(seq 1 10)\ndo\n    echo \"$number x $i = $((number * i))\"\ndone\n",
     "testCases": [
       {
-        "arguments": [
-          "John"
-        ],
-        "expectedOutput": "script.sh error: you must supply two arguments",
-        "expectedExitCode": 1
-      },
-      {
-        "arguments": [
-          "Alice",
-          "25"
-        ],
-        "expectedOutput": "My name is Alice and I am 25 years old.",
-        "expectedExitCode": 0
-      },
-      {
-        "arguments": [
-          "Bob",
-          "40",
-          "50"
-        ],
-        "expectedOutput": "script.sh error: you must supply two arguments",
-        "expectedExitCode": 1
+        "arguments": [],
+        "expectedOutput": "5 x 1 = 5\n5 x 2 = 10\n5 x 3 = 15\n5 x 4 = 20\n5 x 5 = 25\n5 x 6 = 30\n5 x 7 = 35\n5 x 8 = 40\n5 x 9 = 45\n5 x 10 = 50\n",
+        "expectedExitCode": 0,
+        "input": [
+          "5"
+        ]
       }
     ],
-    "chapter": "Shell scripting",
+    "chapter": "Additional exercises",
     "order": 2
   },
   {
-    "id": "script-args",
-    "title": "Command line arguments",
-    "description": "Write a bash script that prints \"My name is $1 and I am $2 years old.\" where $1 and $2 are the first and second arguments passed to the script, respectively. The script should not print any additional characters or whitespace.\n\n```console?lang=bash&promtp=$\n$ ./script-args Alice 30\nMy name is Alice and I am 30 years old.\n```",
-    "solution": "echo \"My name is $1 and I am $2 years old.\"",
+    "id": "sum-of-odd-integers",
+    "title": "Sum of Odd Integers",
+    "description": "Write a bash script that takes two positive integers a and b (where a < b < 10000) as arguments and returns the sum of all odd integers from a through b, inclusively.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./sum_odd_integers.sh 100 200\n7500\n$ ./sum_odd_integers.sh 1 10\n25\n```\n",
+    "solution": "#!/bin/bash\n\na=\"$1\"\nb=\"$2\"\nsum=0\n\nfor (( i=a; i<=b; i++ ))\ndo\n    if (( i % 2 != 0 )); then\n        sum=$((sum + i))\n    fi\ndone\n\necho \"$sum\"\n",
     "testCases": [
       {
         "arguments": [
-          "John",
-          "30"
+          "100",
+          "200"
         ],
-        "expectedOutput": "My name is John and I am 30 years old.",
+        "expectedOutput": "7500\n",
         "expectedExitCode": 0
       },
       {
         "arguments": [
-          "Alice",
-          "25"
+          "1",
+          "10"
         ],
-        "expectedOutput": "My name is Alice and I am 25 years old.",
+        "expectedOutput": "25\n",
         "expectedExitCode": 0
       },
       {
         "arguments": [
-          "Bob",
-          "40"
+          "1",
+          "100"
         ],
-        "expectedOutput": "My name is Bob and I am 40 years old.",
+        "expectedOutput": "2500\n",
         "expectedExitCode": 0
       }
     ],
-    "chapter": "Shell scripting",
-    "order": 1
+    "chapter": "Additional exercises",
+    "order": 3
   },
   {
     "id": "continuous-name-prompt",
     "title": "Continuous Name Prompt",
-    "description": "Write a bash script that uses a while loop to continuously prompt the user for their name until they enter \u201cquit\u201d to exit. Use the read -p option for the prompt.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./name_prompt.sh\nEnter your name: Alice\nHello, Alice!\nEnter your name: Bob\nHello, Bob!\nEnter your name: quit\nGoodbye!\n```\n",
+    "description": "Write a bash script that uses a while loop to continuously prompt the user for their name until they enter “quit” to exit. Use the read -p option for the prompt.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./name_prompt.sh\nEnter your name: Alice\nHello, Alice!\nEnter your name: Bob\nHello, Bob!\nEnter your name: quit\nGoodbye!\n```\n",
     "solution": "#!/bin/bash\n\nwhile true\ndo\n    read -p \"Enter your name: \" name\n    if [ \"$name\" = \"quit\" ]; then\n        echo \"Goodbye!\"\n        break\n    else\n        echo \"Hello, $name!\"\n    fi\ndone\n",
     "testCases": [
       {
@@ -152,102 +122,61 @@
     "order": 4
   },
   {
-    "id": "fastq-file-summary",
-    "title": "FASTQ File Summary",
-    "description": "The FASTQ format is a text-based format for storing both a biological sequence (usually nucleotide sequence) and its corresponding quality scores.\n\nA FASTQ file normally uses four lines per sequence:\n\n- Line 1 begins with a \u2018@\u2019 character and is followed by a sequence identifier and an optional description (like a FASTA title line).\n- Line 2 is the raw sequence letters.\n- Line 3 begins with a \u2018+\u2019 character and is optionally followed by the same sequence identifier (and any description) again.\n- Line 4 encodes the quality values (using ASCII characters) for the sequence in Line 2 and must contain the same number of symbols as letters in the sequence.\nTo summarize the information in a FASTQ file, write a script called FASTQ_summary.sh that:\n\n1. Asks for the name of a FASTQ file (e.g., FASTQ.txt) and the name of an output file (e.g., output_file.txt) in an interactive way.\n2. Iterates over the FASTQ file and adds the raw sequences (line numbers 2) to the output file.\n3. Also print the sequences to the standard output.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./FASTQ_summary.sh\nEnter the name of the FASTQ file: FASTQ.txt\nEnter the name of the output file: output_file.txt\nProcessing FASTQ.txt...\nTGTTGAATTGAGAGCTTGTGTTNAGTAGATAGTTGA\t\nCCCACGTATCCAAGTCGAAGAGNAATTGATTTTCCC\t\nAGGGAGGGAGGGAGTGAGATTGNTTCGATCGCCAAT\t\nCTGGGTTTTTGTGTTATTGAGANTCTGAGTTTGAGA\t\nTTGTTCCTTGACGAGATTGGTGNGGCTTACGATGAG\t\nGATCGGAAGAGCTCGTATGCCGNCTTCTGCTTGAAA\t\nGCATCGAAGCCAACCTCGAACTNCTGGCCGTGGCCG\t\nTAAGCGTGTGGATCTAAACAATNACAAGGAGACTTT\t\nTATCGTCGCTATCGGGAGCTTTNTCTAGATCGGAAG\t\nTGCCGTTGATTAGTCCATTCTCNGAAGGAGAGATAC\t\nATGTCTCGCAAACCGGAAAACANACGTTAAGTCCGG\t\nGTCCCTCGTTTACAGACTCAGANGTGAATAGAAAAG\nSequences have been written to output_file.txt\n\n$ ./FASTQ_summary.sh\nEnter the name of the FASTQ file: FASTQ2.txt\nEnter the name of the output file: output_file.txt\nError: FASTQ2.txt does not exist.\n\n$ echo $?\n1\n```\n",
-    "solution": "#!/bin/bash\n\nread -p \"Enter the name of the FASTQ file: \" fastq_file\nread -p \"Enter the name of the output file: \" output_file\n\nif [ ! -f \"$fastq_file\" ]; then\n    echo \"Error: $fastq_file does not exist.\"\n    exit 1\nfi\n\necho \"Processing $fastq_file...\"\n# Clear the output file\n> \"$output_file\"\n\ni=0\nwhile read line\ndo\n    i=$((i+1))\n    if [ $((i%4)) -eq 2 ]\n    then\n        echo $line | tee -a $output_file\n    fi\ndone < $fastq_file\n\necho \"Sequences have been written to output_file.txt\"",
+    "id": "password-prompt",
+    "title": "Password Prompt",
+    "description": "Write a bash script that prompts the user to input a password and keeps prompting until the correct password is entered using a while loop. The correct password should be predefined in the script.\n\n(The correct password is `secret123`.)\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./password_prompt.sh\nEnter the password: wrongpassword\nIncorrect password. Try again.\nEnter the password: secret123\nPassword accepted.\n```\n",
+    "solution": "#!/bin/bash\n\ncorrect_password=\"secret123\"\n\nwhile true\ndo\n    read -p \"Enter the password: \" input_password\n    if [ \"$input_password\" = \"$correct_password\" ]; then\n        echo \"Password accepted.\"\n        break\n    else\n        echo \"Incorrect password. Try again.\"\n    fi\ndone\n",
     "testCases": [
       {
         "arguments": [],
-        "expectedOutput": "Processing FASTQ.txt...\nTGTTGAATTGAGAGCTTGTGTTNAGTAGATAGTTGA\nCCCACGTATCCAAGTCGAAGAGNAATTGATTTTCCC\nAGGGAGGGAGGGAGTGAGATTGNTTCGATCGCCAAT\nCTGGGTTTTTGTGTTATTGAGANTCTGAGTTTGAGA\nTTGTTCCTTGACGAGATTGGTGNGGCTTACGATGAG\nGATCGGAAGAGCTCGTATGCCGNCTTCTGCTTGAAA\nGCATCGAAGCCAACCTCGAACTNCTGGCCGTGGCCG\nTAAGCGTGTGGATCTAAACAATNACAAGGAGACTTT\nTATCGTCGCTATCGGGAGCTTTNTCTAGATCGGAAG\nTGCCGTTGATTAGTCCATTCTCNGAAGGAGAGATAC\nATGTCTCGCAAACCGGAAAACANACGTTAAGTCCGG\nGTCCCTCGTTTACAGACTCAGANGTGAATAGAAAAG\nSequences have been written to output_file.txt\n",
+        "expectedOutput": "Incorrect password. Try again.\nPassword accepted.\n",
         "expectedExitCode": 0,
         "input": [
-          "FASTQ.txt",
-          "output_file.txt"
-        ],
-        "fixtures": [
-          "FASTQ.txt"
-        ]
-      },
-      {
-        "arguments": [],
-        "expectedOutput": "Error: FASTQ2.txt does not exist.\n",
-        "expectedExitCode": 1,
-        "input": [
-          "FASTQ2.txt",
-          "output_file.txt"
+          "wrongpassword",
+          "secret123"
         ]
       }
     ],
     "chapter": "Additional exercises",
-    "order": 1
+    "order": 5
   },
   {
-    "id": "file-tests",
-    "title": "File Tests",
-    "description": "Write a bash script that takes a file path as an argument and performs the following file tests using if, then, else, and elif syntax:\n\n1. Check if the file exists and is a regular file.\n   - If not, print \"<file_name> does not exist or is not a regular file.\" Exit with status 1.\n2. Check if the file is readable.\n3. Check if the file is writable.\n4. Check if the file is executable.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./file_tests.sh testfile\ntestfile is a regular file\ntestfile is readable\ntestfile is writable\ntestfile is executable\n$ echo $?\n0\n\n$ ./file_tests.sh nonexistentfile\nnonexistentfile does not exist or is not a regular file\n$ echo $?\n1\n```",
-    "solution": "#!/bin/bash\n\nfile_path=\"$1\"\n\nif [ -f \"$file_path\" ]; then\n    echo \"$file_path is a regular file\"\nelse\n    echo \"$file_path does not exist or is not a regular file\"\n    exit 1\nfi\n\nif [ -r \"$file_path\" ]; then\n    echo \"$file_path is readable\"\nelse\n    echo \"$file_path is not readable\"\nfi\nif [ -w \"$file_path\" ]; then\n    echo \"$file_path is writable\"\nelse\n    echo \"$file_path is not writable\"\nfi\nif [ -x \"$file_path\" ]; then\n    echo \"$file_path is executable\"\nelse\n    echo \"$file_path is not executable\"\nfi\n",
+    "id": "raindrops",
+    "title": "Raindrops",
+    "description": "Write a bash script that takes a number as an argument and converts it into its corresponding raindrop sounds based on the following rules:\n\n1. If the number is divisible by 3, add “Pling” to the result.\n2. If the number is divisible by 5, add “Plang” to the result.\n3. If the number is divisible by 7, add “Plong” to the result.\n4. If the number is not divisible by 3, 5, or 7, the result should be the number as a string.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./raindrop_sounds.sh 28\nPlong\n$ ./raindrop_sounds.sh 30\nPlingPlang\n$ ./raindrop_sounds.sh 34\n34\n```\n",
+    "solution": "#!/bin/bash\n\nnumber=\"$1\"\nresult=\"\"\n\nif (( number % 3 == 0 )); then\n    result+=\"Pling\"\nfi\n\nif (( number % 5 == 0 )); then\n    result+=\"Plang\"\nfi\n\nif (( number % 7 == 0 )); then\n    result+=\"Plong\"\nfi\n\nif [ -z \"$result\" ]; then\n    result=\"$number\"\nfi\n\necho \"$result\"\n",
     "testCases": [
       {
         "arguments": [
-          "testfile"
+          "28"
         ],
-        "expectedOutput": "testfile is a regular file\ntestfile is readable\ntestfile is writable\ntestfile is executable\n",
-        "expectedExitCode": 0,
-        "fixtures": [
-          "testfile"
-        ],
-        "fixturePermissions": {
-          "testfile": 511
-        }
-      },
-      {
-        "arguments": [
-          "nonexistentfile"
-        ],
-        "expectedOutput": "nonexistentfile does not exist or is not a regular file\n",
-        "expectedExitCode": 1
-      },
-      {
-        "arguments": [
-          "testfile2"
-        ],
-        "expectedOutput": "testfile2 is a regular file\ntestfile2 is readable\ntestfile2 is writable\ntestfile2 is not executable\n",
-        "expectedExitCode": 0,
-        "fixtures": [
-          "testfile2"
-        ],
-        "fixturePermissions": {
-          "testfile2": 438
-        }
-      }
-    ],
-    "chapter": "Shell scripting",
-    "order": 8
-  },
-  {
-    "id": "for-loop",
-    "title": "For Loop",
-    "description": "Write a bash script that takes a single argument representing the height of a triangle and uses a for loop with the seq command to print a triangle of asterisks (*).\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./for_loop_triangle.sh 5\n*\n**\n***\n****\n*****\n\n$ ./for_loop_triangle.sh 3\n*\n**\n***\n```\n",
-    "solution": "#!/bin/bash\n\nheight=\"$1\"\n\nfor i in $(seq 1 \"$height\")\ndo\n    for j in $(seq 1 \"$i\")\n    do\n        echo -n \"*\"\n    done\n    echo \"\"\ndone\n",
-    "testCases": [
-      {
-        "arguments": [
-          "5"
-        ],
-        "expectedOutput": "*\n**\n***\n****\n*****\n",
+        "expectedOutput": "Plong\n",
         "expectedExitCode": 0
       },
       {
         "arguments": [
-          "3"
+          "30"
         ],
-        "expectedOutput": "*\n**\n***\n",
+        "expectedOutput": "PlingPlang\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "34"
+        ],
+        "expectedOutput": "34\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "105"
+        ],
+        "expectedOutput": "PlingPlangPlong\n",
         "expectedExitCode": 0
       }
     ],
-    "chapter": "Shell scripting",
-    "order": 14
+    "chapter": "Additional exercises",
+    "order": 6
   },
   {
     "id": "hamming-distance",
@@ -292,6 +221,71 @@
     "order": 7
   },
   {
+    "id": "reverse-strings",
+    "title": "Reverse strings",
+    "description": "Write a bash script that takes a string as an argument and reverses it. Reversing strings is a common task in programming, especially in bioinformatics for analyzing DNA or RNA sequences.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./reverse_string.sh stressed\ndesserts\n$ ./reverse_string.sh strops\nsports\n$ ./reverse_string.sh racecar\nracecar\n```\n",
+    "solution": "#!/bin/bash\n\ninput_string=\"$1\"\nreversed_string=\"\"\n\nfor (( i=${#input_string}-1; i>=0; i-- ))\ndo\n    reversed_string=\"$reversed_string${input_string:$i:1}\"\ndone\n\necho \"$reversed_string\"",
+    "testCases": [
+      {
+        "arguments": [
+          "stressed"
+        ],
+        "expectedOutput": "desserts\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "strops"
+        ],
+        "expectedOutput": "sports\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "racecar"
+        ],
+        "expectedOutput": "racecar\n",
+        "expectedExitCode": 0
+      }
+    ],
+    "chapter": "Additional exercises",
+    "order": 8
+  },
+  {
+    "id": "robot-simulator",
+    "title": "Robot simulator",
+    "description": "Note: this is already a quite complex problem. Mainly if you want a challenge!\n\nWrite a bash script that simulates the movements of a robot on an infinite grid. The robot can turn right, turn left, and advance. The robot always starts at coordinates {0, 0} facing north. The script should process a series of instructions provided as separate arguments and output the robot’s final position and direction.\n\nInstructions:\n\n- R means turn right.\n- L means turn left.\n- A means advance.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./robot_simulator.sh R A A L A L\nFinal position: {2, 1}\nFacing: west\n```\n",
+    "solution": "#!/bin/bash\n\nx=0\ny=0\ndirection=\"north\"\n\nfor instruction in \"$@\"; do\n    case \"$instruction\" in\n        R) case \"$direction\" in\n                north) direction=\"east\" ;;\n                east) direction=\"south\" ;;\n                south) direction=\"west\" ;;\n                west) direction=\"north\" ;;\n            esac ;;\n        L) case \"$direction\" in\n                north) direction=\"west\" ;;\n                west) direction=\"south\" ;;\n                south) direction=\"east\" ;;\n                east) direction=\"north\" ;;\n            esac ;;\n        A) case \"$direction\" in\n                north) y=$((y + 1)) ;;\n                south) y=$((y - 1)) ;;\n                east) x=$((x + 1)) ;;\n                west) x=$((x - 1)) ;;\n            esac ;;\n    esac\ndone\n\necho \"Final position: {$x, $y}\"\necho \"Facing: $direction\"",
+    "testCases": [
+      {
+        "arguments": [
+          "R",
+          "A",
+          "A",
+          "L",
+          "A",
+          "L"
+        ],
+        "expectedOutput": "Final position: {2, 1}\nFacing: west\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "A",
+          "A",
+          "R",
+          "A",
+          "L",
+          "A"
+        ],
+        "expectedOutput": "Final position: {1, 3}\nFacing: north\n",
+        "expectedExitCode": 0
+      }
+    ],
+    "chapter": "Additional exercises",
+    "order": 9
+  },
+  {
     "id": "mine-counter",
     "title": "Mine counter",
     "description": "Write a bash script that takes a file containing a minefield as an argument. The minefield is represented by . for empty spaces and * for mines. The script should count the number of mines in the file and print the result.\n\nExample minefield file:\n\n```\n*..*....\n........\n........\n...*....\n........\n```\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./mine_counter.sh minefield.txt\nNumber of mines: 10\n```\n",
@@ -329,75 +323,72 @@
     "order": 10
   },
   {
-    "id": "multiplication-table",
-    "title": "Multiplication Table",
-    "description": "Write a bash script that prompts the user to input a number and then uses a for loop to print the multiplication table of that number up to 10.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./multiplication_table.sh\nEnter a number: 5\n5 x 1 = 5\n5 x 2 = 10\n5 x 3 = 15\n5 x 4 = 20\n5 x 5 = 25\n5 x 6 = 30\n5 x 7 = 35\n5 x 8 = 40\n5 x 9 = 45\n5 x 10 = 50\n\n```\n",
-    "solution": "#!/bin/bash\n\nread -p \"Enter a number: \" number\n\nfor i in $(seq 1 10)\ndo\n    echo \"$number x $i = $((number * i))\"\ndone\n",
-    "testCases": [
-      {
-        "arguments": [],
-        "expectedOutput": "5 x 1 = 5\n5 x 2 = 10\n5 x 3 = 15\n5 x 4 = 20\n5 x 5 = 25\n5 x 6 = 30\n5 x 7 = 35\n5 x 8 = 40\n5 x 9 = 45\n5 x 10 = 50\n",
-        "expectedExitCode": 0,
-        "input": [
-          "5"
-        ]
-      }
-    ],
-    "chapter": "Additional exercises",
-    "order": 2
-  },
-  {
-    "id": "numeric-tests",
-    "title": "Numeric Tests",
-    "description": "Write a bash script that takes two numbers as arguments and performs the following numeric tests using if, then, else, and elif syntax:\n\n1. Check if the first number is equal to the second number.\n2. Check if the first number is greater than the second number.\n3. Check if the first number is less than the second number.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./numeric_tests.sh 5 10\n5 is less than 10\n\n$ ./numeric_tests.sh 10 5\n10 is greater than 5\n\n$ ./numeric_tests.sh 5 5\n5 is equal to 5\n\n```\n",
-    "solution": "#!/bin/bash\n\nnum1=\"$1\"\nnum2=\"$2\"\n\nif [ \"$num1\" -eq \"$num2\" ]; then\n    echo \"$num1 is equal to $num2\"\nelif [ \"$num1\" -gt \"$num2\" ]; then\n    echo \"$num1 is greater than $num2\"\nelse\n    echo \"$num1 is less than $num2\"\nfi\n",
+    "id": "script-args",
+    "title": "Command line arguments",
+    "description": "Write a bash script that prints \"My name is $1 and I am $2 years old.\" where $1 and $2 are the first and second arguments passed to the script, respectively. The script should not print any additional characters or whitespace.\n\n```console?lang=bash&promtp=$\n$ ./script-args Alice 30\nMy name is Alice and I am 30 years old.\n```",
+    "solution": "echo \"My name is $1 and I am $2 years old.\"",
     "testCases": [
       {
         "arguments": [
-          "5",
-          "10"
+          "John",
+          "30"
         ],
-        "expectedOutput": "5 is less than 10\n",
+        "expectedOutput": "My name is John and I am 30 years old.",
         "expectedExitCode": 0
       },
       {
         "arguments": [
-          "10",
-          "5"
+          "Alice",
+          "25"
         ],
-        "expectedOutput": "10 is greater than 5\n",
+        "expectedOutput": "My name is Alice and I am 25 years old.",
         "expectedExitCode": 0
       },
       {
         "arguments": [
-          "5",
-          "5"
+          "Bob",
+          "40"
         ],
-        "expectedOutput": "5 is equal to 5\n",
+        "expectedOutput": "My name is Bob and I am 40 years old.",
         "expectedExitCode": 0
       }
     ],
     "chapter": "Shell scripting",
-    "order": 10
+    "order": 1
   },
   {
-    "id": "password-prompt",
-    "title": "Password Prompt",
-    "description": "Write a bash script that prompts the user to input a password and keeps prompting until the correct password is entered using a while loop. The correct password should be predefined in the script.\n\n(The correct password is `secret123`.)\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./password_prompt.sh\nEnter the password: wrongpassword\nIncorrect password. Try again.\nEnter the password: secret123\nPassword accepted.\n```\n",
-    "solution": "#!/bin/bash\n\ncorrect_password=\"secret123\"\n\nwhile true\ndo\n    read -p \"Enter the password: \" input_password\n    if [ \"$input_password\" = \"$correct_password\" ]; then\n        echo \"Password accepted.\"\n        break\n    else\n        echo \"Incorrect password. Try again.\"\n    fi\ndone\n",
+    "id": "script-args2",
+    "title": "Command line argument verification",
+    "description": "Write a bash script that prints \"My name is $1 and I am $2 years old.\" where $1 and $2 are the first and second arguments passed to the script, respectively. The script should not print any additional characters or whitespace.\n\nAdditionally, check that the number of arguments passed to the script is exactly 2. If the number of arguments is different, print the following error message: \"name_of_script_here error: you must supply two arguments\" (where `name_of_script_here` is the name of the script, dynamically determined).\n\n```console?lang=bash&promtp=$\n$ ./script-args Alice\n\"name_of_script_here error: you must supply two arguments\" \n$ echo $?\n1\n$ ./script-args Alice 30\nMy name is Alice and I am 30 years old.\n$ echo $?\n0\n$ ./script-args Alice 30 40\n\"name_of_script_here error: you must supply two arguments\"\n$ echo $?\n1\n```",
+    "solution": "#!/bin/bash\nif [ $# -ne 2 ] \nthen\n    echo \"$0 error: you must supply two arguments\" \n    exit 1\nelse\n    echo \"My name is $1 and I am $2 years old.\" \nfi\n",
     "testCases": [
       {
-        "arguments": [],
-        "expectedOutput": "Incorrect password. Try again.\nPassword accepted.\n",
-        "expectedExitCode": 0,
-        "input": [
-          "wrongpassword",
-          "secret123"
-        ]
+        "arguments": [
+          "John"
+        ],
+        "expectedOutput": "script.sh error: you must supply two arguments",
+        "expectedExitCode": 1
+      },
+      {
+        "arguments": [
+          "Alice",
+          "25"
+        ],
+        "expectedOutput": "My name is Alice and I am 25 years old.",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "Bob",
+          "40",
+          "50"
+        ],
+        "expectedOutput": "script.sh error: you must supply two arguments",
+        "expectedExitCode": 1
       }
     ],
-    "chapter": "Additional exercises",
-    "order": 5
+    "chapter": "Shell scripting",
+    "order": 2
   },
   {
     "id": "script-args3",
@@ -429,47 +420,41 @@
     "order": 3
   },
   {
-    "id": "raindrops",
-    "title": "Raindrops",
-    "description": "Write a bash script that takes a number as an argument and converts it into its corresponding raindrop sounds based on the following rules:\n\n1. If the number is divisible by 3, add \u201cPling\u201d to the result.\n2. If the number is divisible by 5, add \u201cPlang\u201d to the result.\n3. If the number is divisible by 7, add \u201cPlong\u201d to the result.\n4. If the number is not divisible by 3, 5, or 7, the result should be the number as a string.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./raindrop_sounds.sh 28\nPlong\n$ ./raindrop_sounds.sh 30\nPlingPlang\n$ ./raindrop_sounds.sh 34\n34\n```\n",
-    "solution": "#!/bin/bash\n\nnumber=\"$1\"\nresult=\"\"\n\nif (( number % 3 == 0 )); then\n    result+=\"Pling\"\nfi\n\nif (( number % 5 == 0 )); then\n    result+=\"Plang\"\nfi\n\nif (( number % 7 == 0 )); then\n    result+=\"Plong\"\nfi\n\nif [ -z \"$result\" ]; then\n    result=\"$number\"\nfi\n\necho \"$result\"\n",
+    "id": "substitution-operators",
+    "title": "Using Substitution Operators with Arguments",
+    "description": "Write a bash script that demonstrates the use of substitution operators :-, :=, and :? with command-line arguments. The script should:\n\nStore the first, second, and third arguments in variables VAR1, VAR2, and VAR3, respectively.\n\nUse the :- operator to provide a default value if the first argument ($VAR1) is not set.\n\nUse the := operator to set the second argument ($VAR2) to a default value if it is not already set.\n\nUse the :? operator to print an error message and exit if the third argument ($VAR3) is not set.\n\nDue to limitations in the testing capabilities, to get a correct test result, the error for the :? operator should be generated on line 14 of the script.\n\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./substitution_ops.sh\nDefault value for first argument: default_value\nSecond argument is set to: default_value\n./substitution_ops.sh: line 14: $VAR3: argument is not set\n$ echo $?\n1\n\n$ ./substitution_ops.sh Hello World\nDefault value for first argument: Hello\nSecond argument is set to: World\n./substitution_ops.sh: line 14: $VAR3: argument is not set\n$ echo $?\n1\n\n$ ./substitution_ops.sh Hello World Test\nDefault value for first argument: Hello\nSecond argument is set to: World\nThird argument is set to: Test\n$ echo $?\n0\n```",
+    "solution": "#!/bin/bash\n\nVAR1=$1\nVAR2=$2\nVAR3=$3\n\n# Use :- to provide a default value if $VAR1 is not set\necho \"Default value for first argument: ${VAR1:-default_value}\"\n\n# Use := to set $VAR2 to a default value if it is not already set\necho \"Second argument is set to: ${VAR2:=default_value}\"\n\n# Use :? to print an error message and exit if $VAR3 is not set\necho \"Third argument is set to: ${VAR3:?argument is not set}\"\n",
     "testCases": [
       {
-        "arguments": [
-          "28"
-        ],
-        "expectedOutput": "Plong\n",
-        "expectedExitCode": 0
+        "arguments": [],
+        "expectedOutput": "Default value for first argument: default_value\nSecond argument is set to: default_value\n",
+        "expectedExitCode": 1
       },
       {
         "arguments": [
-          "30"
+          "Hello",
+          "World"
         ],
-        "expectedOutput": "PlingPlang\n",
-        "expectedExitCode": 0
+        "expectedOutput": "Default value for first argument: Hello\nSecond argument is set to: World\n",
+        "expectedExitCode": 1
       },
       {
         "arguments": [
-          "34"
+          "Hello",
+          "World",
+          "Test"
         ],
-        "expectedOutput": "34\n",
-        "expectedExitCode": 0
-      },
-      {
-        "arguments": [
-          "105"
-        ],
-        "expectedOutput": "PlingPlangPlong\n",
+        "expectedOutput": "Default value for first argument: Hello\nSecond argument is set to: World\nThird argument is set to: Test\n",
         "expectedExitCode": 0
       }
     ],
-    "chapter": "Additional exercises",
-    "order": 6
+    "chapter": "Shell scripting",
+    "order": 4
   },
   {
     "id": "remove-pattern-from-beginning",
     "title": "Remove Pattern from Beginning",
-    "description": "Write a bash script that takes a string as an argument and performs the following tasks:\n\nSave the first command line parameter in a variable called `input_string`.\n\nRemove the shortest match of the pattern \u201c*Hello\u201d from the beginning of the string.\n\nRemove the longest match of the pattern \u201c*Hello\u201d from the beginning of the string.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./pattern_match.sh \"HelloHelloWorld\"\nOriginal string: HelloHelloWorld\nShortest match removed: HelloWorld\nLongest match removed: World\n```",
+    "description": "Write a bash script that takes a string as an argument and performs the following tasks:\n\nSave the first command line parameter in a variable called `input_string`.\n\nRemove the shortest match of the pattern “*Hello” from the beginning of the string.\n\nRemove the longest match of the pattern “*Hello” from the beginning of the string.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./pattern_match.sh \"HelloHelloWorld\"\nOriginal string: HelloHelloWorld\nShortest match removed: HelloWorld\nLongest match removed: World\n```",
     "solution": "#!/bin/bash\n\ninput_string=\"$1\"\n\necho \"Original string: $input_string\"\necho \"Shortest match removed: ${input_string#*Hello}\"\necho \"Longest match removed: ${input_string##*Hello}\"",
     "testCases": [
       {
@@ -493,7 +478,7 @@
   {
     "id": "remove-pattern-from-end",
     "title": "Remove Pattern from End",
-    "description": "Write a bash script that takes a string as an argument and performs the following tasks:\n\nSave the first command line parameter in a variable called `input_string`.\n\nRemove the shortest match of the pattern \u201cWorld*\u201d from the end of the string.\n\nRemove the longest match of the pattern \u201cWorld*\u201d from the end of the string.\n\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./pattern_match_end.sh \"HelloWorldWorld\"\nOriginal string: HelloWorldWorld\nShortest match removed: HelloWorld\nLongest match removed: Hello\n```",
+    "description": "Write a bash script that takes a string as an argument and performs the following tasks:\n\nSave the first command line parameter in a variable called `input_string`.\n\nRemove the shortest match of the pattern “World*” from the end of the string.\n\nRemove the longest match of the pattern “World*” from the end of the string.\n\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./pattern_match_end.sh \"HelloWorldWorld\"\nOriginal string: HelloWorldWorld\nShortest match removed: HelloWorld\nLongest match removed: Hello\n```",
     "solution": "#!/bin/bash\n\ninput_string=\"$1\"\n\necho \"Original string: $input_string\"\necho \"Shortest match removed: ${input_string%World*}\"\necho \"Longest match removed: ${input_string%%World*}\"",
     "testCases": [
       {
@@ -543,69 +528,47 @@
     "order": 7
   },
   {
-    "id": "reverse-strings",
-    "title": "Reverse strings",
-    "description": "Write a bash script that takes a string as an argument and reverses it. Reversing strings is a common task in programming, especially in bioinformatics for analyzing DNA or RNA sequences.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./reverse_string.sh stressed\ndesserts\n$ ./reverse_string.sh strops\nsports\n$ ./reverse_string.sh racecar\nracecar\n```\n",
-    "solution": "#!/bin/bash\n\ninput_string=\"$1\"\nreversed_string=\"\"\n\nfor (( i=${#input_string}-1; i>=0; i-- ))\ndo\n    reversed_string=\"$reversed_string${input_string:$i:1}\"\ndone\n\necho \"$reversed_string\"",
+    "id": "file-tests",
+    "title": "File Tests",
+    "description": "Write a bash script that takes a file path as an argument and performs the following file tests using if, then, else, and elif syntax:\n\n1. Check if the file exists and is a regular file.\n   - If not, print \"<file_name> does not exist or is not a regular file.\" Exit with status 1.\n2. Check if the file is readable.\n3. Check if the file is writable.\n4. Check if the file is executable.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./file_tests.sh testfile\ntestfile is a regular file\ntestfile is readable\ntestfile is writable\ntestfile is executable\n$ echo $?\n0\n\n$ ./file_tests.sh nonexistentfile\nnonexistentfile does not exist or is not a regular file\n$ echo $?\n1\n```",
+    "solution": "#!/bin/bash\n\nfile_path=\"$1\"\n\nif [ -f \"$file_path\" ]; then\n    echo \"$file_path is a regular file\"\nelse\n    echo \"$file_path does not exist or is not a regular file\"\n    exit 1\nfi\n\nif [ -r \"$file_path\" ]; then\n    echo \"$file_path is readable\"\nelse\n    echo \"$file_path is not readable\"\nfi\nif [ -w \"$file_path\" ]; then\n    echo \"$file_path is writable\"\nelse\n    echo \"$file_path is not writable\"\nfi\nif [ -x \"$file_path\" ]; then\n    echo \"$file_path is executable\"\nelse\n    echo \"$file_path is not executable\"\nfi\n",
     "testCases": [
       {
         "arguments": [
-          "stressed"
+          "testfile"
         ],
-        "expectedOutput": "desserts\n",
-        "expectedExitCode": 0
+        "expectedOutput": "testfile is a regular file\ntestfile is readable\ntestfile is writable\ntestfile is executable\n",
+        "expectedExitCode": 0,
+        "fixtures": [
+          "testfile"
+        ],
+        "fixturePermissions": {
+          "testfile": 511
+        }
       },
       {
         "arguments": [
-          "strops"
+          "nonexistentfile"
         ],
-        "expectedOutput": "sports\n",
-        "expectedExitCode": 0
+        "expectedOutput": "nonexistentfile does not exist or is not a regular file\n",
+        "expectedExitCode": 1
       },
       {
         "arguments": [
-          "racecar"
+          "testfile2"
         ],
-        "expectedOutput": "racecar\n",
-        "expectedExitCode": 0
+        "expectedOutput": "testfile2 is a regular file\ntestfile2 is readable\ntestfile2 is writable\ntestfile2 is not executable\n",
+        "expectedExitCode": 0,
+        "fixtures": [
+          "testfile2"
+        ],
+        "fixturePermissions": {
+          "testfile2": 438
+        }
       }
     ],
-    "chapter": "Additional exercises",
+    "chapter": "Shell scripting",
     "order": 8
-  },
-  {
-    "id": "robot-simulator",
-    "title": "Robot simulator",
-    "description": "Note: this is already a quite complex problem. Mainly if you want a challenge!\n\nWrite a bash script that simulates the movements of a robot on an infinite grid. The robot can turn right, turn left, and advance. The robot always starts at coordinates {0, 0} facing north. The script should process a series of instructions provided as separate arguments and output the robot\u2019s final position and direction.\n\nInstructions:\n\n- R means turn right.\n- L means turn left.\n- A means advance.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./robot_simulator.sh R A A L A L\nFinal position: {2, 1}\nFacing: west\n```\n",
-    "solution": "#!/bin/bash\n\nx=0\ny=0\ndirection=\"north\"\n\nfor instruction in \"$@\"; do\n    case \"$instruction\" in\n        R) case \"$direction\" in\n                north) direction=\"east\" ;;\n                east) direction=\"south\" ;;\n                south) direction=\"west\" ;;\n                west) direction=\"north\" ;;\n            esac ;;\n        L) case \"$direction\" in\n                north) direction=\"west\" ;;\n                west) direction=\"south\" ;;\n                south) direction=\"east\" ;;\n                east) direction=\"north\" ;;\n            esac ;;\n        A) case \"$direction\" in\n                north) y=$((y + 1)) ;;\n                south) y=$((y - 1)) ;;\n                east) x=$((x + 1)) ;;\n                west) x=$((x - 1)) ;;\n            esac ;;\n    esac\ndone\n\necho \"Final position: {$x, $y}\"\necho \"Facing: $direction\"",
-    "testCases": [
-      {
-        "arguments": [
-          "R",
-          "A",
-          "A",
-          "L",
-          "A",
-          "L"
-        ],
-        "expectedOutput": "Final position: {2, 1}\nFacing: west\n",
-        "expectedExitCode": 0
-      },
-      {
-        "arguments": [
-          "A",
-          "A",
-          "R",
-          "A",
-          "L",
-          "A"
-        ],
-        "expectedOutput": "Final position: {1, 3}\nFacing: north\n",
-        "expectedExitCode": 0
-      }
-    ],
-    "chapter": "Additional exercises",
-    "order": 9
   },
   {
     "id": "string-tests",
@@ -634,38 +597,98 @@
     "order": 9
   },
   {
-    "id": "sum-of-odd-integers",
-    "title": "Sum of Odd Integers",
-    "description": "Write a bash script that takes two positive integers a and b (where a < b < 10000) as arguments and returns the sum of all odd integers from a through b, inclusively.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./sum_odd_integers.sh 100 200\n7500\n$ ./sum_odd_integers.sh 1 10\n25\n```\n",
-    "solution": "#!/bin/bash\n\na=\"$1\"\nb=\"$2\"\nsum=0\n\nfor (( i=a; i<=b; i++ ))\ndo\n    if (( i % 2 != 0 )); then\n        sum=$((sum + i))\n    fi\ndone\n\necho \"$sum\"\n",
+    "id": "numeric-tests",
+    "title": "Numeric Tests",
+    "description": "Write a bash script that takes two numbers as arguments and performs the following numeric tests using if, then, else, and elif syntax:\n\n1. Check if the first number is equal to the second number.\n2. Check if the first number is greater than the second number.\n3. Check if the first number is less than the second number.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./numeric_tests.sh 5 10\n5 is less than 10\n\n$ ./numeric_tests.sh 10 5\n10 is greater than 5\n\n$ ./numeric_tests.sh 5 5\n5 is equal to 5\n\n```\n",
+    "solution": "#!/bin/bash\n\nnum1=\"$1\"\nnum2=\"$2\"\n\nif [ \"$num1\" -eq \"$num2\" ]; then\n    echo \"$num1 is equal to $num2\"\nelif [ \"$num1\" -gt \"$num2\" ]; then\n    echo \"$num1 is greater than $num2\"\nelse\n    echo \"$num1 is less than $num2\"\nfi\n",
     "testCases": [
       {
         "arguments": [
-          "100",
-          "200"
-        ],
-        "expectedOutput": "7500\n",
-        "expectedExitCode": 0
-      },
-      {
-        "arguments": [
-          "1",
+          "5",
           "10"
         ],
-        "expectedOutput": "25\n",
+        "expectedOutput": "5 is less than 10\n",
         "expectedExitCode": 0
       },
       {
         "arguments": [
-          "1",
-          "100"
+          "10",
+          "5"
         ],
-        "expectedOutput": "2500\n",
+        "expectedOutput": "10 is greater than 5\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "5",
+          "5"
+        ],
+        "expectedOutput": "5 is equal to 5\n",
         "expectedExitCode": 0
       }
     ],
-    "chapter": "Additional exercises",
-    "order": 3
+    "chapter": "Shell scripting",
+    "order": 10
+  },
+  {
+    "id": "case-statements",
+    "title": "Case Statements",
+    "description": "Write a bash script that takes a single argument and uses a case statement to perform different actions based on the value of the argument. The script should:\n\n1. Print “You chose the red pill. Welcome to the Matrix!” if the argument is “red”.\n2. Print “You chose the blue pill. Enjoy your reality!” if the argument is “blue”.\n3. Print “You chose the green pill. Time to go green!” if the argument is “green”.\n4. Print “Invalid choice. Please choose red, blue, or green.” for any other argument.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./case.sh red\nYou chose the red pill. Welcome to the Matrix!\n\n$ ./case.sh blue\nYou chose the blue pill. Enjoy your reality!\n\n$ ./case.sh green\nYou chose the green pill. Time to go green!\n\n$ ./case.sh yellow\nInvalid choice. Please choose red, blue, or green.\n```\n",
+    "solution": "#!/bin/bash\n\nchoice=\"$1\"\n\ncase \"$choice\" in\n    red)\n        echo \"You chose the red pill. Welcome to the Matrix!\"\n        ;;\n    blue)\n        echo \"You chose the blue pill. Enjoy your reality!\"\n        ;;\n    green)\n        echo \"You chose the green pill. Time to go green!\"\n        ;;\n    *)\n        echo \"Invalid choice. Please choose red, blue, or green.\"\n        ;;\nesac\n",
+    "testCases": [
+      {
+        "arguments": [
+          "red"
+        ],
+        "expectedOutput": "You chose the red pill. Welcome to the Matrix!\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "blue"
+        ],
+        "expectedOutput": "You chose the blue pill. Enjoy your reality!\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "green"
+        ],
+        "expectedOutput": "You chose the green pill. Time to go green!\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "yellow"
+        ],
+        "expectedOutput": "Invalid choice. Please choose red, blue, or green.\n",
+        "expectedExitCode": 0
+      },
+      {
+        "arguments": [
+          "Hello"
+        ],
+        "expectedOutput": "Invalid choice. Please choose red, blue, or green.\n",
+        "expectedExitCode": 0
+      }
+    ],
+    "chapter": "Shell scripting",
+    "order": 11
+  },
+  {
+    "id": "while-loop",
+    "title": "While Loop",
+    "description": "Write a bash script that uses a while loop to print numbers from 1 to 5, each followed by a fun fact about that number.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./while_loop.sh\n1 is the first positive integer.\n2 is the only even prime number.\n3 is the first odd prime number.\n4 is the number of seasons in a year.\n5 is the number of fingers on one hand.\n```\n",
+    "solution": "#!/bin/bash\n\ni=1\nwhile [ $i -le 5 ]\ndo\n    case $i in\n        1)\n            echo \"$i is the first positive integer.\"\n            ;;\n        2)\n            echo \"$i is the only even prime number.\"\n            ;;\n        3)\n            echo \"$i is the first odd prime number.\"\n            ;;\n        4)\n            echo \"$i is the number of seasons in a year.\"\n            ;;\n        5)\n            echo \"$i is the number of fingers on one hand.\"\n            ;;\n    esac\n    i=$((i + 1))\ndone\n",
+    "testCases": [
+      {
+        "arguments": [],
+        "expectedOutput": "1 is the first positive integer.\n2 is the only even prime number.\n3 is the first odd prime number.\n4 is the number of seasons in a year.\n5 is the number of fingers on one hand.\n",
+        "expectedExitCode": 0
+      }
+    ],
+    "chapter": "Shell scripting",
+    "order": 12
   },
   {
     "id": "until-loop",
@@ -683,50 +706,27 @@
     "order": 13
   },
   {
-    "id": "substitution-operators",
-    "title": "Using Substitution Operators with Arguments",
-    "description": "Write a bash script that demonstrates the use of substitution operators :-, :=, and :? with command-line arguments. The script should:\n\nStore the first, second, and third arguments in variables VAR1, VAR2, and VAR3, respectively.\n\nUse the :- operator to provide a default value if the first argument ($VAR1) is not set.\n\nUse the := operator to set the second argument ($VAR2) to a default value if it is not already set.\n\nUse the :? operator to print an error message and exit if the third argument ($VAR3) is not set.\n\nDue to limitations in the testing capabilities, to get a correct test result, the error for the :? operator should be generated on line 14 of the script.\n\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./substitution_ops.sh\nDefault value for first argument: default_value\nSecond argument is set to: default_value\n./substitution_ops.sh: line 14: $VAR3: argument is not set\n$ echo $?\n1\n\n$ ./substitution_ops.sh Hello World\nDefault value for first argument: Hello\nSecond argument is set to: World\n./substitution_ops.sh: line 14: $VAR3: argument is not set\n$ echo $?\n1\n\n$ ./substitution_ops.sh Hello World Test\nDefault value for first argument: Hello\nSecond argument is set to: World\nThird argument is set to: Test\n$ echo $?\n0\n```",
-    "solution": "#!/bin/bash\n\nVAR1=$1\nVAR2=$2\nVAR3=$3\n\n# Use :- to provide a default value if $VAR1 is not set\necho \"Default value for first argument: ${VAR1:-default_value}\"\n\n# Use := to set $VAR2 to a default value if it is not already set\necho \"Second argument is set to: ${VAR2:=default_value}\"\n\n# Use :? to print an error message and exit if $VAR3 is not set\necho \"Third argument is set to: ${VAR3:?argument is not set}\"\n",
+    "id": "for-loop",
+    "title": "For Loop",
+    "description": "Write a bash script that takes a single argument representing the height of a triangle and uses a for loop with the seq command to print a triangle of asterisks (*).\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./for_loop_triangle.sh 5\n*\n**\n***\n****\n*****\n\n$ ./for_loop_triangle.sh 3\n*\n**\n***\n```\n",
+    "solution": "#!/bin/bash\n\nheight=\"$1\"\n\nfor i in $(seq 1 \"$height\")\ndo\n    for j in $(seq 1 \"$i\")\n    do\n        echo -n \"*\"\n    done\n    echo \"\"\ndone\n",
     "testCases": [
       {
-        "arguments": [],
-        "expectedOutput": "Default value for first argument: default_value\nSecond argument is set to: default_value\n",
-        "expectedExitCode": 1
+        "arguments": [
+          "5"
+        ],
+        "expectedOutput": "*\n**\n***\n****\n*****\n",
+        "expectedExitCode": 0
       },
       {
         "arguments": [
-          "Hello",
-          "World"
+          "3"
         ],
-        "expectedOutput": "Default value for first argument: Hello\nSecond argument is set to: World\n",
-        "expectedExitCode": 1
-      },
-      {
-        "arguments": [
-          "Hello",
-          "World",
-          "Test"
-        ],
-        "expectedOutput": "Default value for first argument: Hello\nSecond argument is set to: World\nThird argument is set to: Test\n",
+        "expectedOutput": "*\n**\n***\n",
         "expectedExitCode": 0
       }
     ],
     "chapter": "Shell scripting",
-    "order": 4
-  },
-  {
-    "id": "while-loop",
-    "title": "While Loop",
-    "description": "Write a bash script that uses a while loop to print numbers from 1 to 5, each followed by a fun fact about that number.\n\n## Example Output:\n\n```console?lang=bash&promtp=$\n$ ./while_loop.sh\n1 is the first positive integer.\n2 is the only even prime number.\n3 is the first odd prime number.\n4 is the number of seasons in a year.\n5 is the number of fingers on one hand.\n```\n",
-    "solution": "#!/bin/bash\n\ni=1\nwhile [ $i -le 5 ]\ndo\n    case $i in\n        1)\n            echo \"$i is the first positive integer.\"\n            ;;\n        2)\n            echo \"$i is the only even prime number.\"\n            ;;\n        3)\n            echo \"$i is the first odd prime number.\"\n            ;;\n        4)\n            echo \"$i is the number of seasons in a year.\"\n            ;;\n        5)\n            echo \"$i is the number of fingers on one hand.\"\n            ;;\n    esac\n    i=$((i + 1))\ndone\n",
-    "testCases": [
-      {
-        "arguments": [],
-        "expectedOutput": "1 is the first positive integer.\n2 is the only even prime number.\n3 is the first odd prime number.\n4 is the number of seasons in a year.\n5 is the number of fingers on one hand.\n",
-        "expectedExitCode": 0
-      }
-    ],
-    "chapter": "Shell scripting",
-    "order": 12
+    "order": 14
   }
 ]

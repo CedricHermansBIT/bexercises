@@ -76,6 +76,36 @@ class ApiService {
 	}
 
 	/**
+	 * Get exercise with test cases (admin only)
+	 * @param {string} exerciseId - Exercise ID
+	 * @returns {Promise<Object>} Complete exercise with tests
+	 */
+	async getExerciseWithTests(exerciseId) {
+		const response = await fetch(`${this.baseUrl}/api/admin/exercises/${encodeURIComponent(exerciseId)}/full`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch exercise: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Reorder exercises (admin only)
+	 * @param {Array} exercises - Array of exercises with updated order
+	 * @returns {Promise<void>}
+	 */
+	async reorderExercises(exercises) {
+		const response = await fetch(`${this.baseUrl}/api/admin/exercises/reorder`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ exercises })
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to reorder exercises: ${response.status}`);
+		}
+	}
+
+	/**
 	 * Test exercise solution (admin only)
 	 * @param {string} solution - Solution script
 	 * @returns {Promise<Object>} Test output and exit code
