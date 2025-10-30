@@ -6,10 +6,19 @@
 	"scripts": {
 		"start": "node src/server.js",
 		"dev": "node --watch src/server.js",
+		"migrate": "node src/scripts/migrateToDatabase.js",
 		"lint": "eslint .",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"keywords": ["programming", "education", "exercises", "docker", "bash", "python", "javascript"],
+	"keywords": [
+		"programming",
+		"education",
+		"exercises",
+		"docker",
+		"bash",
+		"python",
+		"javascript"
+	],
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
@@ -20,6 +29,8 @@
 		"morgan": "^1.10.0",
 		"passport": "^0.7.0",
 		"passport-google-oauth20": "^2.0.0",
+		"sqlite": "^5.1.1",
+		"sqlite3": "^5.1.7",
 		"uuid": "^9.0.0"
 	},
 	"devDependencies": {

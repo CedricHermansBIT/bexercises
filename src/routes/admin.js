@@ -252,20 +252,8 @@ router.delete('/exercises/:id', async (req, res) => {
  */
 router.get('/fixtures', async (req, res) => {
 	try {
-		const fixturesDir = config.paths.fixtures;
-		const files = await fs.readdir(fixturesDir);
-
-		const fileStats = await Promise.all(files.map(async (filename) => {
-			const filePath = path.join(fixturesDir, filename);
-			const stats = await fs.stat(filePath);
-			return {
-				name: filename,
-				size: stats.size,
-				modified: stats.mtime
-			};
-		}));
-
-		res.json(fileStats);
+		const files = await require('../services/databaseService').getFixtureFiles();
+		res.json(files);
 	} catch (error) {
 		console.error('Error listing fixtures:', error);
 		res.status(500).json({
@@ -292,6 +280,9 @@ router.post('/fixtures', async (req, res) => {
 			return res.status(400).json({ error: 'Invalid filename' });
 		}
 
+		const file = await require('../services/databaseService').createFixtureFile(filename, content);
+
+		// Also save to fixtures directory for Docker access
 		const filePath = path.join(config.paths.fixtures, filename);
 		await fs.writeFile(filePath, content, 'utf8');
 
@@ -312,10 +303,13 @@ router.post('/fixtures', async (req, res) => {
 router.get('/fixtures/:filename', async (req, res) => {
 	try {
 		const filename = req.params.filename;
-		const filePath = path.join(config.paths.fixtures, filename);
+		const file = await require('../services/databaseService').getFixtureFile(filename);
 
-		const content = await fs.readFile(filePath, 'utf8');
-		res.json({ content });
+		if (!file) {
+			return res.status(404).json({ error: 'File not found' });
+		}
+
+		res.json({ content: file.content });
 	} catch (error) {
 		console.error('Error reading fixture:', error);
 		res.status(500).json({
@@ -338,8 +332,15 @@ router.delete('/fixtures/:filename', async (req, res) => {
 			return res.status(400).json({ error: 'Invalid filename' });
 		}
 
+		await require('../services/databaseService').deleteFixtureFile(filename);
+
+		// Also delete from fixtures directory
 		const filePath = path.join(config.paths.fixtures, filename);
-		await fs.unlink(filePath);
+		try {
+			await fs.unlink(filePath);
+		} catch (err) {
+			console.warn('File not found in fixtures directory:', err.message);
+		}
 
 		res.json({ success: true });
 	} catch (error) {
