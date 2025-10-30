@@ -1,0 +1,230 @@
+// src/services/dockerService.js
+const { spawn } = require('child_process');
+const fs = require('fs').promises;
+const fsSync = require('fs');
+const path = require('path');
+const config = require('../config');
+
+/**
+ * Normalize output by converting CRLF to LF
+ * @param {string} s - String to normalize
+ * @returns {string} Normalized string
+ */
+function normalizeOutput(s) {
+	if (s === null || s === undefined) return '';
+	return s.replace(/\r\n/g, '\n');
+}
+
+/**
+ * Recursively remove a directory
+ * @param {string} targetPath - Path to remove
+ */
+async function removeRecursive(targetPath) {
+	if (fs.rm) {
+		return fs.rm(targetPath, { recursive: true, force: true });
+	}
+
+	if (fs.rmdir) {
+		try {
+			return fs.rmdir(targetPath, { recursive: true });
+		} catch (e) {
+			// Fall through to manual removal
+            console.error('fs.rmdir recursive failed, falling back to manual removal:', e);
+		}
+	}
+
+	// Manual recursive delete (safe fallback)
+	async function _rmDirRecursive(p) {
+		const entries = await fs.readdir(p);
+		await Promise.all(entries.map(async (entry) => {
+			const full = path.join(p, entry);
+			const stat = await fs.lstat(full);
+			if (stat.isDirectory()) {
+				await _rmDirRecursive(full);
+			} else {
+				await fs.unlink(full);
+			}
+		}));
+		await fs.rmdir(p);
+	}
+
+	try {
+		await _rmDirRecursive(targetPath);
+	} catch (err) {
+		if (err.code !== 'ENOENT') throw err;
+	}
+}
+
+/**
+ * Create a temporary script file
+ * @param {string} scriptContents - Script content
+ * @returns {Promise<Object>} Object with tmpdir and scriptPath
+ */
+async function createTempScript(scriptContents) {
+	const normalized = String(scriptContents).replace(/\r\n/g, '\n');
+	const tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-'));
+
+	await fs.chmod(tmpdir, 0o755);
+
+	const scriptPath = path.join(tmpdir, 'script.sh');
+
+	// Defensive: if something exists at scriptPath remove it
+	try {
+		if (fsSync.existsSync(scriptPath)) {
+			const st = fsSync.lstatSync(scriptPath);
+			if (st.isDirectory()) {
+				await removeRecursive(scriptPath);
+			} else {
+				await fs.unlink(scriptPath);
+			}
+		}
+	} catch (err) {
+		// Log but continue
+        console.error(`Error cleaning up existing script path ${scriptPath}:`, err.message);
+	}
+
+	await fs.mkdir(path.dirname(scriptPath), { recursive: true });
+	await fs.writeFile(scriptPath, normalized, { encoding: 'utf8', flag: 'w' });
+	await fs.chmod(scriptPath, 0o777);
+
+	// Verify it's a file
+	const finalStat = fsSync.lstatSync(scriptPath);
+	if (!finalStat.isFile()) {
+		throw new Error(`Failed to create script file at ${scriptPath} (not a regular file)`);
+	}
+
+	return { tmpdir, scriptPath };
+}
+
+/**
+ * Copy fixture files to temp directory
+ * @param {string} tmpdir - Temporary directory
+ * @param {Array} fixtures - Array of fixture filenames
+ * @param {Object} fixturePermissions - Object mapping filename to permissions
+ * @returns {Promise<Array>} Array of copied fixture names
+ */
+async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
+	const copiedFiles = [];
+
+	for (const fixtureName of fixtures) {
+		const sourcePath = path.join(config.paths.fixtures, fixtureName);
+		const destPath = path.join(tmpdir, fixtureName);
+
+		try {
+			if (!fsSync.existsSync(sourcePath)) {
+				continue;
+			}
+
+			await fs.copyFile(sourcePath, destPath);
+
+			let mode;
+			if (fixturePermissions && fixturePermissions[fixtureName] !== undefined) {
+				mode = fixturePermissions[fixtureName];
+			} else {
+				const stat = await fs.stat(sourcePath);
+				mode = stat.mode;
+			}
+			await fs.chmod(destPath, mode);
+
+			copiedFiles.push(fixtureName);
+		} catch (err) {
+			console.error(`Error copying fixture ${fixtureName}:`, err.message);
+		}
+	}
+
+	return copiedFiles;
+}
+
+/**
+ * Run a script in a Docker container
+ * @param {string} tmpdir - Temporary directory with script
+ * @param {Array} args - Command line arguments
+ * @param {Array} inputs - Input lines for stdin
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns {Promise<Object>} Result object with stdout, stderr, exitCode, etc.
+ */
+async function runScriptInContainer(tmpdir, args = [], inputs = [], timeoutMs = config.docker.timeout) {
+	return new Promise((resolve) => {
+		const containerWorkdir = '/home/runner';
+		const containerScript = 'script.sh';
+
+		let shellCommand;
+		if (inputs && Array.isArray(inputs) && inputs.length > 0) {
+			const escapedInputs = inputs.map(line => line.replace(/'/g, "'\\''"));
+			const inputString = escapedInputs.join('\\n') + '\\n';
+			shellCommand = `printf '%b' '${inputString}' | bash ./${containerScript} "$@"`;
+		} else {
+			shellCommand = `bash ./${containerScript} "$@" < /dev/null`;
+		}
+
+		const dockerArgs = [
+			'run', '--rm',
+			'--network', 'none',
+			'--memory', config.docker.memory,
+			'--pids-limit', config.docker.pidsLimit.toString(),
+			'-v', `${tmpdir}:${containerWorkdir}:rw`,
+			'-w', containerWorkdir,
+			'--entrypoint', '/bin/bash',
+			config.docker.image,
+			'-c',
+			shellCommand,
+			'--',
+			...args
+		];
+
+		const docker = spawn('docker', dockerArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+
+		let stdout = '';
+		let stderr = '';
+		let timedOut = false;
+
+		docker.stdout.on('data', (d) => {
+			stdout += d.toString();
+		});
+
+		docker.stderr.on('data', (d) => {
+			stderr += d.toString();
+		});
+
+		const killTimer = setTimeout(() => {
+			timedOut = true;
+			try {
+				docker.kill('SIGKILL');
+			} catch (e) {
+				// Ignore
+                console.error('Error killing docker process:', e);
+			}
+		}, timeoutMs);
+
+		docker.on('error', (err) => {
+			clearTimeout(killTimer);
+			resolve({
+				stdout: normalizeOutput(stdout),
+				stderr: normalizeOutput(stderr),
+				exitCode: null,
+				timedOut,
+				error: err.message
+			});
+		});
+
+		docker.on('close', (code, _signal) => {
+			clearTimeout(killTimer);
+			const exitCode = timedOut ? -1 : code;
+			resolve({
+				stdout: normalizeOutput(stdout),
+				stderr: normalizeOutput(stderr),
+				exitCode,
+				timedOut,
+				error: null
+			});
+		});
+	});
+}
+
+module.exports = {
+	normalizeOutput,
+	removeRecursive,
+	createTempScript,
+	copyFixtures,
+	runScriptInContainer
+};

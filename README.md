@@ -2,7 +2,7 @@
 
 An interactive web-based platform for learning and practicing Bash scripting through hands-on exercises. Write, test, and validate your Bash scripts against comprehensive test suites, all running in isolated Docker containers for security and consistency.
 
-## Features
+## ✨ Features
 
 - ✅ **Interactive Code Editor** - Write Bash scripts with syntax highlighting powered by CodeMirror
 - 🔐 **Google Authentication** - Secure login with Google OAuth 2.0 (optional)
@@ -12,25 +12,45 @@ An interactive web-based platform for learning and practicing Bash scripting thr
 - 💾 **Auto-Save** - Solutions are automatically saved to browser localStorage
 - 📁 **Fixture File Support** - Exercises can include test files with specific permissions
 - 🎯 **Comprehensive Coverage** - Topics include variables, loops, conditionals, file operations, and more
+- 📊 **Statistics** - View success rates and common failure patterns per exercise
 
-## Architecture
+## 🏗️ Architecture
+
+The project follows a modern, modular architecture for maintainability and scalability:
 
 ### Backend (Node.js/Express)
-- **`server.js`** - Express server handling API requests and test execution
-- **`exercises-internal.json`** - Exercise definitions with test cases and solutions
-- **Docker Runner** - Executes user scripts in isolated containers with resource limits
+- **Layered Architecture** - Routes, Services, Middleware separation
+- **`src/routes/`** - API endpoints for exercises, authentication, and statistics
+- **`src/services/`** - Business logic for Docker execution, exercise management, and statistics
+- **`src/middleware/`** - Authentication and CORS configuration
+- **`src/config/`** - Centralized configuration management
+- **Docker Integration** - Executes user scripts in isolated containers with resource limits
 
-### Frontend (Vanilla JS)
-- **`frontend/index.html`** - Main UI with exercise list and code editor
-- **`frontend/app.js`** - Client-side logic for editor, test execution, and progress tracking
-- **`frontend/styles.css`** - Responsive styling
+### Frontend (ES6 Modules)
+- **Component-Based** - Modular UI components for better organization
+- **`frontend/js/components/`** - Reusable UI components (auth, menu, results, statistics)
+- **`frontend/js/services/`** - API client and storage management
+- **`frontend/js/utils/`** - Helper utilities
+- **Modern JavaScript** - ES6 modules, async/await, classes
 
 ### Exercise System
 Each exercise includes:
-- **Description** - Problem statement with examples
+- **Description** - Problem statement with examples (Markdown)
 - **Test Cases** - Arguments, expected output, and exit codes
 - **Fixtures** (optional) - Test files with configurable permissions
-- **Solution** - Reference implementation (not exposed to frontend)
+- **Solution** - Reference implementation (exposed to frontend)
+- **Statistics** - Tracking of attempts and failure patterns
+
+## 📚 Documentation
+
+This project includes comprehensive documentation to help you get started and contribute effectively.
+
+- **[Quick Start Guide](docs/QUICKSTART.md)**: The fastest way to get the project running locally.
+- **[Development Guide](docs/DEVELOPMENT.md)**: A detailed guide for developers, covering setup, code style, and more.
+- **[API Documentation](docs/API.md)**: A complete reference for all API endpoints.
+- **[Project Structure](docs/STRUCTURE.md)**: An in-depth look at the project's architecture and design.
+
+All documentation is located in the `/docs` directory.
 
 ## Setup
 

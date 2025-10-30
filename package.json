@@ -2,10 +2,21 @@
 	"name": "bash-exec-server",
 	"version": "1.0.0",
 	"description": "Server to run bash exercise tests in ephemeral containers",
-	"main": "server.js",
+	"main": "src/server.js",
 	"scripts": {
-		"start": "node server.js"
+		"start": "node src/server.js",
+		"dev": "node --watch src/server.js",
+		"lint": "eslint .",
+		"test": "echo \"Error: no test specified\" && exit 1"
 	},
+	"keywords": [
+		"bash",
+		"education",
+		"exercises",
+		"docker"
+	],
+	"author": "",
+	"license": "MIT",
 	"dependencies": {
 		"body-parser": "^1.20.2",
 		"dotenv": "^17.2.3",
@@ -15,5 +26,12 @@
 		"passport": "^0.7.0",
 		"passport-google-oauth20": "^2.0.0",
 		"uuid": "^9.0.0"
+	},
+	"devDependencies": {
+		"eslint": "^9.38.0",
+		"globals": "^16.4.0"
+	},
+	"engines": {
+		"node": ">=14.0.0"
 	}
 }

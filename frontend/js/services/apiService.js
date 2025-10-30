@@ -1,0 +1,80 @@
+// frontend/js/services/apiService.js
+/**
+ * API Service for interacting with the backend
+ */
+class ApiService {
+	constructor(baseUrl = '') {
+		this.baseUrl = baseUrl;
+	}
+
+	/**
+	 * Fetch all exercises
+	 * @returns {Promise<Array>} Array of exercises
+	 */
+	async getExercises() {
+		const response = await fetch(`${this.baseUrl}/api/exercises`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch exercises: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Fetch a single exercise by ID
+	 * @param {string} exerciseId - Exercise ID
+	 * @returns {Promise<Object>} Exercise object
+	 */
+	async getExercise(exerciseId) {
+		const response = await fetch(`${this.baseUrl}/api/exercises/${encodeURIComponent(exerciseId)}`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch exercise: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Run tests for an exercise
+	 * @param {string} exerciseId - Exercise ID
+	 * @param {string} script - User's script code
+	 * @returns {Promise<Object>} Test results and statistics
+	 */
+	async runTests(exerciseId, script) {
+		const response = await fetch(`${this.baseUrl}/api/exercises/${encodeURIComponent(exerciseId)}/run`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ script })
+		});
+
+		if (!response.ok) {
+			const err = await response.json().catch(() => ({ error: 'unknown' }));
+			throw new Error(`Server error: ${response.status} ${err.error || ''}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Get statistics for an exercise
+	 * @param {string} exerciseId - Exercise ID
+	 * @returns {Promise<Object>} Statistics object
+	 */
+	async getStatistics(exerciseId) {
+		const response = await fetch(`${this.baseUrl}/api/statistics/${encodeURIComponent(exerciseId)}`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch statistics: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Get current user info
+	 * @returns {Promise<Object>} User object
+	 */
+	async getCurrentUser() {
+		const response = await fetch(`${this.baseUrl}/auth/user`);
+		return response.json();
+	}
+}
+
+export default ApiService;
+
