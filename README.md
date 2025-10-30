@@ -1,10 +1,11 @@
-# 🐚 Bash Programming Exercises
+# 💻 BITLab
 
-An interactive web-based platform for learning and practicing Bash scripting through hands-on exercises. Write, test, and validate your Bash scripts against comprehensive test suites, all running in isolated Docker containers for security and consistency.
+An interactive web-based platform for learning and practicing programming through hands-on exercises. Write, test, and validate your code against comprehensive test suites, all running in isolated Docker containers for security and consistency.
 
 ## ✨ Features
 
-- ✅ **Interactive Code Editor** - Write Bash scripts with syntax highlighting powered by CodeMirror
+- 🌍 **Multi-Language Support** - Start with Bash, expand to Python, JavaScript, SQL, and more
+- ✅ **Interactive Code Editor** - Write code with syntax highlighting powered by CodeMirror
 - 🔐 **Google Authentication** - Secure login with Google OAuth 2.0 (optional)
 - 🧪 **Automated Test Suites** - Each exercise includes multiple test cases with expected outputs
 - 🐳 **Isolated Execution** - Scripts run in ephemeral Docker containers for security and consistency
@@ -13,6 +14,19 @@ An interactive web-based platform for learning and practicing Bash scripting thr
 - 📁 **Fixture File Support** - Exercises can include test files with specific permissions
 - 🎯 **Comprehensive Coverage** - Topics include variables, loops, conditionals, file operations, and more
 - 📊 **Statistics** - View success rates and common failure patterns per exercise
+- 🎨 **Modern UI** - Hyprland-inspired dark theme with smooth animations
+
+## 🌐 Supported Languages
+
+### Currently Available
+- **Bash** - Shell scripting and automation
+
+### Coming Soon
+- **Python** - General-purpose programming
+- **JavaScript** - Web development essentials  
+- **SQL** - Database queries
+- **C** - Systems programming
+- **Java** - Object-oriented programming
 
 ## 🏗️ Architecture
 
@@ -50,7 +64,7 @@ This project includes comprehensive documentation to help you get started and co
 - **[API Documentation](docs/API.md)**: A complete reference for all API endpoints.
 - **[Project Structure](docs/STRUCTURE.md)**: An in-depth look at the project's architecture and design.
 
-All documentation is located in the `/docs` directory.
+   cd bitlab
 
 ## Setup
 
@@ -60,7 +74,7 @@ All documentation is located in the `/docs` directory.
 - **Linux/Unix** environment (tested on Debian/Ubuntu)
 
 ### Installation
-
+   docker build -t bitlab-runner:latest -f Dockerfile.runner .
 1. **Clone the repository**
    ```bash
    git clone <repository-url>

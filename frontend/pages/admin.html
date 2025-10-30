@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BITLab ~ admin</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+</head>
+<body class="hyprland-theme">
+    <!-- Admin Screen -->
+    <div id="admin-screen" class="screen active">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="back-button" id="back-to-languages">
+                    <span>󰁍</span> back
+                </button>
+                <span class="workspace-indicator">[admin]</span>
+                <span class="app-title">Exercise Management</span>
+            </div>
+            <div class="topbar-center">
+                <span class="topbar-subtitle">create & manage exercises</span>
+            </div>
+            <div class="topbar-right">
+                <span class="system-time" id="system-time">00:00</span>
+                <div class="user-menu" id="user-menu-admin">
+                    <span class="user-icon">󰀄</span>
+                    <div class="user-dropdown">
+                        <button class="dropdown-item" id="logout-btn">
+                            <span>󰗼</span> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-layout">
+            <!-- Sidebar with exercise list -->
+            <div class="admin-sidebar">
+                <div class="sidebar-header">
+                    <button class="action-btn primary" id="new-exercise-btn">
+                        <span>+</span> New Exercise
+                    </button>
+                </div>
+                <div class="exercises-list" id="exercises-list">
+                    <!-- Exercise list will be populated here -->
+                </div>
+            </div>
+
+            <!-- Main content area -->
+            <div class="admin-main">
+                <!-- Exercise Editor Form -->
+                <div id="exercise-editor" class="exercise-editor" style="display: none;">
+                    <div class="editor-section">
+                        <h2 class="section-title" id="editor-title">New Exercise</h2>
+
+                        <div class="form-group">
+                            <label for="exercise-id">Exercise ID</label>
+                            <input type="text" id="exercise-id" class="form-input" placeholder="e.g., command-line-args">
+                            <small class="form-hint">Unique identifier (lowercase, hyphens only)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exercise-title">Title</label>
+                            <input type="text" id="exercise-title" class="form-input" placeholder="e.g., Command Line Arguments">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exercise-chapter">Chapter</label>
+                            <select id="exercise-chapter" class="form-input">
+                                <option value="Shell scripting">Shell scripting</option>
+                                <option value="Additional exercises">Additional exercises</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exercise-order">Order</label>
+                            <input type="number" id="exercise-order" class="form-input" placeholder="1">
+                            <small class="form-hint">Order within chapter</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exercise-description">Description (Markdown)</label>
+                            <textarea id="exercise-description" class="form-textarea" rows="8" placeholder="Write a bash script that..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exercise-solution">Solution Script</label>
+                            <textarea id="exercise-solution" class="form-code">#!/bin/bash
+
+# Write the solution here
+</textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="action-btn primary" id="test-solution-btn">
+                                <span>󰐊</span> Test Solution
+                            </button>
+                            <button class="action-btn" id="cancel-edit-btn">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Test Results Preview -->
+                    <div id="test-preview" class="test-preview" style="display: none;">
+                        <h3 class="preview-title">Test Output Preview</h3>
+                        <div id="test-output" class="test-output"></div>
+
+                        <div class="form-group">
+                            <label>This output will be used as the expected output for test cases.</label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="action-btn primary" id="save-exercise-btn">
+                                <span>󰆓</span> Create Exercise
+                            </button>
+                            <button class="action-btn" id="modify-solution-btn">
+                                Modify Solution
+                            </button>
+                            <button class="action-btn" id="discard-btn">
+                                Discard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Welcome/Empty State -->
+                <div id="admin-welcome" class="admin-welcome">
+                    <div class="welcome-content">
+                        <h2>Exercise Management</h2>
+                        <p>Select an exercise to edit or create a new one</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/shell/shell.min.js"></script>
+    <script type="module" src="../js/pages/adminPage.js"></script>
+</body>
+</html>
+

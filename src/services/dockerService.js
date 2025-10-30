@@ -221,10 +221,28 @@ async function runScriptInContainer(tmpdir, args = [], inputs = [], timeoutMs = 
 	});
 }
 
+/**
+ * Run a script with arguments (simplified for testing)
+ * @param {string} script - Script content
+ * @param {Array<string>} args - Command line arguments
+ * @returns {Promise<Object>} Execution result
+ */
+async function runScript(script, args = []) {
+	const { tmpdir, scriptPath } = await createTempScript(script);
+
+	try {
+		const result = await runScriptInContainer(tmpdir, 'script.sh', args, [], config.docker.timeoutMs);
+		return result;
+	} finally {
+		await removeRecursive(tmpdir);
+	}
+}
+
 module.exports = {
 	normalizeOutput,
 	removeRecursive,
 	createTempScript,
 	copyFixtures,
-	runScriptInContainer
+	runScriptInContainer,
+	runScript
 };

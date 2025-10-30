@@ -31,7 +31,7 @@ const config = {
 
 	// Docker runner configuration
 	docker: {
-		image: process.env.RUNNER_IMAGE || 'bexercises-runner:latest',
+		image: process.env.RUNNER_IMAGE || 'bitlab-runner:latest',
 		timeout: parseInt(process.env.PER_TEST_TIMEOUT_MS || '30000'),
 		maxParallelTests: parseInt(process.env.MAX_PARALLEL_TESTS || '4'),
 		memory: process.env.DOCKER_MEMORY || '256m',

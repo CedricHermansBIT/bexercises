@@ -18,8 +18,12 @@ class LanguagesPage {
     }
 
     async init() {
-        // Check authentication (but don't require it)
-        await this.authComponent.checkAuth();
+        // Check authentication - REQUIRED
+        const isAuthenticated = await this.authComponent.checkAuth();
+        if (!isAuthenticated) {
+            window.location.href = './login.html';
+            return;
+        }
 
         // Update time display
         this.updateTime();
@@ -30,6 +34,52 @@ class LanguagesPage {
 
         // Populate language cards
         this.populateLanguageCards();
+
+        // Show admin button if user is admin
+        this.setupAdminAccess();
+
+        // Setup logout button
+        this.setupLogout();
+    }
+
+    setupLogout() {
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.authComponent.logout();
+            });
+        }
+
+        // Toggle dropdown on user menu click
+        const userMenu = document.getElementById('user-menu-language');
+        if (userMenu) {
+            userMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userMenu.classList.toggle('active');
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            const userMenu = document.getElementById('user-menu-language');
+            if (userMenu) {
+                userMenu.classList.remove('active');
+            }
+        });
+    }
+
+    setupAdminAccess() {
+        if (this.authComponent.isAdmin()) {
+            const topbarRight = document.querySelector('#language-screen .topbar-right');
+            const adminBtn = document.createElement('button');
+            adminBtn.className = 'action-btn';
+            adminBtn.innerHTML = '<span>⚙</span> Admin';
+            adminBtn.style.marginRight = '1rem';
+            adminBtn.addEventListener('click', () => {
+                window.location.href = './admin.html';
+            });
+            topbarRight.insertBefore(adminBtn, topbarRight.firstChild);
+        }
     }
 
     updateTime() {

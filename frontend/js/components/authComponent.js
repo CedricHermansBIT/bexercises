@@ -55,29 +55,23 @@ class AuthComponent {
 					</svg>
 					sign in with google
 				</button>
-				<button onclick="window.authComponent.continueWithoutLogin()" class="btn-auth" style="margin-top: 1rem;">
-					continue without login
-				</button>
 			`;
 		}
 	}
 
 	/**
-	 * Continue without login
+	 * Check if current user is admin
+	 */
+	isAdmin() {
+		return this.currentUser?.role === 'admin' || this.currentUser?.isAdmin === true;
+	}
+
+	/**
+	 * Continue without login - REMOVED (authentication required)
 	 */
 	continueWithoutLogin() {
-		// Check if we're in multi-page structure
-		if (window.location.pathname.includes('/pages/')) {
-			window.location.href = './languages.html';
-		} else {
-			// Fallback for single-page structure
-			const loginScreen = document.getElementById('login-screen');
-			const languageScreen = document.getElementById('language-screen');
-			if (loginScreen && languageScreen) {
-				loginScreen.classList.remove('active');
-				languageScreen.classList.add('active');
-			}
-		}
+		// No longer supported - redirect to login
+		window.location.href = '/';
 	}
 
 	/**

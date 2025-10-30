@@ -23,8 +23,12 @@ class WorkspacePage {
     }
 
     async init() {
-        // Check authentication (but don't require it)
-        await this.authComponent.checkAuth();
+        // Check authentication - REQUIRED
+        const isAuthenticated = await this.authComponent.checkAuth();
+        if (!isAuthenticated) {
+            window.location.href = './login.html';
+            return;
+        }
 
         // Update time display
         this.updateTime();
@@ -35,6 +39,9 @@ class WorkspacePage {
 
         // Setup event listeners
         this.setupEventListeners();
+
+        // Setup logout
+        this.setupLogout();
 
         // Get exercise ID from URL or session storage
         const urlParams = new URLSearchParams(window.location.search);
@@ -97,6 +104,32 @@ class WorkspacePage {
         if (resetCodeBtn) {
             resetCodeBtn.addEventListener('click', () => this.resetCode());
         }
+    }
+
+    setupLogout() {
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.authComponent.logout();
+            });
+        }
+
+        // Toggle dropdown
+        const userMenu = document.getElementById('user-menu-workspace');
+        if (userMenu) {
+            userMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userMenu.classList.toggle('active');
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            const userMenu = document.getElementById('user-menu-workspace');
+            if (userMenu) {
+                userMenu.classList.remove('active');
+            }
+        });
     }
 
     async loadExercise(exerciseId) {

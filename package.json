@@ -1,7 +1,7 @@
 {
-	"name": "bash-exec-server",
-	"version": "1.0.0",
-	"description": "Server to run bash exercise tests in ephemeral containers",
+	"name": "bitlab",
+	"version": "2.0.0",
+	"description": "BITLab - Interactive programming exercises platform with multi-language support",
 	"main": "src/server.js",
 	"scripts": {
 		"start": "node src/server.js",
@@ -9,12 +9,7 @@
 		"lint": "eslint .",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"keywords": [
-		"bash",
-		"education",
-		"exercises",
-		"docker"
-	],
+	"keywords": ["programming", "education", "exercises", "docker", "bash", "python", "javascript"],
 	"author": "",
 	"license": "MIT",
 	"dependencies": {

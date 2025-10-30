@@ -38,9 +38,22 @@ router.get('/logout', (req, res) => {
  */
 router.get('/user', (req, res) => {
 	if (req.isAuthenticated()) {
+		// Determine if user is admin
+		const adminEmails = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',') : [];
+		const adminDomain = process.env.ADMIN_DOMAIN || '@bitlab.nl';
+
+		const isAdmin =
+			req.user.role === 'admin' ||
+			req.user.isAdmin === true ||
+			adminEmails.includes(req.user.email) ||
+			req.user.email?.endsWith(adminDomain);
+
 		res.json({
 			authenticated: true,
-			user: req.user
+			user: {
+				...req.user,
+				isAdmin
+			}
 		});
 	} else {
 		res.json({

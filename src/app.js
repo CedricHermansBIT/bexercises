@@ -10,6 +10,7 @@ const { configurePassport } = require('./middleware/auth');
 const corsMiddleware = require('./middleware/cors');
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
+const adminRoutes = require('./routes/admin');
 
 /**
  * Create and configure Express application
@@ -48,6 +49,7 @@ function createApp() {
 
 	// Routes
 	app.use('/auth', authRoutes);
+	app.use('/api/admin', adminRoutes);
 	app.use('/api', apiRoutes);
 
 	// Error handling middleware

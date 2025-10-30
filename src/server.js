@@ -5,7 +5,7 @@ const config = require('./config');
 const app = createApp();
 
 app.listen(config.server.port, () => {
-	console.log(`🚀 Bash Exercises Server running on port ${config.server.port}`);
+	console.log(`🚀 BITLab Server running on port ${config.server.port}`);
 	console.log(`   Environment: ${config.server.env}`);
 	console.log(`   Frontend: http://localhost:${config.server.port}`);
 

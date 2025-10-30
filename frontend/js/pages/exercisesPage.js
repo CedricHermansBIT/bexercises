@@ -20,8 +20,12 @@ class ExercisesPage {
     }
 
     async init() {
-        // Check authentication (but don't require it)
-        await this.authComponent.checkAuth();
+        // Check authentication - REQUIRED
+        const isAuthenticated = await this.authComponent.checkAuth();
+        if (!isAuthenticated) {
+            window.location.href = './login.html';
+            return;
+        }
 
         // Get selected language from session storage
         this.currentLanguage = sessionStorage.getItem('selectedLanguage') || 'bash';
@@ -47,6 +51,35 @@ class ExercisesPage {
 
         // Populate exercise cards
         this.populateExerciseSections();
+
+        // Setup logout
+        this.setupLogout();
+    }
+
+    setupLogout() {
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.authComponent.logout();
+            });
+        }
+
+        // Toggle dropdown
+        const userMenu = document.getElementById('user-menu');
+        if (userMenu) {
+            userMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userMenu.classList.toggle('active');
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            const userMenu = document.getElementById('user-menu');
+            if (userMenu) {
+                userMenu.classList.remove('active');
+            }
+        });
     }
 
     updateTime() {

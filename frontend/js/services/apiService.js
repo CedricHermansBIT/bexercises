@@ -74,6 +74,81 @@ class ApiService {
 		const response = await fetch(`${this.baseUrl}/auth/user`);
 		return response.json();
 	}
+
+	/**
+	 * Test exercise solution (admin only)
+	 * @param {string} solution - Solution script
+	 * @returns {Promise<Object>} Test output and exit code
+	 */
+	async testExerciseSolution(solution) {
+		const response = await fetch(`${this.baseUrl}/api/admin/test-solution`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ solution })
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to test solution: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Create new exercise (admin only)
+	 * @param {Object} exerciseData - Exercise data
+	 * @returns {Promise<Object>} Created exercise
+	 */
+	async createExercise(exerciseData) {
+		const response = await fetch(`${this.baseUrl}/api/admin/exercises`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(exerciseData)
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to create exercise: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Update exercise (admin only)
+	 * @param {string} exerciseId - Exercise ID
+	 * @param {Object} exerciseData - Exercise data
+	 * @returns {Promise<Object>} Updated exercise
+	 */
+	async updateExercise(exerciseId, exerciseData) {
+		const response = await fetch(`${this.baseUrl}/api/admin/exercises/${encodeURIComponent(exerciseId)}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(exerciseData)
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to update exercise: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Delete exercise (admin only)
+	 * @param {string} exerciseId - Exercise ID
+	 * @returns {Promise<void>}
+	 */
+	async deleteExercise(exerciseId) {
+		const response = await fetch(`${this.baseUrl}/api/admin/exercises/${encodeURIComponent(exerciseId)}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to delete exercise: ${response.status}`);
+		}
+	}
 }
 
 export default ApiService;
