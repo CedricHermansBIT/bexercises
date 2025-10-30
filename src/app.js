@@ -17,6 +17,7 @@ const adminRoutes = require('./routes/admin');
  */
 function createApp() {
 	const app = express();
+	const basePath = config.server.basePath || '';
 
 	// Logging
 	app.use(morgan('combined'));
@@ -34,23 +35,56 @@ function createApp() {
 
 	// Serve static files from frontend directory with correct MIME types
 	// This must come BEFORE CORS to avoid issues with module loading
-	app.use(express.static(config.paths.frontend, {
+	const staticOptions = {
 		setHeaders: (res, path) => {
 			// Set correct MIME type for JavaScript modules
 			if (path.endsWith('.js')) {
 				res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
 			}
 		}
-	}));
+	};
+
+	// Mount static files at basePath
+	if (basePath) {
+		app.use(basePath, express.static(config.paths.frontend, staticOptions));
+	}
+	// Also mount at root (for reverse proxy that strips path, or when no basePath)
+	app.use('/', express.static(config.paths.frontend, staticOptions));
 
 	// CORS - applied to API routes
-	app.use('/api', corsMiddleware);
-	app.use('/auth', corsMiddleware);
+	app.use(`${basePath}/api`, corsMiddleware);
+	app.use(`${basePath}/auth`, corsMiddleware);
+	if (basePath) {
+		app.use('/api', corsMiddleware);
+		app.use('/auth', corsMiddleware);
+	}
 
-	// Routes
-	app.use('/auth', authRoutes);
-	app.use('/api/admin', adminRoutes);
-	app.use('/api', apiRoutes);
+	// Routes - mount with basePath
+	app.use(`${basePath}/auth`, authRoutes);
+	app.use(`${basePath}/api/admin`, adminRoutes);
+	app.use(`${basePath}/api`, apiRoutes);
+
+	// If basePath is set, also mount at root for reverse proxy scenarios
+	// where the proxy strips the base path
+	if (basePath) {
+		app.use('/auth', authRoutes);
+		app.use('/api/admin', adminRoutes);
+		app.use('/api', apiRoutes);
+	}
+
+	// Expose config endpoint for frontend (both paths)
+	app.get(`${basePath}/api/config`, (req, res) => {
+		res.json({
+			basePath: basePath
+		});
+	});
+	if (basePath) {
+		app.get('/api/config', (req, res) => {
+			res.json({
+				basePath: basePath
+			});
+		});
+	}
 
 	// Error handling middleware
 	app.use((err, req, res, _next) => {
@@ -65,3 +99,4 @@ function createApp() {
 }
 
 module.exports = createApp;
+

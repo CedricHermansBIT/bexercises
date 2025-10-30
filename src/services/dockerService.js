@@ -231,7 +231,7 @@ async function runScript(script, args = []) {
 	const { tmpdir, scriptPath } = await createTempScript(script);
 
 	try {
-		const result = await runScriptInContainer(tmpdir, 'script.sh', args, [], config.docker.timeoutMs);
+		const result = await runScriptInContainer(tmpdir, args, [], config.docker.timeout);
 		return result;
 	} finally {
 		await removeRecursive(tmpdir);
@@ -255,7 +255,7 @@ async function runScriptWithTestCase(script, args = [], inputs = [], fixtureName
 			await copyFixtures(tmpdir, fixtureNames);
 		}
 
-		const result = await runScriptInContainer(tmpdir, 'script.sh', args, inputs, config.docker.timeoutMs);
+		const result = await runScriptInContainer(tmpdir, args, inputs, config.docker.timeout);
 		return result;
 	} finally {
 		await removeRecursive(tmpdir);

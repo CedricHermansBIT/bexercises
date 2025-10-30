@@ -2,7 +2,7 @@
 import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
-
+import { navigateTo } from '../utils/navigationUtils.js';
 class ExercisesPage {
     constructor() {
         this.apiService = new ApiService();
@@ -23,7 +23,7 @@ class ExercisesPage {
         // Check authentication - REQUIRED
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
-            window.location.href = './login.html';
+            navigateTo('login.html');
             return;
         }
 
@@ -94,15 +94,15 @@ class ExercisesPage {
         const backToLanguagesBtn = document.getElementById('back-to-languages');
         if (backToLanguagesBtn) {
             backToLanguagesBtn.addEventListener('click', () => {
-                window.location.href = './languages.html';
+                navigateTo('languages.html');
             });
         }
 
         // Leaderboard button
-        const leaderboardBtn = document.getElementById('leaderboard-btn-workspace');
+        const leaderboardBtn = document.getElementById('leaderboard-btn-exercises');
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
-                window.location.href = './leaderboard.html';
+                navigateTo('leaderboard.html');
             });
         }
 
@@ -227,7 +227,7 @@ class ExercisesPage {
         // Store selected exercise
         sessionStorage.setItem('selectedExercise', exerciseId);
         // Navigate to workspace page
-        window.location.href = `./workspace.html?exercise=${exerciseId}`;
+        navigateTo(`workspace.html?exercise=${exerciseId}`);
     }
 
     filterExercises() {

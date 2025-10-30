@@ -2,6 +2,7 @@
 import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
+import { navigateTo } from '../utils/navigationUtils.js';
 
 class LanguagesPage {
     constructor() {
@@ -21,7 +22,7 @@ class LanguagesPage {
         // Check authentication - REQUIRED
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
-            window.location.href = './login.html';
+            navigateTo('login.html');
             return;
         }
 
@@ -76,7 +77,7 @@ class LanguagesPage {
             adminBtn.innerHTML = '<span>⚙</span> Admin';
             adminBtn.style.marginRight = '1rem';
             adminBtn.addEventListener('click', () => {
-                window.location.href = './admin.html';
+                navigateTo('admin.html');
             });
             topbarRight.insertBefore(adminBtn, topbarRight.firstChild);
         }
@@ -245,7 +246,7 @@ class LanguagesPage {
         const leaderboardLink = document.getElementById('leaderboard-btn-language');
         if (leaderboardLink) {
             leaderboardLink.addEventListener('click', () => {
-                window.location.href = './leaderboard.html';
+                navigateTo('leaderboard.html');
             });
         }
         // Add click handlers
@@ -262,7 +263,7 @@ class LanguagesPage {
         // Store selected language
         sessionStorage.setItem('selectedLanguage', language);
         // Navigate to exercises page
-        window.location.href = './exercises.html';
+        navigateTo('exercises.html');
     }
 }
 

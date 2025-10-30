@@ -1,6 +1,7 @@
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
 import { initializeResizableSidebars } from '../utils/resizeUtils.js';
+import { navigateTo } from '../utils/navigationUtils.js';
 
 class AdminPage {
     constructor() {
@@ -27,14 +28,14 @@ class AdminPage {
         // Check authentication
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
-            window.location.href = './login.html';
+            navigateTo('login.html');
             return;
         }
 
         // Check admin privileges
         if (!this.authComponent.isAdmin()) {
             alert('Access denied. Admin privileges required.');
-            window.location.href = './languages.html';
+            navigateTo('languages.html');
             return;
         }
 
@@ -91,7 +92,7 @@ class AdminPage {
         };
 
         addListener('back-to-languages', 'click', () => {
-            window.location.href = './languages.html';
+            navigateTo('languages.html');
         });
 
         addListener('new-exercise-btn', 'click', () => {

@@ -1,8 +1,10 @@
 // src/routes/auth.js
 const express = require('express');
 const passport = require('passport');
+const config = require('../config');
 
 const router = express.Router();
+const basePath = config.server.basePath || '';
 
 /**
  * Initiate Google OAuth
@@ -15,9 +17,9 @@ router.get('/google',
  * Google OAuth callback
  */
 router.get('/google/callback',
-	passport.authenticate('google', { failureRedirect: '/' }),
+	passport.authenticate('google', { failureRedirect: basePath || '/' }),
 	(req, res) => {
-		res.redirect('/');
+		res.redirect(basePath || '/');
 	}
 );
 
@@ -29,7 +31,7 @@ router.get('/logout', (req, res) => {
 		if (err) {
 			return res.status(500).json({ error: 'Logout failed' });
 		}
-		res.redirect('/');
+		res.redirect(basePath || '/');
 	});
 });
 

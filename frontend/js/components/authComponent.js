@@ -78,7 +78,7 @@ class AuthComponent {
 	 * Initiate login
 	 */
 	login() {
-		window.location.href = '/auth/google';
+		window.location.href = `${this.apiService.baseUrl}/auth/google`;
 	}
 
 	/**
@@ -86,7 +86,7 @@ class AuthComponent {
 	 */
 	logout() {
 		if (confirm('Are you sure you want to logout?')) {
-			window.location.href = '/auth/logout';
+			window.location.href = `${this.apiService.baseUrl}/auth/logout`;
 		}
 	}
 

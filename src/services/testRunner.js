@@ -35,9 +35,9 @@ async function runTests(exercise, script) {
 				config.docker.timeout
 			);
 
-			// Compare output
+			// Compare output - normalize both expected and actual
 			const expected = normalizeOutput(tc.expectedOutput || '').trim();
-			const actual = r.stdout.trim();
+			const actual = normalizeOutput(r.stdout).trim();
 			const expectedExitCode = (tc.expectedExitCode != null) ? tc.expectedExitCode : 0;
 
 			const passed = (!r.timedOut)

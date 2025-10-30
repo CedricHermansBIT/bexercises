@@ -4,6 +4,15 @@
  */
 class ApiService {
 	constructor(baseUrl = '') {
+		// Auto-detect base path from current URL if not provided
+		if (!baseUrl) {
+			const path = window.location.pathname;
+			// Extract base path (e.g., '/bitlab' from '/bitlab/pages/login.html')
+			const match = path.match(/^(\/[^\/]+)?\/(pages|index\.html)/);
+			if (match && match[1]) {
+				baseUrl = match[1];
+			}
+		}
 		this.baseUrl = baseUrl;
 	}
 

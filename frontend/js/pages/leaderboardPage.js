@@ -1,6 +1,7 @@
 // frontend/js/pages/leaderboardPage.js
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
+import { navigateTo } from '../utils/navigationUtils.js';
 
 class LeaderboardPage {
     constructor() {
@@ -23,7 +24,7 @@ class LeaderboardPage {
         // Check authentication - REQUIRED
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
-            window.location.href = './login.html';
+            navigateTo('login.html');
             return;
         }
 
@@ -55,11 +56,11 @@ class LeaderboardPage {
             // Go back to previous page or languages page
             const referrer = document.referrer;
             if (referrer.includes('exercises.html')) {
-                window.location.href = './exercises.html';
+                navigateTo('exercises.html');
             } else if (referrer.includes('workspace.html')) {
-                window.location.href = './workspace.html';
+                navigateTo('workspace.html');
             } else {
-                window.location.href = './languages.html';
+                navigateTo('languages.html');
             }
         });
 

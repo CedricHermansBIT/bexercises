@@ -20,11 +20,15 @@ class DatabaseService {
 
 		this.db = await open({
 			filename: dbPath,
-			driver: sqlite3.Database
+			driver: sqlite3.Database,
+			mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
 		});
 
 		// Enable foreign keys
 		await this.db.run('PRAGMA foreign_keys = ON');
+
+		// Set journal mode for better concurrency
+		await this.db.run('PRAGMA journal_mode = WAL');
 
 		await this.createTables();
 		console.log('Database initialized successfully');
@@ -242,13 +246,28 @@ class DatabaseService {
 			ORDER BY order_num
 		`, [id]);
 
-		// Parse JSON fields
-		exercise.testCases = testCases.map(tc => ({
-			...tc,
-			arguments: tc.arguments ? JSON.parse(tc.arguments) : [],
-			input: tc.input ? JSON.parse(tc.input) : []
+		// Parse JSON fields and convert to camelCase, fetch fixtures
+		const testCasesWithFixtures = await Promise.all(testCases.map(async (tc) => {
+			// Get fixtures for this test case
+			const fixtures = await this.db.all(`
+				SELECT f.filename 
+				FROM fixture_files f
+				JOIN test_case_fixtures tcf ON f.id = tcf.fixture_id
+				WHERE tcf.test_case_id = ?
+			`, [tc.id]);
+
+			return {
+				id: tc.id,
+				arguments: tc.arguments ? JSON.parse(tc.arguments) : [],
+				input: tc.input ? JSON.parse(tc.input) : [],
+				expectedOutput: tc.expected_output || '',
+				expectedExitCode: tc.expected_exit_code != null ? tc.expected_exit_code : 0,
+				fixtures: fixtures.map(f => f.filename),
+				fixturePermissions: {} // TODO: Add permissions column if needed
+			};
 		}));
 
+		exercise.testCases = testCasesWithFixtures;
 		return exercise;
 	}
 

@@ -5,6 +5,7 @@ import AuthComponent from '../components/authComponent.js';
 import TestResults from '../components/testResults.js';
 import Statistics from '../components/statistics.js';
 import { initializeResizableSidebars } from '../utils/resizeUtils.js';
+import { navigateTo } from '../utils/navigationUtils.js';
 
 class WorkspacePage {
     constructor() {
@@ -27,7 +28,7 @@ class WorkspacePage {
         // Check authentication - REQUIRED
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
-            window.location.href = './login.html';
+            navigateTo('login.html');
             return;
         }
 
@@ -55,7 +56,7 @@ class WorkspacePage {
             await this.loadExercise(exerciseId);
         } else {
             // Redirect back to exercises page if no exercise selected
-            window.location.href = './exercises.html';
+            navigateTo('exercises.html');
         }
     }
 
@@ -93,7 +94,7 @@ class WorkspacePage {
         const backBtn = document.getElementById('back-to-selection');
         if (backBtn) {
             backBtn.addEventListener('click', () => {
-                window.location.href = './exercises.html';
+                navigateTo('exercises.html');
             });
         }
 
@@ -101,7 +102,7 @@ class WorkspacePage {
         const leaderboardBtn = document.getElementById('leaderboard-btn-workspace');
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
-                window.location.href = `./leaderboard.html`;
+                navigateTo('leaderboard.html');
             });
         }
 

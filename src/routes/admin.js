@@ -87,8 +87,12 @@ router.post('/test-solution', async (req, res) => {
 			return res.status(400).json({ error: 'Missing solution script' });
 		}
 
+		console.log('Testing solution, script length:', solution.length);
+
 		// Run the script using Docker
 		const result = await dockerService.runScript(solution, []);
+
+		console.log('Test result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length });
 
 		res.json({
 			output: result.stdout + result.stderr,
@@ -98,7 +102,8 @@ router.post('/test-solution', async (req, res) => {
 		console.error('Error testing solution:', error);
 		res.status(500).json({
 			error: 'Failed to test solution',
-			detail: error.message
+			detail: error.message,
+			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
 		});
 	}
 });
@@ -115,18 +120,25 @@ router.post('/run-test-case', async (req, res) => {
 			return res.status(400).json({ error: 'Missing solution script' });
 		}
 
+		console.log('Running test case:', { argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length });
+
 		// Run the script using Docker with test case parameters
 		const result = await dockerService.runScriptWithTestCase(solution, args, input, fixtures);
 
+		console.log('Test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length });
+
 		res.json({
 			output: result.stdout + result.stderr,
-			exitCode: result.exitCode
+			exitCode: result.exitCode,
+			timedOut: result.timedOut,
+			error: result.error
 		});
 	} catch (error) {
 		console.error('Error running test case:', error);
 		res.status(500).json({
 			error: 'Failed to run test case',
-			detail: error.message
+			detail: error.message,
+			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
 		});
 	}
 });

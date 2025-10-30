@@ -1,5 +1,6 @@
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
+import { navigateTo } from '../utils/navigationUtils.js';
 
 class LoginPage {
     constructor() {
@@ -15,7 +16,7 @@ class LoginPage {
         const isAuthenticated = await this.authComponent.checkAuth();
 
         if (isAuthenticated) {
-            window.location.href = './languages.html';
+            navigateTo('languages.html');
         }
     }
 }

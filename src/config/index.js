@@ -2,11 +2,15 @@
 require('dotenv').config();
 const path = require('path');
 
+// Extract base path first so we can use it in config
+const basePath = process.env.BASE_PATH || '';
+
 const config = {
 	// Server configuration
 	server: {
 		port: process.env.PORT || 3000,
-		env: process.env.NODE_ENV || 'development'
+		env: process.env.NODE_ENV || 'development',
+		basePath: basePath // e.g., '/bitlab' for subdirectory deployment
 	},
 
 	// Session configuration
@@ -25,7 +29,7 @@ const config = {
 		google: {
 			clientId: process.env.GOOGLE_CLIENT_ID,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-			callbackURL: process.env.CALLBACK_URL || '/auth/google/callback'
+			callbackURL: process.env.CALLBACK_URL || `${basePath}/auth/google/callback`
 		}
 	},
 
