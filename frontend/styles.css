@@ -1085,7 +1085,7 @@ body {
 
 .sidebar-header .action-btn {
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
 }
 
 .reorder-actions {

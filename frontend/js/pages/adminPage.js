@@ -87,6 +87,10 @@ class AdminPage {
             this.createNewExercise();
         });
 
+        addListener('new-chapter-btn', 'click', () => {
+            this.createNewChapter();
+        });
+
         addListener('test-solution-btn', 'click', () => {
             this.testSolution();
         });
@@ -267,6 +271,45 @@ class AdminPage {
         setTimeout(() => {
             this.solutionEditor.refresh();
         }, 100);
+    }
+
+    createNewChapter() {
+        const chapterName = prompt('Enter the name for the new chapter:');
+
+        if (!chapterName || !chapterName.trim()) {
+            return; // User cancelled or entered empty name
+        }
+
+        const trimmedName = chapterName.trim();
+
+        // Check if chapter already exists
+        const existingChapters = new Set();
+        this.exercises.forEach(ex => {
+            if (ex.chapter) existingChapters.add(ex.chapter);
+        });
+
+        if (existingChapters.has(trimmedName)) {
+            alert(`Chapter "${trimmedName}" already exists!`);
+            return;
+        }
+
+        // Create a placeholder exercise for the new chapter
+        // This ensures the chapter appears in the list
+        alert(`Chapter "${trimmedName}" created! You can now create exercises in this chapter.`);
+
+        // Open new exercise form with the new chapter selected
+        this.createNewExercise();
+
+        // Update chapter dropdown and select the new chapter
+        this.updateChapterOptions();
+        const select = document.getElementById('exercise-chapter');
+
+        // Add the new chapter to the dropdown
+        const option = document.createElement('option');
+        option.value = trimmedName;
+        option.textContent = trimmedName;
+        select.insertBefore(option, select.querySelector('[value="__new__"]'));
+        select.value = trimmedName;
     }
 
     async editExercise(id) {
@@ -450,6 +493,11 @@ class AdminPage {
 
     renderTestCases() {
         const container = document.getElementById('test-cases-container');
+        if (!container) {
+            console.warn('test-cases-container not found');
+            return;
+        }
+
         container.innerHTML = '';
 
         this.testCases.forEach((testCase, index) => {
@@ -469,19 +517,24 @@ class AdminPage {
                                value="${(testCase.arguments || []).join(', ')}" placeholder="arg1, arg2, arg3">
                     </div>
                     <div class="form-group-inline">
-                        <label>Expected Output</label>
+                        <label>STDIN Input (one per line)</label>
+                        <textarea class="form-input" data-field="input" data-index="${index}" 
+                                  rows="3" placeholder="Line 1\nLine 2\nLine 3">${(testCase.input || []).join('\n')}</textarea>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Fixture Files (comma-separated filenames)</label>
+                        <input type="text" class="form-input" data-field="fixtures" data-index="${index}" 
+                               value="${(testCase.fixtures || []).join(', ')}" placeholder="file1.txt, file2.csv">
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected Output (auto-filled when testing)</label>
                         <textarea class="form-input" data-field="expectedOutput" data-index="${index}" 
-                                  rows="3" placeholder="Expected output...">${testCase.expectedOutput || ''}</textarea>
+                                  rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
                     </div>
                     <div class="form-group-inline">
-                        <label>Expected Exit Code</label>
+                        <label>Expected Exit Code (auto-filled when testing)</label>
                         <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}" 
-                               value="${testCase.expectedExitCode || 0}">
-                    </div>
-                    <div class="form-group-inline">
-                        <label>STDIN (optional)</label>
-                        <textarea class="form-input" data-field="stdin" data-index="${index}" 
-                                  rows="2" placeholder="Input lines...">${testCase.stdin || ''}</textarea>
+                               value="${testCase.expectedExitCode || 0}" readonly style="background: #2a2a2a;">
                     </div>
                 </div>
             `;
@@ -495,8 +548,10 @@ class AdminPage {
                 const field = e.target.dataset.field;
                 let value = e.target.value;
 
-                if (field === 'arguments') {
+                if (field === 'arguments' || field === 'fixtures') {
                     value = value.split(',').map(s => s.trim()).filter(s => s);
+                } else if (field === 'input') {
+                    value = value.split('\n').filter(s => s !== '');
                 } else if (field === 'expectedExitCode') {
                     value = parseInt(value) || 0;
                 }
