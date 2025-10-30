@@ -535,7 +535,8 @@ class AdminPage {
             arguments: [],
             expectedOutput: '',
             expectedExitCode: 0,
-            input: []
+            input: [],
+            fixtures: []
         });
         this.renderTestCases();
     }
@@ -557,6 +558,13 @@ class AdminPage {
         this.testCases.forEach((testCase, index) => {
             const testCaseDiv = document.createElement('div');
             testCaseDiv.className = 'test-case-item';
+
+            // Build fixture files options
+            const fixtureOptions = this.availableFiles.map(f => {
+                const isSelected = (testCase.fixtures || []).includes(f.filename);
+                return `<option value="${f.filename}" ${isSelected ? 'selected' : ''}>${f.filename}</option>`;
+            }).join('');
+
             testCaseDiv.innerHTML = `
                 <div class="test-case-header">
                     <span>Test Case ${index + 1}</span>
@@ -565,6 +573,14 @@ class AdminPage {
                     </button>
                 </div>
                 <div class="test-case-fields">
+                    <div class="form-group-inline">
+                        <label>Fixture Files (files needed for this test)</label>
+                        <select multiple class="form-input fixture-select" data-field="fixtures" data-index="${index}" 
+                                style="min-height: 80px;">
+                            ${fixtureOptions || '<option disabled>No files available - upload files first</option>'}
+                        </select>
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">Hold Ctrl/Cmd to select multiple files</small>
+                    </div>
                     <div class="form-group-inline">
                         <label>Arguments (comma-separated, include filenames)</label>
                         <input type="text" class="form-input" data-field="arguments" data-index="${index}" 
@@ -596,7 +612,11 @@ class AdminPage {
                 const field = e.target.dataset.field;
                 let value = e.target.value;
 
-                if (field === 'arguments') {
+                if (field === 'fixtures') {
+                    // Get all selected options for multi-select
+                    const select = e.target;
+                    value = Array.from(select.selectedOptions).map(opt => opt.value);
+                } else if (field === 'arguments') {
                     value = value.split(',').map(s => s.trim()).filter(s => s);
                 } else if (field === 'input') {
                     value = value.split('\n').filter(s => s !== '');
@@ -738,6 +758,8 @@ class AdminPage {
         }
 
         await this.loadFiles();
+        // Refresh test cases UI to show newly uploaded files in fixture dropdowns
+        this.renderTestCases();
         e.target.value = '';
     }
 
@@ -798,6 +820,8 @@ class AdminPage {
         try {
             await this.apiService.deleteFixtureFile(filename);
             await this.loadFiles();
+            // Refresh test cases UI to remove deleted file from fixture dropdowns
+            this.renderTestCases();
         } catch (error) {
             alert(`Failed to delete file: ${error.message}`);
         }

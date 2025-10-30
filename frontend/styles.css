@@ -1896,6 +1896,31 @@ body {
     padding: 0.5rem;
 }
 
+.fixture-select {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.fixture-select option {
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.fixture-select option:checked {
+    background: var(--accent-lavender);
+    color: var(--bg-primary);
+}
+
+.fixture-select:focus {
+    outline: none;
+    border-color: var(--accent-lavender);
+    box-shadow: 0 0 0 2px rgba(180, 190, 254, 0.2);
+}
+
 /* Fixtures */
 .fixture-list {
     margin-top: 0.5rem;
