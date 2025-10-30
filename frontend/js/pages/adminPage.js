@@ -154,10 +154,6 @@ class AdminPage {
         addListener('refresh-users-btn', 'click', () => {
             this.loadUsers();
         });
-
-        addListener('close-user-details', 'click', () => {
-            this.closeUserDetails();
-        });
     }
 
     setupLogout() {
@@ -962,7 +958,9 @@ class AdminPage {
         this.users.forEach(user => {
             const item = document.createElement('div');
             item.className = 'user-item';
-            
+            item.dataset.userId = user.id;
+            item.style.cursor = 'pointer';
+
             const completionRate = user.total_attempts > 0 
                 ? Math.round((user.completed_count / user.total_attempts) * 100) 
                 : 0;
@@ -984,41 +982,14 @@ class AdminPage {
                         <span class="stat-badge">Last login: ${lastLogin}</span>
                     </div>
                 </div>
-                <div class="user-actions">
-                    <button class="icon-btn" data-action="view" data-id="${user.id}" title="View Details">
-                        <span>👁</span>
-                    </button>
-                    <button class="icon-btn" data-action="toggle-admin" data-id="${user.id}" title="${user.is_admin ? 'Remove Admin' : 'Make Admin'}">
-                        <span>${user.is_admin ? '👤' : '👑'}</span>
-                    </button>
-                    <button class="icon-btn delete" data-action="delete" data-id="${user.id}" title="Delete User">
-                        <span>🗑</span>
-                    </button>
-                </div>
             `;
+
+            // Make entire item clickable
+            item.addEventListener('click', () => {
+                this.viewUserDetails(user.id);
+            });
+
             list.appendChild(item);
-        });
-        
-        // Add event listeners
-        list.querySelectorAll('[data-action="view"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const userId = parseInt(e.target.closest('button').dataset.id);
-                this.viewUserDetails(userId);
-            });
-        });
-        
-        list.querySelectorAll('[data-action="toggle-admin"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const userId = parseInt(e.target.closest('button').dataset.id);
-                this.toggleUserAdmin(userId);
-            });
-        });
-        
-        list.querySelectorAll('[data-action="delete"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const userId = parseInt(e.target.closest('button').dataset.id);
-                this.deleteUser(userId);
-            });
         });
     }
     
@@ -1032,10 +1003,54 @@ class AdminPage {
             document.getElementById('exercise-editor').style.display = 'none';
             document.getElementById('user-details').style.display = 'block';
             
-            // Update title
-            document.getElementById('user-details-title').textContent = 
+            // Update title and add action buttons
+            const isAdmin = data.user.is_admin === 1;
+            document.getElementById('user-details-title').textContent =
                 `${data.user.display_name}'s Progress`;
             
+            // Add action buttons to header
+            const detailsHeader = document.querySelector('.details-header');
+            const existingActions = detailsHeader.querySelector('.user-detail-actions');
+            if (existingActions) {
+                existingActions.remove();
+            }
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'user-detail-actions';
+            actionsDiv.innerHTML = `
+                <button class="action-btn ${isAdmin ? '' : 'primary'}" id="toggle-admin-detail" title="${isAdmin ? 'Remove Admin Status' : 'Grant Admin Status'}">
+                    <span>${isAdmin ? '👤' : '👑'}</span> ${isAdmin ? 'Remove Admin' : 'Make Admin'}
+                </button>
+                <button class="action-btn danger" id="delete-user-detail" title="Delete User">
+                    <span>🗑</span> Delete User
+                </button>
+                <button class="action-btn" id="close-user-details">
+                    Close
+                </button>
+            `;
+
+            // Insert before close button (which we just included in actionsDiv)
+            const closeBtn = detailsHeader.querySelector('#close-user-details');
+            if (closeBtn) {
+                closeBtn.remove();
+            }
+            detailsHeader.appendChild(actionsDiv);
+
+            // Add event listeners for new buttons
+            document.getElementById('toggle-admin-detail').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleUserAdmin(userId);
+            });
+
+            document.getElementById('delete-user-detail').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteUser(userId);
+            });
+
+            document.getElementById('close-user-details').addEventListener('click', () => {
+                this.closeUserDetails();
+            });
+
             // Render user info
             const userInfoContent = document.getElementById('user-info-content');
             userInfoContent.innerHTML = `
@@ -1063,7 +1078,8 @@ class AdminPage {
                 </div>
             `;
             
-            // Render statistics
+            // ...existing code for statistics and progress...
+
             const statsContent = document.getElementById('user-stats-content');
             const completionRate = data.statistics.total_attempts > 0 
                 ? Math.round((data.statistics.total_completed / data.statistics.total_attempts) * 100) 
@@ -1146,6 +1162,11 @@ class AdminPage {
         try {
             await this.apiService.updateUser(userId, { is_admin: newAdminStatus });
             await this.loadUsers();
+
+            // If viewing this user's details, refresh the view
+            if (this.currentUser && this.currentUser.user.id === userId) {
+                await this.viewUserDetails(userId);
+            }
         } catch (error) {
             alert('Failed to update user: ' + error.message);
         }

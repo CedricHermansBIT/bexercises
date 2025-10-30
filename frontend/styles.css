@@ -1324,10 +1324,13 @@ body {
     align-items: center;
     justify-content: space-between;
     transition: var(--transition);
+    cursor: pointer;
 }
 
 .user-item:hover {
     background: var(--surface);
+    border-left: 3px solid var(--accent-lavender);
+    padding-left: calc(1rem - 3px);
 }
 
 .user-info {
@@ -1392,11 +1395,29 @@ body {
     margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 2px solid var(--border-color);
+    gap: 1rem;
 }
 
 .details-header h2 {
     color: var(--accent-lavender);
     margin: 0;
+    flex: 1;
+}
+
+.user-detail-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.action-btn.danger {
+    background: var(--accent-red);
+    color: var(--bg-primary);
+}
+
+.action-btn.danger:hover {
+    background: #ff6b88;
+    transform: translateY(-1px);
 }
 
 .user-info-section,
