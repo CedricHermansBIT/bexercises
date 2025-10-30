@@ -283,7 +283,7 @@ class DatabaseService {
 		if (testCases && Array.isArray(testCases)) {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
-				await this.db.run(`
+				const result = await this.db.run(`
 					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_exit_code, order_num)
 					VALUES (?, ?, ?, ?, ?, ?)
 				`, [
@@ -294,6 +294,22 @@ class DatabaseService {
 					tc.expectedExitCode || 0,
 					i
 				]);
+
+				const testCaseId = result.lastID;
+
+				// Link fixtures to this test case
+				if (tc.fixtures && Array.isArray(tc.fixtures)) {
+					for (const fixtureName of tc.fixtures) {
+						// Ensure fixture exists in fixture_files table
+						const fixture = await this.getFixtureFile(fixtureName);
+						if (fixture) {
+							await this.db.run(`
+								INSERT OR IGNORE INTO test_case_fixtures (test_case_id, fixture_id)
+								VALUES (?, ?)
+							`, [testCaseId, fixture.id]);
+						}
+					}
+				}
 			}
 		}
 
@@ -315,7 +331,7 @@ class DatabaseService {
 			
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
-				await this.db.run(`
+				const result = await this.db.run(`
 					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_exit_code, order_num)
 					VALUES (?, ?, ?, ?, ?, ?)
 				`, [
@@ -326,6 +342,22 @@ class DatabaseService {
 					tc.expectedExitCode || 0,
 					i
 				]);
+
+				const testCaseId = result.lastID;
+
+				// Link fixtures to this test case
+				if (tc.fixtures && Array.isArray(tc.fixtures)) {
+					for (const fixtureName of tc.fixtures) {
+						// Ensure fixture exists in fixture_files table
+						const fixture = await this.getFixtureFile(fixtureName);
+						if (fixture) {
+							await this.db.run(`
+								INSERT OR IGNORE INTO test_case_fixtures (test_case_id, fixture_id)
+								VALUES (?, ?)
+							`, [testCaseId, fixture.id]);
+						}
+					}
+				}
 			}
 		}
 

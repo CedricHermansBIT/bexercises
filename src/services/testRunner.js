@@ -21,7 +21,7 @@ async function runTests(exercise, script) {
 	try {
 		for (let i = 0; i < exercise.testCases.length; i++) {
 			const tc = exercise.testCases[i];
-
+            console.log(tc.fixtures);
 			// Copy any fixtures needed for this test case
 			if (tc.fixtures && Array.isArray(tc.fixtures)) {
 				await copyFixtures(tmpdir, tc.fixtures, tc.fixturePermissions);

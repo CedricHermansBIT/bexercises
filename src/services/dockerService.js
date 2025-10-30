@@ -105,16 +105,22 @@ async function createTempScript(scriptContents) {
  */
 async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 	const copiedFiles = [];
+	console.log(`[copyFixtures] tmpdir: ${tmpdir}, fixtures:`, fixtures);
+	console.log(`[copyFixtures] fixtures path: ${config.paths.fixtures}`);
 
 	for (const fixtureName of fixtures) {
 		const sourcePath = path.join(config.paths.fixtures, fixtureName);
 		const destPath = path.join(tmpdir, fixtureName);
 
+		console.log(`[copyFixtures] Attempting to copy: ${sourcePath} -> ${destPath}`);
+
 		try {
 			if (!fsSync.existsSync(sourcePath)) {
+				console.warn(`Fixture file not found: ${sourcePath}`);
 				continue;
 			}
 
+			console.log(`[copyFixtures] Source exists on disk, copying from filesystem...`);
 			await fs.copyFile(sourcePath, destPath);
 
 			let mode;
@@ -127,11 +133,24 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 			await fs.chmod(destPath, mode);
 
 			copiedFiles.push(fixtureName);
+			console.log(`✓ Copied fixture: ${fixtureName} -> ${destPath}`);
+
+			// Verify the file exists in destination
+			if (fsSync.existsSync(destPath)) {
+				console.log(`✓ Verified: ${destPath} exists in tmpdir`);
+			} else {
+				console.error(`✗ File not found after copy: ${destPath}`);
+			}
 		} catch (err) {
-			console.error(`Error copying fixture ${fixtureName}:`, err.message);
+			console.error(`Error copying fixture ${fixtureName}:`, err.message, err.stack);
 		}
 	}
 
+	if (fixtures.length > 0 && copiedFiles.length === 0) {
+		console.warn('Warning: No fixtures were successfully copied');
+	}
+
+	console.log(`[copyFixtures] Copied ${copiedFiles.length} of ${fixtures.length} files`);
 	return copiedFiles;
 }
 

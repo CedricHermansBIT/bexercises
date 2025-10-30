@@ -411,7 +411,7 @@ class AdminPage {
                 const fixtures = [];
                 if (testCase.arguments) {
                     testCase.arguments.forEach(arg => {
-                        if (this.availableFiles.some(f => f.name === arg)) {
+                        if (this.availableFiles.some(f => f.filename === arg)) {
                             fixtures.push(arg);
                         }
                     });
@@ -641,20 +641,20 @@ class AdminPage {
             const item = document.createElement('div');
             item.className = 'file-item';
 
-            const usageCount = this.getFileUsageCount(file.name);
+            const usageCount = this.getFileUsageCount(file.filename);
             const usageText = usageCount > 0 ? `Used in ${usageCount} test case(s)` : 'Not used';
 
             item.innerHTML = `
                 <div class="file-info">
-                    <span class="file-name">📄 ${file.name}</span>
+                    <span class="file-name">📄 ${file.filename}</span>
                     <span class="file-size">${this.formatFileSize(file.size)}</span>
                     <span class="file-usage">${usageText}</span>
                 </div>
                 <div class="file-actions">
-                    <button class="icon-btn" data-action="view" data-filename="${file.name}" title="View">
+                    <button class="icon-btn" data-action="view" data-filename="${file.filename}" title="View">
                         <span>👁</span>
                     </button>
-                    <button class="icon-btn delete" data-action="delete" data-filename="${file.name}" title="Delete">
+                    <button class="icon-btn delete" data-action="delete" data-filename="${file.filename}" title="Delete">
                         <span>🗑</span>
                     </button>
                 </div>

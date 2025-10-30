@@ -22,7 +22,8 @@ async function loadExercisesInternal() {
 				const fullExercise = await databaseService.getExerciseWithTests(exercise.id);
 				allExercises.push({
 					...fullExercise,
-					chapter: fullExercise.chapter_name || exercise.chapter_name
+					chapter: fullExercise.chapter_name || exercise.chapter_name,
+					order: fullExercise.order_num || exercise.order_num || 0
 				});
 			}
 		}

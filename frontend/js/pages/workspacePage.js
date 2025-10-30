@@ -234,6 +234,13 @@ class WorkspacePage {
                 this.statistics.display(data.statistics);
             }
 
+            // Refresh CodeMirror after results are shown to recalculate dimensions
+            setTimeout(() => {
+                if (this.codeEditor) {
+                    this.codeEditor.refresh();
+                }
+            }, 100);
+
             // Update progress
             const allPassed = data.results.length > 0 && data.results.every(r => r.passed);
             this.updateProgress(this.currentExercise.id, code, allPassed);
