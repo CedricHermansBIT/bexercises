@@ -16,9 +16,11 @@ class AuthComponent {
 			const data = await this.apiService.getCurrentUser();
 			this.currentUser = data.user;
 			this.updateUI(data.user);
+			return !!data.user;
 		} catch (error) {
 			console.error('Auth check failed:', error);
 			this.updateUI(null);
+			return false;
 		}
 	}
 
@@ -28,14 +30,17 @@ class AuthComponent {
 	 */
 	updateUI(user) {
 		const authSection = document.getElementById('auth-section');
-		if (!authSection) return;
+		if (!authSection) {
+			// Auth section doesn't exist on this page, skip UI update
+			return;
+		}
 
 		if (user) {
 			authSection.innerHTML = `
 				<div class="user-info">
 					${user.picture ? `<img src="${user.picture}" alt="${user.name}" class="user-avatar">` : ''}
 					<span class="user-name">${user.name || user.email}</span>
-					<button onclick="window.authComponent.logout()" class="btn-auth">Logout</button>
+					<button onclick="window.authComponent.logout()" class="btn-auth">logout</button>
 				</div>
 			`;
 		} else {
@@ -48,9 +53,30 @@ class AuthComponent {
 						<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
 						<path fill="none" d="M0 0h48v48H0z"/>
 					</svg>
-					Sign in with Google
+					sign in with google
+				</button>
+				<button onclick="window.authComponent.continueWithoutLogin()" class="btn-auth" style="margin-top: 1rem;">
+					continue without login
 				</button>
 			`;
+		}
+	}
+
+	/**
+	 * Continue without login
+	 */
+	continueWithoutLogin() {
+		// Check if we're in multi-page structure
+		if (window.location.pathname.includes('/pages/')) {
+			window.location.href = './languages.html';
+		} else {
+			// Fallback for single-page structure
+			const loginScreen = document.getElementById('login-screen');
+			const languageScreen = document.getElementById('language-screen');
+			if (loginScreen && languageScreen) {
+				loginScreen.classList.remove('active');
+				languageScreen.classList.add('active');
+			}
 		}
 	}
 

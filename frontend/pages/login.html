@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BITLab ~ login</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="hyprland-theme">
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="login-terminal">
+                <div class="terminal-header">
+                    <div class="terminal-buttons">
+                        <span class="terminal-button close"></span>
+                        <span class="terminal-button minimize"></span>
+                        <span class="terminal-button maximize"></span>
+                    </div>
+                    <span class="terminal-title">BITLab@hyprland ~ login</span>
+                </div>
+                <div class="terminal-body">
+                    <div class="terminal-content">
+                        <pre class="ascii-art">██████╗ ██╗████████╗██╗      █████╗ ██████╗
+ ██╔══██╗██║╚══██╔══╝██║     ██╔══██╗██╔══██╗
+ ██████╔╝██║   ██║   ██║     ███████║██████╔╝
+ ██╔══██╗██║   ██║   ██║     ██╔══██║██╔══██╗
+ ██████╔╝██║   ██║   ███████╗██║  ██║██████╔╝
+ ╚═════╝ ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═════╝
+                        </pre>
+                        <div class="login-prompt">
+                            <p class="system-info">BITLab v2.0 | hyprland | x86_64</p>
+                            <p class="motd">Welcome to the BITLab Programming Platform</p>
+                            <div id="auth-section" class="auth-login">
+                                <!-- Auth UI will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/pages/loginPage.js"></script>
+</body>
+</html>
+

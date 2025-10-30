@@ -160,7 +160,7 @@ class TestResults {
 	 */
 	displayNoResults() {
 		if (!this.resultsContainer) return;
-		this.resultsContainer.innerHTML = '<p class="no-results">Run tests to see results here.</p>';
+		this.resultsContainer.innerHTML = '<p class="no-results">$ ./solution.sh - waiting for execution...</p>';
 	}
 
 	/**

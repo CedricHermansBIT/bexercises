@@ -1,0 +1,84 @@
+np<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BITLab ~ workspace</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="hyprland-theme">
+    <!-- Exercise Workspace Screen -->
+    <div id="workspace-screen" class="screen active">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="back-button" id="back-to-selection">
+                    <span>󰁍</span> back
+                </button>
+                <span class="workspace-indicator">[3]</span>
+                <span class="app-title" id="exercise-title-topbar">exercise</span>
+            </div>
+            <div class="topbar-center">
+                <span id="completion-status" class="status-indicator">not started</span>
+            </div>
+            <div class="topbar-right">
+                <span class="system-time" id="system-time-workspace">00:00</span>
+            </div>
+        </div>
+
+        <div class="workspace-layout">
+            <div class="workspace-sidebar">
+                <div class="sidebar-section">
+                    <div class="section-header">description</div>
+                    <div class="section-content" id="exercise-description">
+                        <!-- Description will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="workspace-main">
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <span class="editor-title">solution.sh</span>
+                        <div class="editor-actions">
+                            <button id="run-tests" class="action-btn primary">
+                                <span>󰐊</span> run tests
+                            </button>
+                            <button id="reset-code" class="action-btn">
+                                <span>󰑓</span> reset
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="code-editor">#!/bin/bash
+
+# Write your solution here</textarea>
+                </div>
+
+                <div class="results-container">
+                    <div class="results-header">
+                        <span class="results-title">test results</span>
+                    </div>
+                    <div class="results-content">
+                        <div id="test-results">
+                            <p class="no-results">$ ./solution.sh - waiting for execution...</p>
+                        </div>
+                        <div id="statistics-panel" class="statistics-panel">
+                            <!-- Statistics will be populated here after running tests -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/shell/shell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <script type="module" src="../js/pages/workspacePage.js"></script>
+</body>
+</html>
+

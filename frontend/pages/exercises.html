@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BITLab ~ exercises</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="hyprland-theme">
+    <!-- Exercise Selection Screen -->
+    <div id="selection-screen" class="screen active">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="back-button" id="back-to-languages">
+                    <span>󰁍</span> back
+                </button>
+                <span class="workspace-indicator">[2]</span>
+                <span class="app-title" id="language-title">bash</span>
+            </div>
+            <div class="topbar-center">
+                <div class="progress-indicator">
+                    <span id="progress-text">0/0 completed</span>
+                    <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <span class="system-time" id="system-time">00:00</span>
+                <div class="user-menu" id="user-menu">
+                    <span class="user-icon">󰀄</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="content-header">
+                <h1 class="page-title">$ ls -la /exercises/</h1>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">all</button>
+                    <button class="filter-btn" data-filter="completed">completed</button>
+                    <button class="filter-btn" data-filter="pending">pending</button>
+                </div>
+            </div>
+
+            <div id="exercises-container">
+                <!-- Exercise sections will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/pages/exercisesPage.js"></script>
+</body>
+</html>
+

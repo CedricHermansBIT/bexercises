@@ -2,7 +2,6 @@
 import ApiService from './services/apiService.js';
 import StorageService from './services/storageService.js';
 import AuthComponent from './components/authComponent.js';
-import ExerciseMenu from './components/exerciseMenu.js';
 import TestResults from './components/testResults.js';
 import Statistics from './components/statistics.js';
 import { updateUrl, getExerciseIdFromUrl } from './utils/urlUtils.js';
@@ -18,11 +17,11 @@ class ExerciseApp {
 
 		// Initialize components
 		this.authComponent = new AuthComponent(this.apiService);
-		this.exerciseMenu = new ExerciseMenu(this.storageService);
 		this.testResults = new TestResults();
 		this.statistics = new Statistics();
 
 		// State
+		this.currentLanguage = 'bash'; // Default language
 		this.currentExercise = null;
 		this.codeEditor = null;
 		this.exercises = [];
@@ -34,6 +33,13 @@ class ExerciseApp {
 	}
 
 	async init() {
+		// Update time displays
+		this.updateTime();
+		setInterval(() => this.updateTime(), 1000);
+
+		// Setup screens
+		this.setupScreens();
+
 		// Check authentication
 		await this.authComponent.checkAuth();
 
@@ -42,9 +48,6 @@ class ExerciseApp {
 
 		// Setup event listeners
 		this.setupEventListeners();
-
-		// Setup tabs
-		this.setupTabs();
 
 		// Load exercises
 		await this.loadExercises();
@@ -59,13 +62,121 @@ class ExerciseApp {
 		}
 	}
 
+	updateTime() {
+		const now = new Date();
+		const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+		const timeElements = document.querySelectorAll('.system-time');
+		timeElements.forEach(el => el.textContent = timeString);
+	}
+
+	setupScreens() {
+		// Get screen elements
+		this.languageScreen = document.getElementById('language-screen');
+		this.loginScreen = document.getElementById('login-screen');
+		this.selectionScreen = document.getElementById('selection-screen');
+		this.workspaceScreen = document.getElementById('workspace-screen');
+		// Back to languages button
+		const backToLanguagesBtn = document.getElementById('back-to-languages');
+		if (backToLanguagesBtn) {
+			backToLanguagesBtn.addEventListener('click', () => {
+				this.showScreen('language');
+				window.history.pushState({}, '', '/');
+			});
+		}
+
+		// Back to selection button
+		// Back button
+		const backBtn = document.getElementById('back-to-selection');
+		if (backBtn) {
+			backBtn.addEventListener('click', () => {
+				this.showScreen('selection');
+				// Clear URL
+				window.history.pushState({}, '', '/');
+			});
+		}
+		// Language selection cards
+		const languageCards = document.querySelectorAll('.language-card:not(.coming-soon)');
+		languageCards.forEach(card => {
+			card.addEventListener('click', () => {
+				const language = card.dataset.language;
+				this.selectLanguage(language);
+			});
+		});
+
+
+		// Filter buttons
+		const filterBtns = document.querySelectorAll('.filter-btn');
+		filterBtns.forEach(btn => {
+			btn.addEventListener('click', (e) => {
+				filterBtns.forEach(b => b.classList.remove('active'));
+				e.target.classList.add('active');
+				this.filterExercises(e.target.dataset.filter);
+			});
+		});
+	}
+	selectLanguage(language) {
+		this.currentLanguage = language;
+
+		// Update language title in topbar
+		const languageTitle = document.getElementById('language-title');
+		if (languageTitle) {
+			languageTitle.textContent = language;
+		}
+
+		// Load exercises for this language
+		this.loadExercises();
+
+		// Show selection screen
+		this.showScreen('selection');
+	}
+
+
+	showScreen(screenName) {
+		// Hide all screens
+		document.querySelectorAll('.screen').forEach(screen => {
+			screen.classList.remove('active');
+		});
+
+		// Show requested screen
+		const screen = document.getElementById(`${screenName}-screen`);
+		if (screen) {
+			screen.classList.add('active');
+		}
+	}
+
+	filterExercises(filter) {
+		const cards = document.querySelectorAll('.exercise-card');
+		const progress = this.storageService.loadProgress();
+
+		cards.forEach(card => {
+			const exerciseId = card.dataset.exerciseId;
+			const isCompleted = progress[exerciseId]?.completed || false;
+
+			if (filter === 'all') {
+				card.style.display = 'block';
+			// Update bash exercise count on language screen
+			const bashCount = document.getElementById('bash-count');
+			if (bashCount) {
+				bashCount.textContent = `${this.exercises.length} exercises`;
+			}
+
+			} else if (filter === 'completed' && isCompleted) {
+				card.style.display = 'block';
+			} else if (filter === 'pending' && !isCompleted) {
+				card.style.display = 'block';
+			} else {
+				card.style.display = 'none';
+			}
+		});
+	}
+
 	setupCodeEditor() {
 		const textarea = document.getElementById('code-editor');
 		if (!textarea) return;
 
 		this.codeEditor = CodeMirror.fromTextArea(textarea, {
 			mode: 'shell',
-			theme: 'monokai',
+			theme: 'dracula',
 			lineNumbers: true,
 			indentUnit: 4,
 			lineWrapping: true,
@@ -81,33 +192,68 @@ class ExerciseApp {
 		});
 	}
 
-	setupTabs() {
-		const testResultsTab = document.getElementById('test-results-tab');
-		const testResultsContent = document.getElementById('test-results-content');
-		const terminalContent = document.getElementById('terminal-content');
-
-		if (testResultsTab) {
-			testResultsTab.addEventListener('click', () => {
-				testResultsTab.classList.add('active');
-				if (testResultsContent) testResultsContent.style.display = 'block';
-				if (terminalContent) terminalContent.style.display = 'none';
-			});
-		}
-	}
-
 	async loadExercises() {
 		try {
 			this.exercises = await this.apiService.getExercises();
 
-			// Setup menu
-			this.exerciseMenu.onExerciseSelect = (exerciseId) => this.loadExercise(exerciseId);
-			this.exerciseMenu.populate(this.exercises);
+			// Populate exercise cards
+			this.populateExerciseCards();
+
+			// Update progress
+			this.updateProgressDisplay();
 		} catch (error) {
 			console.error('Failed to load exercises:', error);
 			if (error.message.includes('403')) {
 				this.showVPNNotification();
 			}
 		}
+	}
+
+	populateExerciseCards() {
+		const grid = document.getElementById('exercises-grid');
+		if (!grid) return;
+
+		grid.innerHTML = '';
+		const progress = this.storageService.loadProgress();
+
+		this.exercises.forEach(exercise => {
+			const isCompleted = progress[exercise.id]?.completed || false;
+			const card = this.createExerciseCard(exercise, isCompleted);
+			grid.appendChild(card);
+		});
+	}
+
+	createExerciseCard(exercise, isCompleted) {
+		const card = document.createElement('div');
+		card.className = `exercise-card ${isCompleted ? 'completed' : ''}`;
+		card.dataset.exerciseId = exercise.id;
+
+		// Extract first paragraph from description
+		const tempDiv = document.createElement('div');
+		tempDiv.innerHTML = marked.parse(exercise.description);
+		const firstP = tempDiv.querySelector('p')?.textContent || exercise.description.substring(0, 150);
+
+		card.innerHTML = `
+			<div class="card-header">
+				<div>
+					<div class="card-title">${exercise.title}</div>
+				</div>
+				<span class="card-badge ${isCompleted ? 'completed' : 'not-started'}">
+					${isCompleted ? '✓ completed' : '○ pending'}
+				</span>
+			</div>
+			<div class="card-description">${firstP}</div>
+			<div class="card-footer">
+				<span class="card-meta">${exercise.chapter || 'exercise'}</span>
+				<span class="card-arrow">→</span>
+			</div>
+		`;
+
+		card.addEventListener('click', () => {
+			this.loadExercise(exercise.id);
+		});
+
+		return card;
 	}
 
 	async loadExercise(exerciseId) {
@@ -118,9 +264,14 @@ class ExerciseApp {
 			// Update URL
 			updateUrl(exerciseId);
 
-			// Update UI
-			this.showExerciseView();
-			document.getElementById('exercise-title').textContent = exercise.title;
+			// Show workspace screen
+			this.showScreen('workspace');
+
+			// Update topbar title
+			const topbarTitle = document.getElementById('exercise-title-topbar');
+			if (topbarTitle) {
+				topbarTitle.textContent = exercise.title;
+			}
 
 			// Render description (markdown)
 			const descriptionDiv = document.getElementById('exercise-description');
@@ -134,11 +285,10 @@ class ExerciseApp {
 			// Refresh CodeMirror
 			setTimeout(() => {
 				this.codeEditor.refresh();
-			}, 0);
+			}, 100);
 
-			// Update UI
+			// Update completion status
 			this.updateCompletionStatus(exerciseId);
-			this.exerciseMenu.setActive(exerciseId);
 			this.testResults.displayNoResults();
 
 			// Load statistics
@@ -149,14 +299,6 @@ class ExerciseApp {
 		}
 	}
 
-	showExerciseView() {
-		const welcomeScreen = document.getElementById('welcome-screen');
-		const exerciseView = document.getElementById('exercise-view');
-
-		if (welcomeScreen) welcomeScreen.style.display = 'none';
-		if (exerciseView) exerciseView.style.display = 'block';
-	}
-
 	updateCompletionStatus(exerciseId) {
 		const statusElement = document.getElementById('completion-status');
 		if (!statusElement) return;
@@ -164,14 +306,14 @@ class ExerciseApp {
 		const progress = this.storageService.getExerciseProgress(exerciseId);
 
 		if (!progress) {
-			statusElement.textContent = 'Not Started';
-			statusElement.className = 'status-badge not-started';
+			statusElement.textContent = 'not started';
+			statusElement.className = 'status-indicator';
 		} else if (progress.completed) {
-			statusElement.textContent = 'Completed';
-			statusElement.className = 'status-badge completed';
+			statusElement.textContent = '✓ completed';
+			statusElement.className = 'status-indicator completed';
 		} else {
-			statusElement.textContent = 'In Progress';
-			statusElement.className = 'status-badge in-progress';
+			statusElement.textContent = '○ in progress';
+			statusElement.className = 'status-indicator in-progress';
 		}
 	}
 
@@ -191,7 +333,7 @@ class ExerciseApp {
 		const runButton = document.getElementById('run-tests');
 
 		// Show loading state
-		runButton.textContent = 'Running...';
+		runButton.textContent = '⟳ running...';
 		runButton.disabled = true;
 
 		try {
@@ -214,7 +356,7 @@ class ExerciseApp {
 				this.showVPNNotification();
 			}
 		} finally {
-			runButton.textContent = 'Run Tests';
+			runButton.innerHTML = '<span>󰐊</span> run tests';
 			runButton.disabled = false;
 		}
 	}
@@ -223,7 +365,7 @@ class ExerciseApp {
 		this.storageService.updateExerciseProgress(exerciseId, code, completed);
 		this.updateCompletionStatus(exerciseId);
 		this.updateProgressDisplay();
-		this.exerciseMenu.populate(this.exercises); // Refresh to show completion
+		this.populateExerciseCards(); // Refresh cards to show completion status
 	}
 
 	saveProgress() {
@@ -244,7 +386,7 @@ class ExerciseApp {
 		const progressFill = document.getElementById('progress-fill');
 
 		if (progressText) {
-			progressText.textContent = `Progress: ${completedExercises}/${totalExercises} exercises completed`;
+			progressText.textContent = `${completedExercises}/${totalExercises} completed`;
 		}
 		if (progressFill) {
 			progressFill.style.width = `${percentage}%`;
@@ -254,7 +396,7 @@ class ExerciseApp {
 	resetCode() {
 		if (!this.currentExercise) return;
 
-		if (confirm('Are you sure you want to reset your code? This will remove all your changes.')) {
+		if (confirm('Reset your code? This will remove all your changes.')) {
 			const defaultCode = '#!/bin/bash\n\n# Write your solution here\n';
 			this.codeEditor.setValue(defaultCode);
 			this.updateProgress(this.currentExercise.id, defaultCode, false);
@@ -262,17 +404,7 @@ class ExerciseApp {
 	}
 
 	showVPNNotification() {
-		const notification = document.createElement('div');
-		notification.className = 'vpn-notification';
-		notification.innerHTML = `
-			<div class="vpn-notification-content">
-				<h3>🔒 VPN Connection Required</h3>
-				<p>Access to the exercises requires a VPN connection to the organization network.</p>
-				<p>Please connect to your VPN and refresh the page.</p>
-				<button onclick="location.reload()">Refresh Page</button>
-			</div>
-		`;
-		document.body.appendChild(notification);
+		alert('VPN Connection Required\n\nAccess to the exercises requires a VPN connection to the organization network.\nPlease connect to your VPN and refresh the page.');
 	}
 
 	setupEventListeners() {
