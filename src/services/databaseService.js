@@ -439,6 +439,67 @@ class DatabaseService {
 		await this.db.run('DELETE FROM fixture_files WHERE filename = ?', [filename]);
 	}
 
+	// ============= Exercise Statistics Methods =============
+
+	/**
+	 * Get statistics for a specific user and exercise
+	 * @param {number} userId - User ID
+	 * @param {string} exerciseId - Exercise ID
+	 * @returns {Promise<Object>} Statistics object
+	 */
+	async getExerciseStatistics(userId, exerciseId) {
+		const progress = await this.getUserProgress(userId, exerciseId);
+
+		if (!progress) {
+			return {
+				totalAttempts: 0,
+				successfulAttempts: 0,
+				failedAttempts: 0,
+				lastAttempt: null,
+				failureReasons: {}
+			};
+		}
+
+		// Calculate statistics from user_progress
+		const successfulAttempts = progress.completed ? 1 : 0;
+		const failedAttempts = progress.attempts - successfulAttempts;
+
+		return {
+			totalAttempts: progress.attempts || 0,
+			successfulAttempts: successfulAttempts,
+			failedAttempts: failedAttempts,
+			lastAttempt: progress.started_at,
+			failureReasons: {} // Can be enhanced later to track specific failure types
+		};
+	}
+
+	/**
+	 * Get global statistics for an exercise (all users)
+	 * @param {string} exerciseId - Exercise ID
+	 * @returns {Promise<Object>} Aggregated statistics
+	 */
+	async getGlobalExerciseStatistics(exerciseId) {
+		const stats = await this.db.get(`
+			SELECT 
+				COUNT(*) as total_users,
+				SUM(attempts) as total_attempts,
+				SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as successful_completions,
+				SUM(CASE WHEN completed = 0 THEN attempts ELSE 0 END) as failed_attempts,
+				AVG(attempts) as avg_attempts
+			FROM user_progress
+			WHERE exercise_id = ?
+		`, [exerciseId]);
+
+		return {
+			totalAttempts: stats.total_attempts || 0,
+			successfulAttempts: stats.successful_completions || 0,
+			failedAttempts: stats.failed_attempts || 0,
+			totalUsers: stats.total_users || 0,
+			avgAttempts: Math.round(stats.avg_attempts || 0),
+			failureReasons: {}
+		};
+	}
+
 	/**
 	 * Close the database connection
 	 */

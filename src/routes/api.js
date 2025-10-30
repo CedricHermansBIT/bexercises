@@ -70,12 +70,15 @@ router.post('/exercises/:id/run', async (req, res) => {
 				completed: allPassed,
 				last_submission: script
 			});
+
+			// Get user-specific statistics from database
+			const statistics = await statisticsService.getExerciseStatistics(req.params.id, req.user.id);
+			res.json({ results, statistics });
+		} else {
+			// Legacy: Update file-based statistics for non-authenticated users
+			const statistics = await statisticsService.updateStatistics(req.params.id, results);
+			res.json({ results, statistics });
 		}
-
-		// Update statistics (localStorage-based, legacy)
-		const statistics = await statisticsService.updateStatistics(req.params.id, results);
-
-		res.json({ results, statistics });
 	} catch (error) {
 		console.error('Error running tests:', error);
 		res.status(500).json({
@@ -92,13 +95,38 @@ router.post('/exercises/:id/run', async (req, res) => {
 router.get('/statistics/:id?', async (req, res) => {
 	try {
 		const { id } = req.params;
+		const userId = req.user ? req.user.id : null;
 
 		if (id) {
-			const stats = await statisticsService.getExerciseStatistics(id);
+			// Get statistics for specific exercise
+			const stats = await statisticsService.getExerciseStatistics(id, userId);
 			res.json(stats);
 		} else {
-			const stats = await statisticsService.loadStatistics();
-			res.json(stats);
+			// Get all statistics
+			if (userId) {
+				// Get all user's progress from database
+				const databaseService = require('../services/databaseService');
+				const allProgress = await databaseService.db.all(`
+					SELECT exercise_id, attempts, completed
+					FROM user_progress
+					WHERE user_id = ?
+				`, [userId]);
+
+				const stats = {};
+				allProgress.forEach(p => {
+					stats[p.exercise_id] = {
+						totalAttempts: p.attempts,
+						successfulAttempts: p.completed ? 1 : 0,
+						failedAttempts: p.attempts - (p.completed ? 1 : 0),
+						failureReasons: {}
+					};
+				});
+				res.json(stats);
+			} else {
+				// Fallback to file-based statistics
+				const stats = await statisticsService.loadStatistics();
+				res.json(stats);
+			}
 		}
 	} catch (error) {
 		console.error('Error fetching statistics:', error);
