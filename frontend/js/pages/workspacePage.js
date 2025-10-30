@@ -4,6 +4,7 @@ import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
 import TestResults from '../components/testResults.js';
 import Statistics from '../components/statistics.js';
+import { initializeResizableSidebars } from '../utils/resizeUtils.js';
 
 class WorkspacePage {
     constructor() {
@@ -42,6 +43,9 @@ class WorkspacePage {
 
         // Setup logout
         this.setupLogout();
+
+        // Initialize resizable sidebar
+        initializeResizableSidebars();
 
         // Get exercise ID from URL or session storage
         const urlParams = new URLSearchParams(window.location.search);

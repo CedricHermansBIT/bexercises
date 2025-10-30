@@ -1,5 +1,6 @@
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
+import { initializeResizableSidebars } from '../utils/resizeUtils.js';
 
 class AdminPage {
     constructor() {
@@ -57,6 +58,9 @@ class AdminPage {
         await this.loadExercises();
         await this.loadFiles();
         await this.loadUsers();
+
+        // Initialize resizable sidebar
+        initializeResizableSidebars();
     }
 
     updateTime() {
