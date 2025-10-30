@@ -733,30 +733,47 @@ body {
     grid-template-columns: var(--workspace-sidebar-width, 350px) 1fr;
     height: calc(100vh - 36px);
     position: relative;
+    gap: 0;
 }
 
 .workspace-sidebar {
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
+    overflow-x: visible;
     position: relative;
+    z-index: 1;
+}
+
+.workspace-main {
+    position: relative;
+    z-index: 0;
+    display: grid;
+    grid-template-rows: 1fr 40%;
+    gap: 0;
 }
 
 .resize-handle {
     position: absolute;
     top: 0;
-    right: 0;
-    width: 5px;
+    left: calc(var(--workspace-sidebar-width, 350px) - 5px);
+    width: 10px;
     height: 100%;
     cursor: col-resize;
-    background: transparent;
-    z-index: 100;
-    transition: background 0.2s;
+    background: rgba(180, 190, 254, 0.2);
+    z-index: 10000;
+    transition: all 0.2s;
+    pointer-events: auto;
+}
+
+.admin-layout .resize-handle {
+    left: calc(var(--admin-sidebar-width, 300px) - 5px);
 }
 
 .resize-handle:hover,
 .resize-handle.resizing {
     background: var(--accent-lavender);
+    opacity: 0.8;
 }
 
 .resize-handle::after {
@@ -765,15 +782,18 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 2px;
-    height: 40px;
-    background: var(--text-muted);
+    width: 3px;
+    height: 60px;
+    background: var(--accent-lavender);
+    border-radius: 2px;
     opacity: 0;
     transition: opacity 0.2s;
+    pointer-events: none;
 }
 
-.resize-handle:hover::after {
-    opacity: 0.5;
+.resize-handle:hover::after,
+.resize-handle.resizing::after {
+    opacity: 0.8;
 }
 
 .sidebar-section {
@@ -834,12 +854,6 @@ body {
 .section-content pre code {
     background: none;
     padding: 0;
-}
-
-.workspace-main {
-    display: grid;
-    grid-template-rows: 1fr 40%;
-    gap: 0;
 }
 
 .editor-container,
@@ -1111,6 +1125,11 @@ body {
     display: flex;
     flex-direction: column;
     position: relative;
+}
+
+/* Resize handle is now positioned outside the sidebar to avoid scrollbar interference */
+.admin-sidebar .resize-handle {
+    right: -5px;
 }
 
 .sidebar-tabs {

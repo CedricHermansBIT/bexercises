@@ -17,15 +17,19 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
 	const sidebar = document.querySelector(sidebarSelector);
 	
 	if (!handle || !sidebar) {
-		console.warn('Resize handle or sidebar not found');
+		console.warn(`Resize setup failed - handle: ${!!handle}, sidebar: ${!!sidebar} for ${handleSelector}`);
 		return;
 	}
 	
+	console.log(`Setting up resize for ${sidebarSelector}`);
+
 	// Load saved width from localStorage
 	if (storageKey) {
 		const savedWidth = localStorage.getItem(storageKey);
 		if (savedWidth) {
 			document.documentElement.style.setProperty(cssVarName, savedWidth + 'px');
+			handle.style.left = `calc(${savedWidth}px - 5px)`;
+			console.log(`Loaded saved width: ${savedWidth}px for ${cssVarName}`);
 		}
 	}
 	
@@ -34,6 +38,7 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
 	let startWidth = 0;
 	
 	handle.addEventListener('mousedown', (e) => {
+		console.log('Resize started');
 		isResizing = true;
 		startX = e.clientX;
 		startWidth = sidebar.offsetWidth;
@@ -43,6 +48,7 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
 		document.body.style.userSelect = 'none';
 		
 		e.preventDefault();
+		e.stopPropagation();
 	});
 	
 	document.addEventListener('mousemove', (e) => {
@@ -56,10 +62,16 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
 		
 		// Update CSS variable
 		document.documentElement.style.setProperty(cssVarName, newWidth + 'px');
+
+		// Update handle position
+		handle.style.left = `calc(${newWidth}px - 5px)`;
+
+		e.preventDefault();
 	});
 	
 	document.addEventListener('mouseup', () => {
 		if (isResizing) {
+			console.log('Resize ended');
 			isResizing = false;
 			handle.classList.remove('resizing');
 			document.body.style.cursor = '';
@@ -69,6 +81,7 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
 			if (storageKey) {
 				const currentWidth = sidebar.offsetWidth;
 				localStorage.setItem(storageKey, currentWidth);
+				console.log(`Saved width: ${currentWidth}px`);
 			}
 		}
 	});
@@ -79,9 +92,9 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
  */
 export function initializeResizableSidebars() {
 	// Admin sidebar
-	if (document.querySelector('.admin-sidebar .resize-handle')) {
+	if (document.querySelector('.admin-layout .resize-handle')) {
 		makeResizable(
-			'.admin-sidebar .resize-handle',
+			'.admin-layout .resize-handle',
 			'.admin-sidebar',
 			'--admin-sidebar-width',
 			250,
@@ -91,9 +104,9 @@ export function initializeResizableSidebars() {
 	}
 	
 	// Workspace sidebar
-	if (document.querySelector('.workspace-sidebar .resize-handle')) {
+	if (document.querySelector('.workspace-layout .resize-handle')) {
 		makeResizable(
-			'.workspace-sidebar .resize-handle',
+			'.workspace-layout .resize-handle',
 			'.workspace-sidebar',
 			'--workspace-sidebar-width',
 			250,
