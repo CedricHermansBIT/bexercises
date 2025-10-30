@@ -75,7 +75,7 @@ router.post('/exercises/:id/run', async (req, res) => {
 			const statistics = await statisticsService.getExerciseStatistics(req.params.id, req.user.id);
 			res.json({ results, statistics });
 		} else {
-			// Legacy: Update file-based statistics for non-authenticated users
+			// For non-authenticated users, return global statistics
 			const statistics = await statisticsService.updateStatistics(req.params.id, results);
 			res.json({ results, statistics });
 		}
@@ -103,29 +103,8 @@ router.get('/statistics/:id?', async (req, res) => {
 			res.json(stats);
 		} else {
 			// Get all statistics
-			if (userId) {
-				// Get all user's progress from database
-				const allProgress = await databaseService.db.all(`
-					SELECT exercise_id, attempts, completed
-					FROM user_progress
-					WHERE user_id = ?
-				`, [userId]);
-
-				const stats = {};
-				allProgress.forEach(p => {
-					stats[p.exercise_id] = {
-						totalAttempts: p.attempts,
-						successfulAttempts: p.completed ? 1 : 0,
-						failedAttempts: p.attempts - (p.completed ? 1 : 0),
-						failureReasons: {}
-					};
-				});
-				res.json(stats);
-			} else {
-				// Fallback to file-based statistics
-				const stats = await statisticsService.loadStatistics();
-				res.json(stats);
-			}
+			const stats = await statisticsService.getAllStatistics(userId);
+			res.json(stats);
 		}
 	} catch (error) {
 		console.error(`Error fetching statistics:`, error);

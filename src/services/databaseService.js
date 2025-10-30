@@ -116,10 +116,37 @@ class DatabaseService {
 				started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				completed_at DATETIME,
 				attempts INTEGER DEFAULT 0,
+				successful_attempts INTEGER DEFAULT 0,
+				failed_attempts INTEGER DEFAULT 0,
 				PRIMARY KEY (user_id, exercise_id),
 				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 			)
+		`);
+
+		// Add new columns if they don't exist (for existing databases)
+		try {
+			await this.db.exec(`ALTER TABLE user_progress ADD COLUMN successful_attempts INTEGER DEFAULT 0`);
+		} catch (e) {
+			// Column already exists
+		}
+		try {
+			await this.db.exec(`ALTER TABLE user_progress ADD COLUMN failed_attempts INTEGER DEFAULT 0`);
+		} catch (e) {
+			// Column already exists
+		}
+
+		// Migrate existing data: if completed=1, set successful_attempts=1, failed_attempts=attempts-1
+		// if completed=0, set failed_attempts=attempts
+		await this.db.exec(`
+			UPDATE user_progress 
+			SET successful_attempts = CASE WHEN completed = 1 AND successful_attempts = 0 THEN 1 ELSE successful_attempts END,
+				failed_attempts = CASE 
+					WHEN failed_attempts = 0 AND completed = 1 THEN attempts - 1
+					WHEN failed_attempts = 0 AND completed = 0 THEN attempts
+					ELSE failed_attempts
+				END
+			WHERE successful_attempts = 0 OR failed_attempts = 0
 		`);
 
 		// Fixture files table
@@ -430,14 +457,16 @@ class DatabaseService {
 				SET completed = ?, 
 					last_submission = ?, 
 					completed_at = CASE WHEN ? = 1 AND completed = 0 THEN CURRENT_TIMESTAMP ELSE completed_at END,
-					attempts = attempts + 1
+					attempts = attempts + 1,
+					successful_attempts = successful_attempts + CASE WHEN ? = 1 THEN 1 ELSE 0 END,
+					failed_attempts = failed_attempts + CASE WHEN ? = 0 THEN 1 ELSE 0 END
 				WHERE user_id = ? AND exercise_id = ?
-			`, [completed ? 1 : 0, last_submission, completed ? 1 : 0, userId, exerciseId]);
+			`, [completed ? 1 : 0, last_submission, completed ? 1 : 0, completed ? 1 : 0, completed ? 1 : 0, userId, exerciseId]);
 		} else {
 			await this.db.run(`
-				INSERT INTO user_progress (user_id, exercise_id, completed, last_submission, completed_at, attempts)
-				VALUES (?, ?, ?, ?, ?, 1)
-			`, [userId, exerciseId, completed ? 1 : 0, last_submission, completed ? new Date().toISOString() : null]);
+				INSERT INTO user_progress (user_id, exercise_id, completed, last_submission, completed_at, attempts, successful_attempts, failed_attempts)
+				VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+			`, [userId, exerciseId, completed ? 1 : 0, last_submission, completed ? new Date().toISOString() : null, completed ? 1 : 0, completed ? 0 : 1]);
 		}
 	}
 
@@ -511,14 +540,10 @@ class DatabaseService {
 			};
 		}
 
-		// Calculate statistics from user_progress
-		const successfulAttempts = progress.completed ? 1 : 0;
-		const failedAttempts = progress.attempts - successfulAttempts;
-
 		return {
 			totalAttempts: progress.attempts || 0,
-			successfulAttempts: successfulAttempts,
-			failedAttempts: failedAttempts,
+			successfulAttempts: progress.successful_attempts || 0,
+			failedAttempts: progress.failed_attempts || 0,
 			lastAttempt: progress.started_at,
 			failureReasons: {} // Can be enhanced later to track specific failure types
 		};
@@ -534,8 +559,8 @@ class DatabaseService {
 			SELECT 
 				COUNT(*) as total_users,
 				SUM(attempts) as total_attempts,
-				SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as successful_completions,
-				SUM(CASE WHEN completed = 0 THEN attempts ELSE 0 END) as failed_attempts,
+				SUM(successful_attempts) as total_successful,
+				SUM(failed_attempts) as total_failed,
 				AVG(attempts) as avg_attempts
 			FROM user_progress
 			WHERE exercise_id = ?
@@ -543,8 +568,8 @@ class DatabaseService {
 
 		return {
 			totalAttempts: stats.total_attempts || 0,
-			successfulAttempts: stats.successful_completions || 0,
-			failedAttempts: stats.failed_attempts || 0,
+			successfulAttempts: stats.total_successful || 0,
+			failedAttempts: stats.total_failed || 0,
 			totalUsers: stats.total_users || 0,
 			avgAttempts: Math.round(stats.avg_attempts || 0),
 			failureReasons: {}

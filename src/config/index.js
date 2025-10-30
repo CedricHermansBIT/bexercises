@@ -46,7 +46,6 @@ const config = {
 	paths: {
 		root: path.resolve(__dirname, '../..'),
 		exercises: path.resolve(__dirname, '../../exercises-internal.json'),
-		statistics: path.resolve(__dirname, '../../statistics.json'),
 		fixtures: path.resolve(__dirname, '../../fixtures'),
 		frontend: path.resolve(__dirname, '../../frontend'),
 		temp: process.env.TEMP_DIR || path.resolve(__dirname, '../../tmp')
