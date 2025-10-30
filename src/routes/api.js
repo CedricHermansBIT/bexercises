@@ -22,6 +22,20 @@ router.get('/exercises', async (req, res) => {
 });
 
 /**
+ * GET /api/languages
+ * Get all available programming languages
+ */
+router.get('/languages', async (req, res) => {
+	try {
+		const languages = await databaseService.getLanguages();
+		res.json(languages);
+	} catch (error) {
+		console.error('Error fetching languages:', error);
+		res.status(500).json({ error: 'Failed to load languages' });
+	}
+});
+
+/**
  * GET /api/exercises/:id
  * Get a single exercise by ID (without test cases)
  */

@@ -360,6 +360,23 @@ class ApiService {
 			throw new Error(`Failed to delete user: ${response.status}`);
 		}
 	}
+
+	/**
+	 * Get leaderboard data, optionally filtered by language
+	 * @param {string|null} languageId - Optional language ID to filter by
+	 * @returns {Promise<Array>} Leaderboard rankings
+	 */
+	async getLeaderboard(languageId = null) {
+		const endpoint = languageId
+			? `${this.baseUrl}/api/leaderboard/${encodeURIComponent(languageId)}`
+			: `${this.baseUrl}/api/leaderboard`;
+
+		const response = await fetch(endpoint);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch leaderboard: ${response.status}`);
+		}
+		return response.json();
+	}
 }
 
 export default ApiService;

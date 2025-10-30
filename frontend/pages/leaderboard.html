@@ -39,9 +39,35 @@
         <div class="leaderboard-content">
             <div class="leaderboard-header">
                 <h1 class="page-title">$ cat /rankings/global.txt</h1>
+
+                <div class="leaderboard-controls">
+                    <div class="search-container">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="search-input" placeholder="Search users..." class="search-input">
+                    </div>
+
+                    <div class="control-buttons">
+                        <button class="refresh-btn" id="refresh-btn" title="Refresh rankings">
+                            <span class="refresh-icon">🔄</span>
+                        </button>
+
+                        <div class="auto-refresh-toggle">
+                            <input type="checkbox" id="auto-refresh-toggle" class="toggle-checkbox">
+                            <label for="auto-refresh-toggle" class="toggle-label">
+                                <span class="toggle-text">Auto-refresh</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Statistics -->
+                <div class="summary-stats" id="summary-stats">
+                    <!-- Stats will be populated here -->
+                </div>
+
                 <div class="leaderboard-tabs">
                     <button class="tab-btn active" data-tab="global">Global</button>
-                    <button class="tab-btn" data-tab="bash">Shell Scripting</button>
+                    <!-- Language tabs will be added dynamically -->
                 </div>
             </div>
 
@@ -53,6 +79,7 @@
                             <div class="rank-col">Rank</div>
                             <div class="user-col">User</div>
                             <div class="score-col">Completed</div>
+                            <div class="attempts-col">Attempts</div>
                             <div class="rate-col">Success Rate</div>
                         </div>
                         <div id="global-rankings" class="table-body">
@@ -60,8 +87,10 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-
+            <div class="leaderboard-footer">
+                <span class="footer-info" id="last-updated">Loading...</span>
             </div>
         </div>
     </div>
