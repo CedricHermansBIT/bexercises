@@ -41,27 +41,48 @@
         <div class="admin-layout">
             <!-- Sidebar with exercise list -->
             <div class="admin-sidebar">
-                <div class="sidebar-header">
-                    <button class="action-btn primary" id="new-exercise-btn">
-                        <span>+</span> New Exercise
-                    </button>
-                    <button class="action-btn" id="new-chapter-btn">
-                        <span>📁</span> New Chapter
-                    </button>
-                    <button class="action-btn" id="reorder-mode-btn">
-                        <span>⇅</span> Reorder
-                    </button>
+                <div class="sidebar-tabs">
+                    <button class="tab-btn active" data-tab="exercises">Exercises</button>
+                    <button class="tab-btn" data-tab="files">Files</button>
                 </div>
-                <div class="exercises-list" id="exercises-list">
-                    <!-- Exercise list will be populated here -->
+
+                <!-- Exercises Tab -->
+                <div id="exercises-tab" class="tab-content active">
+                    <div class="sidebar-header">
+                        <button class="action-btn primary" id="new-exercise-btn">
+                            <span>+</span> New Exercise
+                        </button>
+                        <button class="action-btn" id="new-chapter-btn">
+                            <span>📁</span> New Chapter
+                        </button>
+                        <button class="action-btn" id="reorder-mode-btn">
+                            <span>⇅</span> Reorder
+                        </button>
+                    </div>
+                    <div class="exercises-list" id="exercises-list">
+                        <!-- Exercise list will be populated here -->
+                    </div>
+                    <div id="reorder-actions" class="reorder-actions" style="display: none;">
+                        <button class="action-btn primary" id="save-order-btn">
+                            <span>✓</span> Save Order
+                        </button>
+                        <button class="action-btn" id="cancel-order-btn">
+                            Cancel
+                        </button>
+                    </div>
                 </div>
-                <div id="reorder-actions" class="reorder-actions" style="display: none;">
-                    <button class="action-btn primary" id="save-order-btn">
-                        <span>✓</span> Save Order
-                    </button>
-                    <button class="action-btn" id="cancel-order-btn">
-                        Cancel
-                    </button>
+
+                <!-- Files Tab -->
+                <div id="files-tab" class="tab-content">
+                    <div class="sidebar-header">
+                        <button class="action-btn primary" id="upload-file-btn">
+                            <span>📤</span> Upload File
+                        </button>
+                        <input type="file" id="file-upload-input" multiple style="display: none;">
+                    </div>
+                    <div class="files-list" id="files-list">
+                        <!-- Files will be populated here -->
+                    </div>
                 </div>
             </div>
 
@@ -124,15 +145,6 @@
                             </button>
                         </div>
 
-                        <div class="form-group">
-                            <label for="fixture-files">Fixture Files</label>
-                            <input type="file" id="fixture-files" multiple style="display: none;">
-                            <button type="button" class="action-btn" id="upload-fixtures-btn">
-                                <span>📁</span> Upload Fixture Files
-                            </button>
-                            <div id="fixture-list" class="fixture-list"></div>
-                            <small class="form-hint">Files that will be available in the test environment</small>
-                        </div>
 
                         <div class="form-actions">
                             <button class="action-btn primary" id="test-solution-btn">

@@ -238,11 +238,36 @@ async function runScript(script, args = []) {
 	}
 }
 
+/**
+ * Run a script with test case (arguments, input, fixtures)
+ * @param {string} script - Script content
+ * @param {Array<string>} args - Command line arguments
+ * @param {Array<string>} inputs - STDIN inputs
+ * @param {Array<string>} fixtureNames - Fixture filenames to copy
+ * @returns {Promise<Object>} Execution result
+ */
+async function runScriptWithTestCase(script, args = [], inputs = [], fixtureNames = []) {
+	const { tmpdir, scriptPath } = await createTempScript(script);
+
+	try {
+		// Copy fixture files if specified
+		if (fixtureNames && fixtureNames.length > 0) {
+			await copyFixtures(tmpdir, fixtureNames);
+		}
+
+		const result = await runScriptInContainer(tmpdir, 'script.sh', args, inputs, config.docker.timeoutMs);
+		return result;
+	} finally {
+		await removeRecursive(tmpdir);
+	}
+}
+
 module.exports = {
 	normalizeOutput,
 	removeRecursive,
 	createTempScript,
 	copyFixtures,
 	runScriptInContainer,
-	runScript
+	runScript,
+	runScriptWithTestCase
 };

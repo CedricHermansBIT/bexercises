@@ -13,6 +13,23 @@ const router = express.Router();
 router.use(requireAdmin);
 
 /**
+ * GET /api/admin/exercises
+ * Get all exercises with full data including test cases (admin only)
+ */
+router.get('/exercises', async (req, res) => {
+	try {
+		const exercises = await exerciseService.loadExercisesInternal();
+		res.json(exercises);
+	} catch (error) {
+		console.error('Error fetching exercises:', error);
+		res.status(500).json({
+			error: 'Failed to load exercises',
+			detail: error.message
+		});
+	}
+});
+
+/**
  * POST /api/admin/exercises/reorder
  * Reorder exercises (must be before :id routes to avoid conflicts)
  */
@@ -81,6 +98,34 @@ router.post('/test-solution', async (req, res) => {
 		console.error('Error testing solution:', error);
 		res.status(500).json({
 			error: 'Failed to test solution',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * POST /api/admin/run-test-case
+ * Run a test case with specific arguments, input, and fixtures
+ */
+router.post('/run-test-case', async (req, res) => {
+	try {
+		const { solution, arguments: args = [], input = [], fixtures = [] } = req.body;
+
+		if (!solution || typeof solution !== 'string') {
+			return res.status(400).json({ error: 'Missing solution script' });
+		}
+
+		// Run the script using Docker with test case parameters
+		const result = await dockerService.runScriptWithTestCase(solution, args, input, fixtures);
+
+		res.json({
+			output: result.stdout + result.stderr,
+			exitCode: result.exitCode
+		});
+	} catch (error) {
+		console.error('Error running test case:', error);
+		res.status(500).json({
+			error: 'Failed to run test case',
 			detail: error.message
 		});
 	}
@@ -196,6 +241,111 @@ router.delete('/exercises/:id', async (req, res) => {
 		console.error('Error deleting exercise:', error);
 		res.status(500).json({
 			error: 'Failed to delete exercise',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * GET /api/admin/fixtures
+ * Get list of all fixture files
+ */
+router.get('/fixtures', async (req, res) => {
+	try {
+		const fixturesDir = config.paths.fixtures;
+		const files = await fs.readdir(fixturesDir);
+
+		const fileStats = await Promise.all(files.map(async (filename) => {
+			const filePath = path.join(fixturesDir, filename);
+			const stats = await fs.stat(filePath);
+			return {
+				name: filename,
+				size: stats.size,
+				modified: stats.mtime
+			};
+		}));
+
+		res.json(fileStats);
+	} catch (error) {
+		console.error('Error listing fixtures:', error);
+		res.status(500).json({
+			error: 'Failed to list fixture files',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * POST /api/admin/fixtures
+ * Upload a new fixture file
+ */
+router.post('/fixtures', async (req, res) => {
+	try {
+		const { filename, content } = req.body;
+
+		if (!filename || !content) {
+			return res.status(400).json({ error: 'Missing filename or content' });
+		}
+
+		// Validate filename (no path traversal)
+		if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid filename' });
+		}
+
+		const filePath = path.join(config.paths.fixtures, filename);
+		await fs.writeFile(filePath, content, 'utf8');
+
+		res.json({ success: true, filename });
+	} catch (error) {
+		console.error('Error uploading fixture:', error);
+		res.status(500).json({
+			error: 'Failed to upload file',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * GET /api/admin/fixtures/:filename
+ * Get fixture file content
+ */
+router.get('/fixtures/:filename', async (req, res) => {
+	try {
+		const filename = req.params.filename;
+		const filePath = path.join(config.paths.fixtures, filename);
+
+		const content = await fs.readFile(filePath, 'utf8');
+		res.json({ content });
+	} catch (error) {
+		console.error('Error reading fixture:', error);
+		res.status(500).json({
+			error: 'Failed to read file',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * DELETE /api/admin/fixtures/:filename
+ * Delete a fixture file
+ */
+router.delete('/fixtures/:filename', async (req, res) => {
+	try {
+		const filename = req.params.filename;
+
+		// Validate filename (no path traversal)
+		if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid filename' });
+		}
+
+		const filePath = path.join(config.paths.fixtures, filename);
+		await fs.unlink(filePath);
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deleting fixture:', error);
+		res.status(500).json({
+			error: 'Failed to delete file',
 			detail: error.message
 		});
 	}

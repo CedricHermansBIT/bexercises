@@ -11,17 +11,17 @@ class AdminPage {
         this.exercises = [];
         this.currentExercise = null;
         this.solutionEditor = null;
-        this.testOutput = null;
         this.testCases = [];
-        this.fixtureFiles = [];
         this.reorderMode = false;
         this.originalOrder = null;
+        this.availableFiles = [];
+        this.currentTab = 'exercises';
 
         this.init();
     }
 
     async init() {
-        // Check authentication - REQUIRED
+        // Check authentication
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
             window.location.href = './login.html';
@@ -48,8 +48,12 @@ class AdminPage {
         // Setup logout
         this.setupLogout();
 
-        // Load exercises
+        // Setup tabs
+        this.setupTabs();
+
+        // Load data - exercises first, then files (files need exercises for usage count)
         await this.loadExercises();
+        await this.loadFiles();
     }
 
     updateTime() {
@@ -115,13 +119,13 @@ class AdminPage {
             this.addTestCase();
         });
 
-        addListener('upload-fixtures-btn', 'click', () => {
-            const fixtureInput = document.getElementById('fixture-files');
-            if (fixtureInput) fixtureInput.click();
+        addListener('upload-file-btn', 'click', () => {
+            const fileInput = document.getElementById('file-upload-input');
+            if (fileInput) fileInput.click();
         });
 
-        addListener('fixture-files', 'change', (e) => {
-            this.handleFixtureUpload(e);
+        addListener('file-upload-input', 'change', (e) => {
+            this.handleFileUpload(e);
         });
 
         addListener('exercise-chapter', 'change', (e) => {
@@ -149,7 +153,6 @@ class AdminPage {
             });
         }
 
-        // Toggle dropdown
         const userMenu = document.getElementById('user-menu-admin');
         if (userMenu) {
             userMenu.addEventListener('click', (e) => {
@@ -158,7 +161,6 @@ class AdminPage {
             });
         }
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', () => {
             const userMenu = document.getElementById('user-menu-admin');
             if (userMenu) {
@@ -167,9 +169,34 @@ class AdminPage {
         });
     }
 
+    // Tabs Management
+    setupTabs() {
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                this.switchTab(tabName);
+            });
+        });
+    }
+
+    switchTab(tabName) {
+        this.currentTab = tabName;
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === `${tabName}-tab`);
+        });
+    }
+
+    // Exercise Management
     async loadExercises() {
         try {
-            this.exercises = await this.apiService.getExercises();
+            // Use admin endpoint to get full exercise data including test cases
+            this.exercises = await this.apiService.getAdminExercises();
             this.populateExerciseList();
         } catch (error) {
             console.error('Failed to load exercises:', error);
@@ -180,7 +207,6 @@ class AdminPage {
         const list = document.getElementById('exercises-list');
         list.innerHTML = '';
 
-        // Group by chapter
         const chapters = {};
         this.exercises.forEach(ex => {
             const chapter = ex.chapter || 'Uncategorized';
@@ -228,7 +254,6 @@ class AdminPage {
         });
 
         if (!this.reorderMode) {
-            // Add event listeners for edit/delete
             list.querySelectorAll('[data-action="edit"]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const id = e.target.closest('button').dataset.id;
@@ -248,7 +273,6 @@ class AdminPage {
     createNewExercise() {
         this.currentExercise = null;
         this.testCases = [];
-        this.fixtureFiles = [];
 
         document.getElementById('editor-title').textContent = 'New Exercise';
         document.getElementById('exercise-id').value = '';
@@ -260,14 +284,12 @@ class AdminPage {
         this.solutionEditor.setValue('#!/bin/bash\n\n# Write the solution here\n');
 
         this.renderTestCases();
-        this.renderFixtures();
         this.updateChapterOptions();
 
         document.getElementById('admin-welcome').style.display = 'none';
         document.getElementById('exercise-editor').style.display = 'block';
         document.getElementById('test-preview').style.display = 'none';
 
-        // Refresh CodeMirror after display to fix rendering
         setTimeout(() => {
             this.solutionEditor.refresh();
         }, 100);
@@ -277,12 +299,11 @@ class AdminPage {
         const chapterName = prompt('Enter the name for the new chapter:');
 
         if (!chapterName || !chapterName.trim()) {
-            return; // User cancelled or entered empty name
+            return;
         }
 
         const trimmedName = chapterName.trim();
 
-        // Check if chapter already exists
         const existingChapters = new Set();
         this.exercises.forEach(ex => {
             if (ex.chapter) existingChapters.add(ex.chapter);
@@ -293,18 +314,13 @@ class AdminPage {
             return;
         }
 
-        // Create a placeholder exercise for the new chapter
-        // This ensures the chapter appears in the list
         alert(`Chapter "${trimmedName}" created! You can now create exercises in this chapter.`);
 
-        // Open new exercise form with the new chapter selected
         this.createNewExercise();
 
-        // Update chapter dropdown and select the new chapter
         this.updateChapterOptions();
         const select = document.getElementById('exercise-chapter');
 
-        // Add the new chapter to the dropdown
         const option = document.createElement('option');
         option.value = trimmedName;
         option.textContent = trimmedName;
@@ -317,7 +333,6 @@ class AdminPage {
             const exercise = await this.apiService.getExerciseWithTests(id);
             this.currentExercise = exercise;
             this.testCases = exercise.testCases || [];
-            this.fixtureFiles = exercise.fixtures || [];
 
             document.getElementById('editor-title').textContent = 'Edit Exercise';
             document.getElementById('exercise-id').value = exercise.id;
@@ -329,14 +344,12 @@ class AdminPage {
             this.solutionEditor.setValue(exercise.solution);
 
             this.renderTestCases();
-            this.renderFixtures();
             this.updateChapterOptions();
 
             document.getElementById('admin-welcome').style.display = 'none';
             document.getElementById('exercise-editor').style.display = 'block';
             document.getElementById('test-preview').style.display = 'none';
 
-            // Refresh CodeMirror after display to fix rendering
             setTimeout(() => {
                 this.solutionEditor.refresh();
             }, 100);
@@ -367,20 +380,59 @@ class AdminPage {
             return;
         }
 
+        if (this.testCases.length === 0) {
+            alert('Please add at least one test case before testing');
+            return;
+        }
+
         const testBtn = document.getElementById('test-solution-btn');
         testBtn.innerHTML = '<span>⟳</span> Testing...';
         testBtn.disabled = true;
 
         try {
-            const result = await this.apiService.testExerciseSolution(solution);
+            let resultsHtml = '';
 
-            this.testOutput = result.output;
+            for (let i = 0; i < this.testCases.length; i++) {
+                const testCase = this.testCases[i];
 
-            document.getElementById('test-output').innerHTML = `
-                <pre>${this.escapeHtml(result.output)}</pre>
-                ${result.exitCode !== undefined ? `<div class="exit-code">Exit Code: ${result.exitCode}</div>` : ''}
-            `;
+                // Detect which arguments are fixture files
+                const fixtures = [];
+                if (testCase.arguments) {
+                    testCase.arguments.forEach(arg => {
+                        if (this.availableFiles.some(f => f.name === arg)) {
+                            fixtures.push(arg);
+                        }
+                    });
+                }
 
+                resultsHtml += `<div class="test-case-result"><h4>Test Case ${i + 1}</h4>`;
+
+                const result = await this.apiService.runTestCase(solution, {
+                    arguments: testCase.arguments || [],
+                    input: testCase.input || [],
+                    fixtures: fixtures
+                });
+
+                this.testCases[i].expectedOutput = result.output;
+                this.testCases[i].expectedExitCode = result.exitCode;
+
+                resultsHtml += `
+                    <div class="test-result-details">
+                        <p><strong>Arguments:</strong> ${(testCase.arguments || []).join(', ') || '(none)'}</p>
+                        <p><strong>Input:</strong> ${(testCase.input || []).length} lines</p>
+                        <p><strong>Fixtures Used:</strong> ${fixtures.join(', ') || '(none)'}</p>
+                        <p><strong>Output:</strong></p>
+                        <pre class="test-output-preview">${this.escapeHtml(result.output)}</pre>
+                        <p><strong>Exit Code:</strong> ${result.exitCode}</p>
+                    </div>
+                `;
+
+                resultsHtml += '</div>';
+            }
+
+            this.renderTestCases();
+
+            document.getElementById('test-output').innerHTML = resultsHtml;
             document.getElementById('test-preview').style.display = 'block';
             document.getElementById('save-exercise-btn').textContent =
                 this.currentExercise ? '󰆓 Update Exercise' : '󰆓 Create Exercise';
@@ -412,11 +464,9 @@ class AdminPage {
             order: parseInt(document.getElementById('exercise-order').value) || 0,
             description: document.getElementById('exercise-description').value.trim(),
             solution: this.solutionEditor.getValue(),
-            testCases: this.testCases,
-            fixtures: this.fixtureFiles
+            testCases: this.testCases
         };
 
-        // Validation
         if (!exerciseData.id || !exerciseData.title || !exerciseData.description || !exerciseData.solution) {
             alert('Please fill in all required fields');
             return;
@@ -449,7 +499,6 @@ class AdminPage {
 
     modifyProceed() {
         document.getElementById('test-preview').style.display = 'none';
-        // Refresh CodeMirror after hiding preview
         setTimeout(() => {
             this.solutionEditor.refresh();
             this.solutionEditor.focus();
@@ -464,15 +513,8 @@ class AdminPage {
 
     cancelEdit() {
         this.currentExercise = null;
-        this.testOutput = null;
         document.getElementById('exercise-editor').style.display = 'none';
         document.getElementById('admin-welcome').style.display = 'flex';
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 
     // Test Cases Management
@@ -481,7 +523,7 @@ class AdminPage {
             arguments: [],
             expectedOutput: '',
             expectedExitCode: 0,
-            stdin: ''
+            input: []
         });
         this.renderTestCases();
     }
@@ -512,19 +554,14 @@ class AdminPage {
                 </div>
                 <div class="test-case-fields">
                     <div class="form-group-inline">
-                        <label>Arguments (comma-separated)</label>
+                        <label>Arguments (comma-separated, include filenames)</label>
                         <input type="text" class="form-input" data-field="arguments" data-index="${index}" 
-                               value="${(testCase.arguments || []).join(', ')}" placeholder="arg1, arg2, arg3">
+                               value="${(testCase.arguments || []).join(', ')}" placeholder="arg1, arg2, file.txt">
                     </div>
                     <div class="form-group-inline">
                         <label>STDIN Input (one per line)</label>
                         <textarea class="form-input" data-field="input" data-index="${index}" 
                                   rows="3" placeholder="Line 1\nLine 2\nLine 3">${(testCase.input || []).join('\n')}</textarea>
-                    </div>
-                    <div class="form-group-inline">
-                        <label>Fixture Files (comma-separated filenames)</label>
-                        <input type="text" class="form-input" data-field="fixtures" data-index="${index}" 
-                               value="${(testCase.fixtures || []).join(', ')}" placeholder="file1.txt, file2.csv">
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Output (auto-filled when testing)</label>
@@ -541,14 +578,13 @@ class AdminPage {
             container.appendChild(testCaseDiv);
         });
 
-        // Add event listeners
         container.querySelectorAll('[data-field]').forEach(input => {
             input.addEventListener('change', (e) => {
                 const index = parseInt(e.target.dataset.index);
                 const field = e.target.dataset.field;
                 let value = e.target.value;
 
-                if (field === 'arguments' || field === 'fixtures') {
+                if (field === 'arguments') {
                     value = value.split(',').map(s => s.trim()).filter(s => s);
                 } else if (field === 'input') {
                     value = value.split('\n').filter(s => s !== '');
@@ -568,18 +604,129 @@ class AdminPage {
         });
     }
 
-    // Fixture Files Management
-    async handleFixtureUpload(e) {
-        const files = Array.from(e.target.files);
-        for (const file of files) {
-            const content = await this.readFileAsText(file);
-            this.fixtureFiles.push({
-                name: file.name,
-                content: content
-            });
+    // File Management
+    async loadFiles() {
+        try {
+            this.availableFiles = await this.apiService.getFixtureFiles();
+            this.renderFilesList();
+        } catch (error) {
+            console.error('Failed to load files:', error);
         }
-        this.renderFixtures();
-        e.target.value = ''; // Reset input
+    }
+
+    renderFilesList() {
+        const list = document.getElementById('files-list');
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        if (this.availableFiles.length === 0) {
+            list.innerHTML = '<p class="no-files">No files uploaded yet</p>';
+            return;
+        }
+
+        this.availableFiles.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+
+            const usageCount = this.getFileUsageCount(file.name);
+            const usageText = usageCount > 0 ? `Used in ${usageCount} test case(s)` : 'Not used';
+
+            item.innerHTML = `
+                <div class="file-info">
+                    <span class="file-name">📄 ${file.name}</span>
+                    <span class="file-size">${this.formatFileSize(file.size)}</span>
+                    <span class="file-usage">${usageText}</span>
+                </div>
+                <div class="file-actions">
+                    <button class="icon-btn" data-action="view" data-filename="${file.name}" title="View">
+                        <span>👁</span>
+                    </button>
+                    <button class="icon-btn delete" data-action="delete" data-filename="${file.name}" title="Delete">
+                        <span>🗑</span>
+                    </button>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+
+        list.querySelectorAll('[data-action="view"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filename = e.target.closest('button').dataset.filename;
+                this.viewFile(filename);
+            });
+        });
+
+        list.querySelectorAll('[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filename = e.target.closest('button').dataset.filename;
+                this.deleteFile(filename);
+            });
+        });
+    }
+
+    getFileUsageCount(filename) {
+        let count = 0;
+
+        this.exercises.forEach(ex => {
+            if (ex.testCases && Array.isArray(ex.testCases)) {
+                ex.testCases.forEach((tc) => {
+                    // Count each test case only once, even if file appears in multiple fields
+                    let foundInThisTestCase = false;
+
+                    // Check fixtures array (legacy field)
+                    if (!foundInThisTestCase && tc.fixtures && Array.isArray(tc.fixtures)) {
+                        if (tc.fixtures.includes(filename)) {
+                            foundInThisTestCase = true;
+                        }
+                    }
+
+                    // Check arguments array
+                    if (!foundInThisTestCase && tc.arguments && Array.isArray(tc.arguments)) {
+                        if (tc.arguments.includes(filename)) {
+                            foundInThisTestCase = true;
+                        }
+                    }
+
+                    // Check input array (filenames might be in input for interactive scripts)
+                    if (!foundInThisTestCase && tc.input && Array.isArray(tc.input)) {
+                        if (tc.input.includes(filename)) {
+                            foundInThisTestCase = true;
+                        }
+                    }
+
+                    if (foundInThisTestCase) {
+                        count++;
+                    }
+                });
+            }
+        });
+
+        return count;
+    }
+
+    formatFileSize(bytes) {
+        if (!bytes) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    async handleFileUpload(e) {
+        const files = Array.from(e.target.files);
+
+        for (const file of files) {
+            try {
+                const content = await this.readFileAsText(file);
+                await this.apiService.uploadFixtureFile(file.name, content);
+            } catch (error) {
+                alert(`Failed to upload ${file.name}: ${error.message}`);
+            }
+        }
+
+        await this.loadFiles();
+        e.target.value = '';
     }
 
     readFileAsText(file) {
@@ -591,43 +738,57 @@ class AdminPage {
         });
     }
 
-    removeFixture(index) {
-        this.fixtureFiles.splice(index, 1);
-        this.renderFixtures();
+    async viewFile(filename) {
+        try {
+            const content = await this.apiService.getFixtureFileContent(filename);
+
+            const modal = document.createElement('div');
+            modal.className = 'file-viewer-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>${filename}</h3>
+                        <button class="modal-close">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <pre class="file-content">${this.escapeHtml(content)}</pre>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeModal = () => {
+                document.body.removeChild(modal);
+            };
+
+            modal.querySelector('.modal-close').addEventListener('click', closeModal);
+            modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+        } catch (error) {
+            alert(`Failed to view file: ${error.message}`);
+        }
     }
 
-    renderFixtures() {
-        const list = document.getElementById('fixture-list');
-        if (!list) {
-            console.warn('fixture-list not found');
-            return;
+    async deleteFile(filename) {
+        const usageCount = this.getFileUsageCount(filename);
+
+        if (usageCount > 0) {
+            if (!confirm(`This file is used in ${usageCount} test case(s). Are you sure you want to delete it?`)) {
+                return;
+            }
+        } else {
+            if (!confirm(`Delete ${filename}?`)) {
+                return;
+            }
         }
 
-        list.innerHTML = '';
-
-        if (this.fixtureFiles.length === 0) {
-            list.innerHTML = '<p class="no-fixtures">No fixtures uploaded</p>';
-            return;
+        try {
+            await this.apiService.deleteFixtureFile(filename);
+            await this.loadFiles();
+        } catch (error) {
+            alert(`Failed to delete file: ${error.message}`);
         }
-
-        this.fixtureFiles.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'fixture-item';
-            item.innerHTML = `
-                <span class="fixture-name">📄 ${file.name}</span>
-                <button type="button" class="icon-btn delete" data-index="${index}">
-                    <span>🗑</span>
-                </button>
-            `;
-            list.appendChild(item);
-        });
-
-        list.querySelectorAll('.icon-btn.delete').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const index = parseInt(e.target.closest('button').dataset.index);
-                this.removeFixture(index);
-            });
-        });
     }
 
     // Chapter Management
@@ -694,7 +855,7 @@ class AdminPage {
             item.classList.add('dragging');
         });
 
-        item.addEventListener('dragend', (e) => {
+        item.addEventListener('dragend', () => {
             item.classList.remove('dragging');
         });
 
@@ -755,8 +916,15 @@ class AdminPage {
         this.originalOrder = null;
         this.toggleReorderMode();
     }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     new AdminPage();
 });
+

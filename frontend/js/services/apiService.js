@@ -76,6 +76,18 @@ class ApiService {
 	}
 
 	/**
+	 * Get all exercises with full data (admin only)
+	 * @returns {Promise<Array>} Array of exercises with test cases
+	 */
+	async getAdminExercises() {
+		const response = await fetch(`${this.baseUrl}/api/admin/exercises`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch exercises: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
 	 * Get exercise with test cases (admin only)
 	 * @param {string} exerciseId - Exercise ID
 	 * @returns {Promise<Object>} Complete exercise with tests
@@ -119,6 +131,31 @@ class ApiService {
 
 		if (!response.ok) {
 			throw new Error(`Failed to test solution: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Run a specific test case (admin only)
+	 * @param {string} solution - Solution script
+	 * @param {Object} testCase - Test case with arguments, input, fixtures
+	 * @returns {Promise<Object>} Test output and exit code
+	 */
+	async runTestCase(solution, testCase) {
+		const response = await fetch(`${this.baseUrl}/api/admin/run-test-case`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				solution,
+				arguments: testCase.arguments || [],
+				input: testCase.input || [],
+				fixtures: testCase.fixtures || []
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to run test case: ${response.status}`);
 		}
 
 		return response.json();
@@ -177,6 +214,69 @@ class ApiService {
 
 		if (!response.ok) {
 			throw new Error(`Failed to delete exercise: ${response.status}`);
+		}
+	}
+
+	/**
+	 * Get all fixture files (admin only)
+	 * @returns {Promise<Array>} List of fixture files
+	 */
+	async getFixtureFiles() {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures`);
+		if (!response.ok) {
+			throw new Error(`Failed to get fixture files: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Upload a fixture file (admin only)
+	 * @param {string} filename - File name
+	 * @param {string} content - File content
+	 * @returns {Promise<Object>} Upload result
+	 */
+	async uploadFixtureFile(filename, content) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ filename, content })
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to upload file: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Get fixture file content (admin only)
+	 * @param {string} filename - File name
+	 * @returns {Promise<string>} File content
+	 */
+	async getFixtureFileContent(filename) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures/${encodeURIComponent(filename)}`);
+		if (!response.ok) {
+			throw new Error(`Failed to get file content: ${response.status}`);
+		}
+		const data = await response.json();
+		return data.content;
+	}
+
+	/**
+	 * Delete a fixture file (admin only)
+	 * @param {string} filename - File name
+	 * @returns {Promise<void>}
+	 */
+	async deleteFixtureFile(filename) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures/${encodeURIComponent(filename)}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to delete file: ${response.status}`);
 		}
 	}
 }
