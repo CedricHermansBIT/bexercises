@@ -62,3 +62,5 @@ Thumbs.db
 # Production
 *.tgz
 
+# Database
+data/
