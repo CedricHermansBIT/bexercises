@@ -279,6 +279,66 @@ class ApiService {
 			throw new Error(error.error || `Failed to delete file: ${response.status}`);
 		}
 	}
+
+	/**
+	 * Get all users (admin only)
+	 * @returns {Promise<Array>} List of users with statistics
+	 */
+	async getUsers() {
+		const response = await fetch(`${this.baseUrl}/api/admin/users`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch users: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Get detailed user information (admin only)
+	 * @param {number} userId - User ID
+	 * @returns {Promise<Object>} User details with progress
+	 */
+	async getUserDetails(userId) {
+		const response = await fetch(`${this.baseUrl}/api/admin/users/${userId}`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch user details: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Update user (admin only)
+	 * @param {number} userId - User ID
+	 * @param {Object} data - Update data (e.g., is_admin)
+	 * @returns {Promise<Object>} Updated user
+	 */
+	async updateUser(userId, data) {
+		const response = await fetch(`${this.baseUrl}/api/admin/users/${userId}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(data)
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to update user: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Delete a user (admin only)
+	 * @param {number} userId - User ID
+	 * @returns {Promise<void>}
+	 */
+	async deleteUser(userId) {
+		const response = await fetch(`${this.baseUrl}/api/admin/users/${userId}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to delete user: ${response.status}`);
+		}
+	}
 }
 
 export default ApiService;

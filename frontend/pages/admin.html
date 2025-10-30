@@ -44,6 +44,7 @@
                 <div class="sidebar-tabs">
                     <button class="tab-btn active" data-tab="exercises">Exercises</button>
                     <button class="tab-btn" data-tab="files">Files</button>
+                    <button class="tab-btn" data-tab="users">Users</button>
                 </div>
 
                 <!-- Exercises Tab -->
@@ -82,6 +83,18 @@
                     </div>
                     <div class="files-list" id="files-list">
                         <!-- Files will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="users-tab" class="tab-content">
+                    <div class="sidebar-header">
+                        <button class="action-btn" id="refresh-users-btn">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                    <div class="users-list" id="users-list">
+                        <!-- Users will be populated here -->
                     </div>
                 </div>
             </div>
@@ -184,6 +197,31 @@
                     <div class="welcome-content">
                         <h2>Exercise Management</h2>
                         <p>Select an exercise to edit or create a new one</p>
+                    </div>
+                </div>
+
+                <!-- User Details View -->
+                <div id="user-details" class="user-details" style="display: none;">
+                    <div class="details-header">
+                        <h2 id="user-details-title">User Details</h2>
+                        <button class="action-btn" id="close-user-details">
+                            Close
+                        </button>
+                    </div>
+
+                    <div class="user-info-section">
+                        <h3>User Information</h3>
+                        <div id="user-info-content"></div>
+                    </div>
+
+                    <div class="user-stats-section">
+                        <h3>Statistics</h3>
+                        <div id="user-stats-content"></div>
+                    </div>
+
+                    <div class="user-progress-section">
+                        <h3>Exercise Progress</h3>
+                        <div id="user-progress-content"></div>
                     </div>
                 </div>
             </div>

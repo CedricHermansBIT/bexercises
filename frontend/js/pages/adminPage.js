@@ -16,6 +16,8 @@ class AdminPage {
         this.originalOrder = null;
         this.availableFiles = [];
         this.currentTab = 'exercises';
+        this.users = [];
+        this.currentUser = null;
 
         this.init();
     }
@@ -54,6 +56,7 @@ class AdminPage {
         // Load data - exercises first, then files (files need exercises for usage count)
         await this.loadExercises();
         await this.loadFiles();
+        await this.loadUsers();
     }
 
     updateTime() {
@@ -142,6 +145,14 @@ class AdminPage {
 
         addListener('cancel-order-btn', 'click', () => {
             this.cancelReorder();
+        });
+
+        addListener('refresh-users-btn', 'click', () => {
+            this.loadUsers();
+        });
+
+        addListener('close-user-details', 'click', () => {
+            this.closeUserDetails();
         });
     }
 
@@ -921,6 +932,240 @@ class AdminPage {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // User Management
+    async loadUsers() {
+        try {
+            this.users = await this.apiService.getUsers();
+            this.renderUsersList();
+        } catch (error) {
+            console.error('Failed to load users:', error);
+        }
+    }
+    
+    renderUsersList() {
+        const list = document.getElementById('users-list');
+        if (!list) return;
+        
+        list.innerHTML = '';
+        
+        if (this.users.length === 0) {
+            list.innerHTML = '<p class="no-users">No users found</p>';
+            return;
+        }
+        
+        this.users.forEach(user => {
+            const item = document.createElement('div');
+            item.className = 'user-item';
+            
+            const completionRate = user.total_attempts > 0 
+                ? Math.round((user.completed_count / user.total_attempts) * 100) 
+                : 0;
+            
+            const adminBadge = user.is_admin ? '<span class="admin-badge">👑 Admin</span>' : '';
+            const lastLogin = user.last_login 
+                ? new Date(user.last_login).toLocaleDateString() 
+                : 'Never';
+            
+            item.innerHTML = `
+                <div class="user-info">
+                    <div class="user-name">
+                        ${user.display_name || 'Unknown'} ${adminBadge}
+                    </div>
+                    <div class="user-email">${user.email || ''}</div>
+                    <div class="user-stats">
+                        <span class="stat-badge">${user.completed_count}/${user.total_attempts} completed</span>
+                        <span class="stat-badge">${completionRate}% success</span>
+                        <span class="stat-badge">Last login: ${lastLogin}</span>
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <button class="icon-btn" data-action="view" data-id="${user.id}" title="View Details">
+                        <span>👁</span>
+                    </button>
+                    <button class="icon-btn" data-action="toggle-admin" data-id="${user.id}" title="${user.is_admin ? 'Remove Admin' : 'Make Admin'}">
+                        <span>${user.is_admin ? '👤' : '👑'}</span>
+                    </button>
+                    <button class="icon-btn delete" data-action="delete" data-id="${user.id}" title="Delete User">
+                        <span>🗑</span>
+                    </button>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+        
+        // Add event listeners
+        list.querySelectorAll('[data-action="view"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const userId = parseInt(e.target.closest('button').dataset.id);
+                this.viewUserDetails(userId);
+            });
+        });
+        
+        list.querySelectorAll('[data-action="toggle-admin"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const userId = parseInt(e.target.closest('button').dataset.id);
+                this.toggleUserAdmin(userId);
+            });
+        });
+        
+        list.querySelectorAll('[data-action="delete"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const userId = parseInt(e.target.closest('button').dataset.id);
+                this.deleteUser(userId);
+            });
+        });
+    }
+    
+    async viewUserDetails(userId) {
+        try {
+            const data = await this.apiService.getUserDetails(userId);
+            this.currentUser = data;
+            
+            // Show user details panel
+            document.getElementById('admin-welcome').style.display = 'none';
+            document.getElementById('exercise-editor').style.display = 'none';
+            document.getElementById('user-details').style.display = 'block';
+            
+            // Update title
+            document.getElementById('user-details-title').textContent = 
+                `${data.user.display_name}'s Progress`;
+            
+            // Render user info
+            const userInfoContent = document.getElementById('user-info-content');
+            userInfoContent.innerHTML = `
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Name:</label>
+                        <span>${data.user.display_name}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Email:</label>
+                        <span>${data.user.email}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Role:</label>
+                        <span>${data.user.is_admin ? 'Admin' : 'User'}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Member Since:</label>
+                        <span>${new Date(data.user.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Last Login:</label>
+                        <span>${new Date(data.user.last_login).toLocaleString()}</span>
+                    </div>
+                </div>
+            `;
+            
+            // Render statistics
+            const statsContent = document.getElementById('user-stats-content');
+            const completionRate = data.statistics.total_attempts > 0 
+                ? Math.round((data.statistics.total_completed / data.statistics.total_attempts) * 100) 
+                : 0;
+            
+            statsContent.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${data.statistics.total_completed || 0}</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.statistics.total_attempts || 0}</div>
+                        <div class="stat-label">Total Attempts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${completionRate}%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${Math.round(data.statistics.avg_attempts || 0)}</div>
+                        <div class="stat-label">Avg Attempts</div>
+                    </div>
+                </div>
+            `;
+            
+            // Render progress
+            const progressContent = document.getElementById('user-progress-content');
+            if (data.progress.length === 0) {
+                progressContent.innerHTML = '<p class="no-progress">No exercises attempted yet</p>';
+            } else {
+                let progressHTML = '<div class="progress-list">';
+                
+                data.progress.forEach(p => {
+                    const statusIcon = p.completed ? '✅' : '❌';
+                    const statusClass = p.completed ? 'completed' : 'incomplete';
+                    
+                    progressHTML += `
+                        <div class="progress-item ${statusClass}">
+                            <div class="progress-header">
+                                <span class="status-icon">${statusIcon}</span>
+                                <span class="exercise-title">${p.exercise_title}</span>
+                                <span class="attempts-badge">${p.attempts} attempt(s)</span>
+                            </div>
+                            <div class="progress-details">
+                                <span class="chapter-tag">${p.language_name} / ${p.chapter_name}</span>
+                                <span class="date-info">Started: ${new Date(p.started_at).toLocaleDateString()}</span>
+                                ${p.completed_at ? `<span class="date-info">Completed: ${new Date(p.completed_at).toLocaleDateString()}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                progressHTML += '</div>';
+                progressContent.innerHTML = progressHTML;
+            }
+            
+        } catch (error) {
+            alert('Failed to load user details: ' + error.message);
+        }
+    }
+    
+    closeUserDetails() {
+        document.getElementById('user-details').style.display = 'none';
+        document.getElementById('admin-welcome').style.display = 'flex';
+        this.currentUser = null;
+    }
+    
+    async toggleUserAdmin(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return;
+        
+        const newAdminStatus = !user.is_admin;
+        const action = newAdminStatus ? 'grant admin access to' : 'remove admin access from';
+        
+        if (!confirm(`Are you sure you want to ${action} ${user.display_name}?`)) {
+            return;
+        }
+        
+        try {
+            await this.apiService.updateUser(userId, { is_admin: newAdminStatus });
+            await this.loadUsers();
+        } catch (error) {
+            alert('Failed to update user: ' + error.message);
+        }
+    }
+    
+    async deleteUser(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return;
+        
+        if (!confirm(`Are you sure you want to delete ${user.display_name}? This will also delete all their progress.`)) {
+            return;
+        }
+        
+        try {
+            await this.apiService.deleteUser(userId);
+            await this.loadUsers();
+            
+            // Close details if viewing this user
+            if (this.currentUser && this.currentUser.user.id === userId) {
+                this.closeUserDetails();
+            }
+        } catch (error) {
+            alert('Failed to delete user: ' + error.message);
+        }
     }
 }
 

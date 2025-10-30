@@ -1247,6 +1247,232 @@ body {
     margin: 0;
 }
 
+/* ===== USER MANAGEMENT ===== */
+.users-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.no-users {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.user-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition);
+}
+
+.user-item:hover {
+    background: var(--surface);
+}
+
+.user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.user-name {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-badge {
+    background: var(--accent-lavender);
+    color: var(--bg-primary);
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.user-email {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.user-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.stat-badge {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+
+.user-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.user-details {
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.details-header h2 {
+    color: var(--accent-lavender);
+    margin: 0;
+}
+
+.user-info-section,
+.user-stats-section,
+.user-progress-section {
+    margin-bottom: 2rem;
+}
+
+.user-info-section h3,
+.user-stats-section h3,
+.user-progress-section h3 {
+    color: var(--accent-blue);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-item label {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.info-item span {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-card .stat-value {
+    color: var(--accent-lavender);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.progress-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.progress-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--text-muted);
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.progress-item.completed {
+    border-left-color: var(--accent-green);
+}
+
+.progress-item.incomplete {
+    border-left-color: var(--accent-red);
+}
+
+.progress-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.status-icon {
+    font-size: 1.2rem;
+}
+
+.exercise-title {
+    color: var(--text-primary);
+    font-weight: 500;
+    flex: 1;
+}
+
+.attempts-badge {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.progress-details {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.chapter-tag {
+    color: var(--accent-blue);
+}
+
+.date-info {
+    color: var(--text-muted);
+}
+
+.no-progress {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem;
+    font-style: italic;
+}
+
 .sidebar-header {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);

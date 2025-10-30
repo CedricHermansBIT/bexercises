@@ -60,7 +60,19 @@ router.post('/exercises/:id/run', async (req, res) => {
 		// Run tests
 		const results = await testRunner.runTests(exercise, script);
 
-		// Update statistics
+		// Calculate if all tests passed
+		const allPassed = results.every(r => r.passed);
+
+		// Save user progress if authenticated
+		if (req.user && req.user.id) {
+			const databaseService = require('../services/databaseService');
+			await databaseService.saveUserProgress(req.user.id, req.params.id, {
+				completed: allPassed,
+				last_submission: script
+			});
+		}
+
+		// Update statistics (localStorage-based, legacy)
 		const statistics = await statisticsService.updateStatistics(req.params.id, results);
 
 		res.json({ results, statistics });

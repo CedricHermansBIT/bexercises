@@ -352,5 +352,138 @@ router.delete('/fixtures/:filename', async (req, res) => {
 	}
 });
 
+/**
+ * GET /api/admin/users
+ * Get all users with their statistics
+ */
+router.get('/users', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+
+		// Get all users
+		const users = await databaseService.db.all(`
+			SELECT 
+				u.id,
+				u.google_id,
+				u.email,
+				u.display_name,
+				u.is_admin,
+				u.created_at,
+				u.last_login,
+				COUNT(DISTINCT up.exercise_id) as total_attempts,
+				SUM(CASE WHEN up.completed = 1 THEN 1 ELSE 0 END) as completed_count,
+				SUM(up.attempts) as total_test_runs
+			FROM users u
+			LEFT JOIN user_progress up ON u.id = up.user_id
+			GROUP BY u.id
+			ORDER BY u.last_login DESC
+		`);
+
+		res.json(users);
+	} catch (error) {
+		console.error('Error fetching users:', error);
+		res.status(500).json({
+			error: 'Failed to fetch users',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * GET /api/admin/users/:id
+ * Get detailed user information and progress
+ */
+router.get('/users/:id', async (req, res) => {
+	try {
+		const userId = parseInt(req.params.id);
+		const databaseService = require('../services/databaseService');
+
+		// Get user info
+		const user = await databaseService.db.get('SELECT * FROM users WHERE id = ?', [userId]);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		// Get user's progress
+		const progress = await databaseService.db.all(`
+			SELECT 
+				up.*,
+				e.title as exercise_title,
+				c.name as chapter_name,
+				l.name as language_name
+			FROM user_progress up
+			JOIN exercises e ON up.exercise_id = e.id
+			JOIN chapters c ON e.chapter_id = c.id
+			JOIN languages l ON c.language_id = l.id
+			WHERE up.user_id = ?
+			ORDER BY up.started_at DESC
+		`, [userId]);
+
+		// Get statistics
+		const stats = await databaseService.getUserStatistics(userId);
+
+		res.json({
+			user,
+			progress,
+			statistics: stats
+		});
+	} catch (error) {
+		console.error('Error fetching user details:', error);
+		res.status(500).json({
+			error: 'Failed to fetch user details',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * PUT /api/admin/users/:id
+ * Update user (e.g., make admin)
+ */
+router.put('/users/:id', async (req, res) => {
+	try {
+		const userId = parseInt(req.params.id);
+		const { is_admin } = req.body;
+		const databaseService = require('../services/databaseService');
+
+		await databaseService.db.run(
+			'UPDATE users SET is_admin = ? WHERE id = ?',
+			[is_admin ? 1 : 0, userId]
+		);
+
+		const user = await databaseService.db.get('SELECT * FROM users WHERE id = ?', [userId]);
+
+		res.json({ success: true, user });
+	} catch (error) {
+		console.error('Error updating user:', error);
+		res.status(500).json({
+			error: 'Failed to update user',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Delete a user and their progress
+ */
+router.delete('/users/:id', async (req, res) => {
+	try {
+		const userId = parseInt(req.params.id);
+		const databaseService = require('../services/databaseService');
+
+		await databaseService.db.run('DELETE FROM users WHERE id = ?', [userId]);
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deleting user:', error);
+		res.status(500).json({
+			error: 'Failed to delete user',
+			detail: error.message
+		});
+	}
+});
+
 module.exports = router;
 
