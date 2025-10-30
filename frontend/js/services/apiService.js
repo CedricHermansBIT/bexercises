@@ -20,6 +20,18 @@ class ApiService {
 	}
 
 	/**
+	 * Fetch all languages
+	 * @returns {Promise<Array>} Array of languages
+	 */
+	async getLanguages() {
+		const response = await fetch(`${this.baseUrl}/api/languages`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch languages: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
 	 * Fetch a single exercise by ID
 	 * @param {string} exerciseId - Exercise ID
 	 * @returns {Promise<Object>} Exercise object
@@ -342,4 +354,3 @@ class ApiService {
 }
 
 export default ApiService;
-

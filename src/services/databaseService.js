@@ -501,6 +501,50 @@ class DatabaseService {
 	}
 
 	/**
+	 * Get leaderboard data
+	 * @param {string|null} languageId - Optional language ID to filter by
+	 * @returns {Promise<Array>} Leaderboard data
+	 */
+	async getLeaderboard(languageId = null) {
+		let query;
+		const params = [];
+
+		if (languageId) {
+			query = `
+				SELECT
+					u.id,
+					u.display_name,
+					COUNT(DISTINCT CASE WHEN up.completed = 1 THEN up.exercise_id END) as completed_count,
+					SUM(up.attempts) as total_attempts
+				FROM users u
+				JOIN user_progress up ON u.id = up.user_id
+				JOIN exercises e ON up.exercise_id = e.id
+				JOIN chapters c ON e.chapter_id = c.id
+				WHERE c.language_id = ?
+				GROUP BY u.id, u.display_name
+				ORDER BY completed_count DESC, total_attempts ASC
+				LIMIT 100
+			`;
+			params.push(languageId);
+		} else {
+			query = `
+				SELECT
+					u.id,
+					u.display_name,
+					COUNT(DISTINCT CASE WHEN up.completed = 1 THEN up.exercise_id END) as completed_count,
+					SUM(up.attempts) as total_attempts
+				FROM users u
+				JOIN user_progress up ON u.id = up.user_id
+				GROUP BY u.id, u.display_name
+				ORDER BY completed_count DESC, total_attempts ASC
+				LIMIT 100
+			`;
+		}
+
+		return this.db.all(query, params);
+	}
+
+	/**
 	 * Close the database connection
 	 */
 	async close() {
@@ -514,4 +558,3 @@ class DatabaseService {
 const databaseService = new DatabaseService();
 
 module.exports = databaseService;
-

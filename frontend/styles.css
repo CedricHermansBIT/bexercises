@@ -235,6 +235,36 @@ body {
     gap: 1rem;
 }
 
+.topbar-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.topbar-btn:hover {
+    background: var(--surface);
+    border-color: var(--accent-lavender);
+    transform: translateY(-1px);
+}
+
+.topbar-btn.admin-only {
+    border-color: var(--accent-lavender);
+}
+
+.topbar-btn.admin-only:hover {
+    background: var(--accent-lavender);
+    color: var(--bg-primary);
+}
+
 .workspace-indicator {
     color: var(--accent-lavender);
     font-weight: 600;

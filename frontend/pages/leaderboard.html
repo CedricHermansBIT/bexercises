@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - BITLab</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="hyprland-theme">
+    <!-- Leaderboard Screen -->
+    <div id="leaderboard-screen" class="screen active">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="back-button" id="back-btn">
+                    <span>󰁍</span> back
+                </button>
+                <span class="workspace-indicator">[🏆]</span>
+                <span class="app-title">Leaderboard</span>
+            </div>
+            <div class="topbar-center">
+                <span class="topbar-subtitle">top performers</span>
+            </div>
+            <div class="topbar-right">
+                <span class="system-time" id="system-time">00:00</span>
+                <div class="user-menu" id="user-menu">
+                    <span class="user-icon">󰀄</span>
+                    <div class="user-dropdown">
+                        <button class="dropdown-item" id="logout-btn">
+                            <span>󰗼</span> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leaderboard-content">
+            <div class="leaderboard-header">
+                <h1 class="page-title">$ cat /rankings/global.txt</h1>
+                <div class="leaderboard-tabs">
+                    <button class="tab-btn active" data-tab="global">Global</button>
+                    <button class="tab-btn" data-tab="bash">Shell Scripting</button>
+                </div>
+            </div>
+
+            <div class="leaderboard-panels">
+                <!-- Global Leaderboard -->
+                <div id="global-tab" class="leaderboard-panel active">
+                    <div class="leaderboard-table">
+                        <div class="table-header">
+                            <div class="rank-col">Rank</div>
+                            <div class="user-col">User</div>
+                            <div class="score-col">Completed</div>
+                            <div class="rate-col">Success Rate</div>
+                        </div>
+                        <div id="global-rankings" class="table-body">
+                            <!-- Rankings will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/pages/leaderboardPage.js"></script>
+</body>
+</html>
+

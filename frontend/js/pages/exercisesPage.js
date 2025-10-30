@@ -98,6 +98,14 @@ class ExercisesPage {
             });
         }
 
+        // Leaderboard button
+        const leaderboardBtn = document.getElementById('leaderboard-btn-workspace');
+        if (leaderboardBtn) {
+            leaderboardBtn.addEventListener('click', () => {
+                window.location.href = './leaderboard.html';
+            });
+        }
+
         // Filter buttons
         const filterBtns = document.querySelectorAll('.filter-btn');
         filterBtns.forEach(btn => {

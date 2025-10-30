@@ -97,6 +97,14 @@ class WorkspacePage {
             });
         }
 
+        // Leaderboard button
+        const leaderboardBtn = document.getElementById('leaderboard-btn-workspace');
+        if (leaderboardBtn) {
+            leaderboardBtn.addEventListener('click', () => {
+                window.location.href = `./leaderboard.html`;
+            });
+        }
+
         // Run tests button
         const runTestsBtn = document.getElementById('run-tests');
         if (runTestsBtn) {

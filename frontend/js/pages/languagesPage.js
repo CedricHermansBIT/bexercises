@@ -241,7 +241,13 @@ class LanguagesPage {
             </div>
             -->
         `;
-
+        // Leaderboard link
+        const leaderboardLink = document.getElementById('leaderboard-btn-language');
+        if (leaderboardLink) {
+            leaderboardLink.addEventListener('click', () => {
+                window.location.href = './leaderboard.html';
+            });
+        }
         // Add click handlers
         const languageCards = grid.querySelectorAll('.language-card:not(.coming-soon)');
         languageCards.forEach(card => {

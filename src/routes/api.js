@@ -3,6 +3,7 @@ const express = require('express');
 const exerciseService = require('../services/exerciseService');
 const statisticsService = require('../services/statisticsService');
 const testRunner = require('../services/testRunner');
+const databaseService = require('../services/databaseService');
 
 const router = express.Router();
 
@@ -65,7 +66,6 @@ router.post('/exercises/:id/run', async (req, res) => {
 
 		// Save user progress if authenticated
 		if (req.user && req.user.id) {
-			const databaseService = require('../services/databaseService');
 			await databaseService.saveUserProgress(req.user.id, req.params.id, {
 				completed: allPassed,
 				last_submission: script
@@ -105,7 +105,6 @@ router.get('/statistics/:id?', async (req, res) => {
 			// Get all statistics
 			if (userId) {
 				// Get all user's progress from database
-				const databaseService = require('../services/databaseService');
 				const allProgress = await databaseService.db.all(`
 					SELECT exercise_id, attempts, completed
 					FROM user_progress
@@ -129,10 +128,24 @@ router.get('/statistics/:id?', async (req, res) => {
 			}
 		}
 	} catch (error) {
-		console.error('Error fetching statistics:', error);
+		console.error(`Error fetching statistics:`, error);
 		res.status(500).json({ error: 'Failed to load statistics' });
 	}
 });
 
-module.exports = router;
+/**
+ * GET /api/leaderboard/:languageId?
+ * Get leaderboard data, optionally filtered by language
+ */
+router.get('/leaderboard/:languageId?', async (req, res) => {
+	try {
+		const { languageId } = req.params;
+		const leaderboard = await databaseService.getLeaderboard(languageId);
+		res.json(leaderboard);
+	} catch (error) {
+		console.error('Error fetching leaderboard:', error);
+		res.status(500).json({ error: 'Failed to load leaderboard' });
+	}
+});
 
+module.exports = router;
