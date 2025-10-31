@@ -1,74 +1,125 @@
-# Quick Start Guide
+# BITLab Quickstart Guide
 
-This guide provides the essential steps to get the Bash Programming Exercises platform running on your local machine.
+This guide will help you get BITLab up and running quickly.
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-- **Node.js**: Version 14.0 or higher.
-- **Docker**: The latest stable version.
-- **Git**: For cloning the repository.
+- **Node.js** (v14 or higher)
+- **Docker** (for running code submissions in isolated containers)
+- **Google OAuth Credentials** (for authentication)
 
-## Installation
+## Installation Steps
 
-1. **Clone the Repository**
-   Open your terminal and run the following command:
-   ```bash
-   git clone <repository-url>
-   cd bexercises
-   ```
+### 1. Clone the Repository
 
-2. **Install Dependencies**
-   Install the required Node.js packages:
-   ```bash
-   npm install
-   ```
+```bash
+git clone <repository-url>
+cd BITLab
+```
 
-3. **Build the Docker Runner**
-   The exercises are run in an isolated Docker container. Build the image with:
-   ```bash
-   docker build -t bexercises-runner:latest -f Dockerfile.runner .
-   ```
+### 2. Install Dependencies
 
-4. **Create Required Directories**
-   The application needs a `tmp` directory for temporary script files.
-   ```bash
-   mkdir -p tmp
-   ```
+```bash
+npm install
+```
 
-## Running the Application
+### 3. Configure Environment Variables
 
-Once the installation is complete, you can start the server:
+Create a `.env` file in the project root:
+
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+BASE_PATH=
+
+# Session Secret (CHANGE THIS IN PRODUCTION!)
+SESSION_SECRET=your-random-secret-key-change-in-production
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+CALLBACK_URL=http://localhost:3000/auth/google/callback
+
+# Docker Runner Configuration
+RUNNER_IMAGE=bitlab-runner:latest
+PER_TEST_TIMEOUT_MS=30000
+MAX_PARALLEL_TESTS=4
+DOCKER_MEMORY=256m
+DOCKER_PIDS_LIMIT=128
+```
+
+### 4. Build the Docker Runner Image
+
+The Docker runner provides an isolated environment for executing student code:
+
+```bash
+docker build -f Dockerfile.runner -t bitlab-runner:latest .
+```
+
+### 5. Set Up Google OAuth
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google+ API
+4. Create OAuth 2.0 credentials (Web application)
+5. Add authorized redirect URIs:
+   - `http://localhost:3000/auth/google/callback` (for development)
+   - Your production URL + `/auth/google/callback` (for production)
+6. Copy the Client ID and Client Secret to your `.env` file
+
+### 6. Start the Server
+
 ```bash
 npm start
 ```
-The server will start on `http://localhost:3000`.
 
-For development, you can use the `dev` script to automatically restart the server on file changes:
-```bash
-npm run dev
-```
+The application will be available at `http://localhost:3000`
 
-## Accessing the Platform
+### 7. Set Up the First Admin
 
-Open your web browser and navigate to:
-[http://localhost:3000](http://localhost:3000)
+See [FIRST_ADMIN_SETUP.md](FIRST_ADMIN_SETUP.md) for detailed instructions on creating your first admin user.
 
-You should see the main interface with the list of exercises on the left.
+## Quick Test
 
-## Optional: Google Authentication
+1. Open your browser to `http://localhost:3000`
+2. Click "Sign in with Google"
+3. After authentication, you'll be redirected to the languages page
+4. Select a language to view and attempt exercises
 
-To enable Google Authentication for tracking user progress:
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Edit the `.env` file and add your Google OAuth 2.0 credentials.
-3. Restart the server.
+## Next Steps
 
-## What's Next?
+- **Admins**: Learn how to manage exercises, users, and view statistics in the admin panel
+- **Students**: Browse available programming challenges and submit solutions
+- **Developers**: Read [DEVELOPMENT.md](DEVELOPMENT.md) to understand the codebase and contribute
 
-- **Explore the Code**: Check out the [Project Structure](STRUCTURE.md) documentation to understand how the project is organized.
-- **Contribute**: Read the [Development Guide](DEVELOPMENT.md) for information on our coding standards and contribution process.
-- **API Details**: Refer to the [API Documentation](API.md) for details on the available endpoints.
+## Troubleshooting
+
+### Docker Container Issues
+
+If tests are failing to run:
+- Verify Docker is running: `docker ps`
+- Check if the runner image exists: `docker images | grep bitlab-runner`
+- Rebuild the image if needed: `docker build -f Dockerfile.runner -t bitlab-runner:latest .`
+
+### Authentication Issues
+
+- Verify your Google OAuth credentials are correct
+- Check that the callback URL matches exactly (including protocol and port)
+- Ensure cookies are enabled in your browser
+
+### Database Issues
+
+The SQLite database is created automatically in the `data/` directory. If you encounter issues:
+- Delete the database files: `data/exercises.db*`
+- Restart the server to recreate tables
+
+## Default Configuration
+
+- **Port**: 3000
+- **Session Duration**: 24 hours
+- **Test Timeout**: 30 seconds per test
+- **Max Parallel Tests**: 4
+- **Docker Memory Limit**: 256 MB
+- **Docker PID Limit**: 128 processes
 

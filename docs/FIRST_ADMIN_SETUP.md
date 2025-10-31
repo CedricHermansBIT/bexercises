@@ -1,125 +1,191 @@
-# Making Your First Admin User
+# First Admin Setup Guide
 
-Since admin status is now stored in the database, here's how to create your first admin user.
+This guide explains how to set up the first administrator account for BITLab.
 
-## Option 1: Direct Database Update (Recommended)
+## Overview
 
-After logging in once with Google OAuth:
+BITLab uses Google OAuth for authentication. The first time a user logs in, they are created as a regular user. You need to manually promote the first user to admin status using the database.
 
-```bash
-# Open the database
-sqlite3 data/exercises.db
+## Prerequisites
 
-# Find your user
-SELECT id, email, display_name, is_admin FROM users;
+- BITLab server is installed and running
+- You have access to the server's file system
+- SQLite is available (comes with Node.js sqlite3 package)
 
-# Make yourself admin (replace YOUR_EMAIL with your actual email)
-UPDATE users SET is_admin = 1 WHERE email = 'YOUR_EMAIL@example.com';
+## Steps to Create First Admin
 
-# Verify
-SELECT id, email, display_name, is_admin FROM users;
+### Method 1: Using SQLite Command Line
 
-# Exit
-.quit
+1. **Log in to the application** with the Google account you want to make an admin
+   - Navigate to `http://localhost:3000` (or your server URL)
+   - Click "Sign in with Google"
+   - Complete the authentication flow
+   - This creates your user record in the database
+
+2. **Stop the server** (optional, but recommended for safety)
+   ```bash
+   # Press Ctrl+C in the terminal where the server is running
+   ```
+
+3. **Open the database** using SQLite:
+   ```bash
+   sqlite3 data/exercises.db
+   ```
+
+4. **Find your user ID** using your email:
+   ```sql
+   SELECT id, email, name, is_admin FROM users WHERE email = 'your-email@example.com';
+   ```
+
+5. **Promote the user to admin**:
+   ```sql
+   UPDATE users SET is_admin = 1 WHERE email = 'your-email@example.com';
+   ```
+
+6. **Verify the change**:
+   ```sql
+   SELECT id, email, name, is_admin FROM users WHERE is_admin = 1;
+   ```
+
+7. **Exit SQLite**:
+   ```sql
+   .quit
+   ```
+
+8. **Restart the server**:
+   ```bash
+   npm start
+   ```
+
+### Method 2: Using Node.js Script
+
+Create a temporary script to promote a user:
+
+1. **Create a file** named `promote-admin.js` in the project root:
+
+```javascript
+const sqlite3 = require('sqlite3');
+const { open } = require('sqlite');
+const path = require('path');
+
+async function promoteToAdmin(email) {
+    const db = await open({
+        filename: path.join(__dirname, 'data/exercises.db'),
+        driver: sqlite3.Database
+    });
+
+    const result = await db.run(
+        'UPDATE users SET is_admin = 1 WHERE email = ?',
+        [email]
+    );
+
+    if (result.changes === 0) {
+        console.log(`No user found with email: ${email}`);
+        console.log('Make sure the user has logged in at least once.');
+    } else {
+        console.log(`Successfully promoted ${email} to admin!`);
+    }
+
+    const admin = await db.get(
+        'SELECT id, email, name, is_admin FROM users WHERE email = ?',
+        [email]
+    );
+    console.log('User details:', admin);
+
+    await db.close();
+}
+
+const email = process.argv[2];
+if (!email) {
+    console.log('Usage: node promote-admin.js <email>');
+    process.exit(1);
+}
+
+promoteToAdmin(email).catch(console.error);
 ```
 
-## Option 2: Environment Variable (Temporary)
+2. **Run the script**:
+   ```bash
+   node promote-admin.js your-email@example.com
+   ```
 
-You can still use the `ADMIN_EMAILS` environment variable as a fallback:
+3. **Delete the script** after use (for security):
+   ```bash
+   rm promote-admin.js
+   ```
 
-```env
-# In .env file
-ADMIN_EMAILS=your.email@example.com,another.admin@example.com
-```
+## Verifying Admin Access
 
-This allows admin access without database changes, useful for initial setup.
+1. **Log in to the application** with your newly promoted admin account
 
-## Option 3: Direct SQL Script
+2. **Check for admin features**:
+   - You should see an "Admin Panel" link in the navigation or user menu
+   - Navigate to the admin page (usually `/pages/admin.html`)
 
-Create a file `make_admin.sql`:
-```sql
--- Replace with your email
-UPDATE users SET is_admin = 1 WHERE email = 'your.email@example.com';
-```
+3. **Admin capabilities include**:
+   - Creating and editing exercises
+   - Managing test cases
+   - Viewing all user submissions
+   - Accessing statistics and leaderboards
+   - Promoting other users to admin
+   - Managing languages
 
-Run it:
-```bash
-sqlite3 data/exercises.db < make_admin.sql
-```
+## Promoting Additional Admins
 
-## Verification
+Once you have admin access, you can promote other users through the admin panel:
 
-1. Login to the application
-2. Go to admin panel
-3. Check if you can access the Users tab
-4. You should see yourself listed with a 👑 Admin badge
+1. Go to the Admin Panel
+2. Navigate to the Users section
+3. Find the user you want to promote
+4. Click "Make Admin" or toggle the admin switch
 
-## Making Others Admin
+Alternatively, use the same database methods described above.
 
-Once you're an admin:
-1. Go to Admin Panel → Users tab
-2. Find the user you want to make admin
-3. Click the crown icon (👑)
-4. Confirm
+## Security Considerations
 
-## Removing Admin Status
-
-1. Go to Admin Panel → Users tab
-2. Find the admin user
-3. Click the user icon (👤)
-4. Confirm
-
-## Important Notes
-
-- **First admin must be created manually** (database or env var)
-- **Environment variable is fallback only** - database is the source of truth
-- **Admin status persists** across sessions
-- **You can have multiple admins**
+- **Limit admin accounts**: Only promote trusted users to admin status
+- **Review regularly**: Periodically audit who has admin access
+- **Secure the database**: Ensure the `data/` directory has appropriate file permissions
+- **Production deployment**: In production, restrict access to the database file and server
 
 ## Troubleshooting
 
-### "Admin access required" error
-- Check database: `SELECT is_admin FROM users WHERE email = 'YOUR_EMAIL';`
-- Should return `1`, not `0`
-- Try adding email to `ADMIN_EMAILS` env var temporarily
+### User not found in database
 
-### Can't access admin panel
-- Ensure you're logged in
-- Check browser console for errors
-- Verify admin routes are accessible
+If the user doesn't exist in the database:
+- Ensure they have logged in at least once via Google OAuth
+- Check the `users` table: `SELECT * FROM users;`
 
 ### Changes not taking effect
-- Clear browser cache/cookies
-- Logout and login again
-- Restart the server
 
-## Security Best Practices
+- Restart the server after making database changes
+- Clear browser cookies and log in again
+- Check for session caching issues
 
-1. **Limit admin users** - Only trusted individuals
-2. **Regular audits** - Check who has admin access
-3. **Remove inactive admins** - Use the Users tab
-4. **Monitor admin actions** - Check user activity regularly
+### Cannot access database file
 
----
+- Ensure the `data/` directory exists
+- Check file permissions on `data/exercises.db`
+- Verify the database path in your configuration
 
-**Example: Complete First-Time Setup**
+## Database Schema Reference
 
-```bash
-# 1. Start the server
-npm start
+The `users` table structure:
 
-# 2. Login with Google OAuth
-#    (opens browser, login with Google)
-
-# 3. Check your email was recorded
-sqlite3 data/exercises.db "SELECT * FROM users;"
-
-# 4. Make yourself admin
-sqlite3 data/exercises.db "UPDATE users SET is_admin = 1 WHERE email = 'YOUR_EMAIL';"
-
-# 5. Refresh browser
-#    (you should now see admin panel access)
-
-# 6. Done!
+```sql
+CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    google_id TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    picture_url TEXT,
+    is_admin BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 ```
+
+Where:
+- `is_admin = 0` → Regular user
+- `is_admin = 1` → Administrator
 
