@@ -416,15 +416,8 @@ class AdminPage {
             for (let i = 0; i < this.testCases.length; i++) {
                 const testCase = this.testCases[i];
 
-                // Detect which arguments are fixture files
-                const fixtures = [];
-                if (testCase.arguments) {
-                    testCase.arguments.forEach(arg => {
-                        if (this.availableFiles.some(f => f.filename === arg)) {
-                            fixtures.push(arg);
-                        }
-                    });
-                }
+                // Use fixtures from the test case (populated from database)
+                const fixtures = testCase.fixtures || [];
 
                 resultsHtml += `<div class="test-case-result"><h4>Test Case ${i + 1}</h4>`;
 
