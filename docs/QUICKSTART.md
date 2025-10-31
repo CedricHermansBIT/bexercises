@@ -89,6 +89,7 @@ See [FIRST_ADMIN_SETUP.md](FIRST_ADMIN_SETUP.md) for detailed instructions on cr
 
 ## Next Steps
 
+- **Production Deployment**: Set up BITLab as a system service - see [SERVICE_SETUP.md](SERVICE_SETUP.md)
 - **Admins**: Learn how to manage exercises, users, and view statistics in the admin panel
 - **Students**: Browse available programming challenges and submit solutions
 - **Developers**: Read [DEVELOPMENT.md](DEVELOPMENT.md) to understand the codebase and contribute

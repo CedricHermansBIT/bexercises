@@ -591,6 +591,13 @@ netstat -ano | findstr :3000
 
 ## Resources
 
+### Project Documentation
+- [QUICKSTART.md](QUICKSTART.md) - Initial setup
+- [SERVICE_SETUP.md](SERVICE_SETUP.md) - Production deployment as a service
+- [FIRST_ADMIN_SETUP.md](FIRST_ADMIN_SETUP.md) - Admin account setup
+- [STRUCTURE.md](STRUCTURE.md) - Project architecture
+
+### External Resources
 - [Express.js Documentation](https://expressjs.com/)
 - [Docker Documentation](https://docs.docker.com/)
 - [SQLite Documentation](https://www.sqlite.org/docs.html)

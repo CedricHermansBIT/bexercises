@@ -54,6 +54,7 @@ For detailed setup instructions, see [QUICKSTART.md](docs/QUICKSTART.md).
 
 - **[Quickstart Guide](docs/QUICKSTART.md)** - Get up and running quickly
 - **[First Admin Setup](docs/FIRST_ADMIN_SETUP.md)** - Create your first administrator account
+- **[Service Setup](docs/SERVICE_SETUP.md)** - Run BITLab as a system service
 - **[Development Guide](docs/DEVELOPMENT.md)** - Contribute to the project
 - **[Project Structure](docs/STRUCTURE.md)** - Understand the codebase architecture
 
