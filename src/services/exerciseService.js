@@ -23,6 +23,7 @@ async function loadExercisesInternal() {
 				allExercises.push({
 					...fullExercise,
 					chapter: fullExercise.chapter_name || exercise.chapter_name,
+					chapter_order: exercise.chapter_order || 0,
 					order: fullExercise.order_num || exercise.order_num || 0
 				});
 			}

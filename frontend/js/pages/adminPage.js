@@ -219,20 +219,29 @@ class AdminPage {
         const list = document.getElementById('exercises-list');
         list.innerHTML = '';
 
-        const chapters = {};
+        const chaptersMap = new Map(); // Use Map to preserve insertion order and store chapter data
         this.exercises.forEach(ex => {
             const chapter = ex.chapter || 'Uncategorized';
-            if (!chapters[chapter]) chapters[chapter] = [];
-            chapters[chapter].push(ex);
+            if (!chaptersMap.has(chapter)) {
+                chaptersMap.set(chapter, {
+                    exercises: [],
+                    order: ex.chapter_order || 0
+                });
+            }
+            chaptersMap.get(chapter).exercises.push(ex);
         });
 
-        Object.keys(chapters).sort().forEach(chapter => {
+        // Convert to array and sort by chapter_order
+        const sortedChapters = Array.from(chaptersMap.entries())
+            .sort((a, b) => a[1].order - b[1].order);
+
+        sortedChapters.forEach(([chapter, chapterData]) => {
             const chapterDiv = document.createElement('div');
             chapterDiv.className = 'exercise-group';
             chapterDiv.dataset.chapter = chapter;
             chapterDiv.innerHTML = `<div class="group-title">${chapter}</div>`;
 
-            chapters[chapter].sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(ex => {
+            chapterData.exercises.sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(ex => {
                 const item = document.createElement('div');
                 item.className = 'exercise-item';
                 item.dataset.id = ex.id;
@@ -842,16 +851,26 @@ class AdminPage {
 
     updateChapterOptions() {
         const select = document.getElementById('exercise-chapter');
-        const chapters = new Set();
+        const chaptersMap = new Map(); // Use Map to store chapter names with their order
 
+        // Collect chapters with their order_num
         this.exercises.forEach(ex => {
-            if (ex.chapter) chapters.add(ex.chapter);
+            if (ex.chapter) {
+                if (!chaptersMap.has(ex.chapter)) {
+                    chaptersMap.set(ex.chapter, ex.chapter_order || 0);
+                }
+            }
         });
 
         const currentValue = select.value;
         select.innerHTML = '';
 
-        Array.from(chapters).sort().forEach(chapter => {
+        // Convert to array and sort by chapter_order
+        const sortedChapters = Array.from(chaptersMap.entries())
+            .sort((a, b) => a[1] - b[1]) // Sort by chapter_order (second element of tuple)
+            .map(entry => entry[0]); // Extract just the chapter name
+
+        sortedChapters.forEach(chapter => {
             const option = document.createElement('option');
             option.value = chapter;
             option.textContent = chapter;
