@@ -1431,8 +1431,9 @@ class AdminPage {
                     const statusIcon = p.completed ? '✅' : '❌';
                     const statusClass = p.completed ? 'completed' : 'incomplete';
 
-                    // Format last submission time - show both date and time using helper
-                    const lastSubmissionFormatted = this.formatDateTime(p.started_at, true);
+                    // Format last submission time - use last_submission_at if available, otherwise started_at
+                    const lastSubmissionTime = p.last_submission_at || p.started_at;
+                    const lastSubmissionFormatted = this.formatDateTime(lastSubmissionTime, true);
 
                     progressHTML += `
                         <div class="progress-item ${statusClass}">

@@ -555,15 +555,29 @@ router.get('/users', async (req, res) => {
 				u.is_admin,
 				u.created_at,
 				u.last_login,
-				COUNT(DISTINCT up.exercise_id) as exercises_attempted,
-				SUM(CASE WHEN up.completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
-				SUM(up.attempts) as total_test_runs,
-				MAX(up.started_at) as last_activity,
-				COUNT(DISTINCT ua.achievement_id) as achievements_unlocked
+				COALESCE(p.exercises_attempted, 0) as exercises_attempted,
+				COALESCE(p.exercises_completed, 0) as exercises_completed,
+				COALESCE(p.total_test_runs, 0) as total_test_runs,
+				p.last_activity,
+				COALESCE(a.achievements_unlocked, 0) as achievements_unlocked
 			FROM users u
-			LEFT JOIN user_progress up ON u.id = up.user_id
-			LEFT JOIN user_achievements ua ON u.id = ua.user_id
-			GROUP BY u.id
+			LEFT JOIN (
+				SELECT 
+					user_id,
+					COUNT(DISTINCT exercise_id) as exercises_attempted,
+					SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
+					SUM(attempts) as total_test_runs,
+					MAX(last_submission_at) as last_activity
+				FROM user_progress
+				GROUP BY user_id
+			) p ON u.id = p.user_id
+			LEFT JOIN (
+				SELECT 
+					user_id,
+					COUNT(DISTINCT achievement_id) as achievements_unlocked
+				FROM user_achievements
+				GROUP BY user_id
+			) a ON u.id = a.user_id
 			ORDER BY u.last_login DESC
 		`);
 

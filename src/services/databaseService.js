@@ -115,6 +115,7 @@ class DatabaseService {
 				last_submission TEXT,
 				started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				completed_at DATETIME,
+				last_submission_at DATETIME,
 				attempts INTEGER DEFAULT 0,
 				successful_attempts INTEGER DEFAULT 0,
 				failed_attempts INTEGER DEFAULT 0,
@@ -132,6 +133,11 @@ class DatabaseService {
 		}
 		try {
 			await this.db.exec(`ALTER TABLE user_progress ADD COLUMN failed_attempts INTEGER DEFAULT 0`);
+		} catch (e) {
+			// Column already exists
+		}
+		try {
+			await this.db.exec(`ALTER TABLE user_progress ADD COLUMN last_submission_at DATETIME`);
 		} catch (e) {
 			// Column already exists
 		}
@@ -586,12 +592,13 @@ class DatabaseService {
 		const { completed, last_submission } = data;
 		
 		const existing = await this.getUserProgress(userId, exerciseId);
-		
+
 		if (existing) {
 			await this.db.run(`
 				UPDATE user_progress 
-				SET completed = ?, 
+				SET completed = ?,
 					last_submission = ?, 
+					last_submission_at = CURRENT_TIMESTAMP,
 					completed_at = CASE WHEN ? = 1 AND completed = 0 THEN CURRENT_TIMESTAMP ELSE completed_at END,
 					attempts = attempts + 1,
 					successful_attempts = successful_attempts + CASE WHEN ? = 1 THEN 1 ELSE 0 END,
@@ -600,8 +607,8 @@ class DatabaseService {
 			`, [completed ? 1 : 0, last_submission, completed ? 1 : 0, completed ? 1 : 0, completed ? 1 : 0, userId, exerciseId]);
 		} else {
 			await this.db.run(`
-				INSERT INTO user_progress (user_id, exercise_id, completed, last_submission, completed_at, attempts, successful_attempts, failed_attempts)
-				VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+				INSERT INTO user_progress (user_id, exercise_id, completed, last_submission, last_submission_at, completed_at, attempts, successful_attempts, failed_attempts)
+				VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 1, ?, ?)
 			`, [userId, exerciseId, completed ? 1 : 0, last_submission, completed ? new Date().toISOString() : null, completed ? 1 : 0, completed ? 0 : 1]);
 		}
 	}
@@ -610,12 +617,12 @@ class DatabaseService {
 		const stats = await this.db.get(`
 			SELECT 
 				COUNT(DISTINCT exercise_id) as exercises_attempted,
-				SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
-				SUM(attempts) as total_test_runs,
-				SUM(successful_attempts) as total_successful_runs,
-				SUM(failed_attempts) as total_failed_runs,
-				AVG(attempts) as avg_attempts_per_exercise,
-				MAX(started_at) as last_activity
+				COALESCE(SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END), 0) as exercises_completed,
+				COALESCE(SUM(attempts), 0) as total_test_runs,
+				COALESCE(SUM(successful_attempts), 0) as total_successful_runs,
+				COALESCE(SUM(failed_attempts), 0) as total_failed_runs,
+				COALESCE(AVG(attempts), 0) as avg_attempts_per_exercise,
+				MAX(last_submission_at) as last_activity
 			FROM user_progress
 			WHERE user_id = ?
 		`, [userId]);
