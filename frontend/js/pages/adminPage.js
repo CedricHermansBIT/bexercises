@@ -72,12 +72,23 @@ class AdminPage {
 
     setupCodeEditor() {
         const textarea = document.getElementById('exercise-solution');
+
+        // Determine initial theme based on current mode
+        const currentTheme = themeManager.getTheme();
+        const editorTheme = currentTheme === 'dark' ? 'dracula' : 'default';
+
         this.solutionEditor = CodeMirror.fromTextArea(textarea, {
             mode: 'shell',
-            theme: 'dracula',
+            theme: editorTheme,
             lineNumbers: true,
             indentUnit: 4,
             lineWrapping: true
+        });
+
+        // Listen for theme changes and update CodeMirror theme
+        window.addEventListener('themechange', (e) => {
+            const newTheme = e.detail.theme === 'dark' ? 'dracula' : 'default';
+            this.solutionEditor.setOption('theme', newTheme);
         });
     }
 
@@ -165,6 +176,9 @@ class AdminPage {
             });
         }
 
+        // Setup theme toggle
+        this.setupThemeToggle();
+
         const userMenu = document.getElementById('user-menu-admin');
         if (userMenu) {
             userMenu.addEventListener('click', (e) => {
@@ -179,6 +193,40 @@ class AdminPage {
                 userMenu.classList.remove('active');
             }
         });
+    }
+
+    setupThemeToggle() {
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if (!themeToggleBtn) return;
+
+        const updateThemeButton = () => {
+            const currentTheme = themeManager.getTheme();
+            const themeIcon = themeToggleBtn.querySelector('.theme-icon');
+            const themeText = themeToggleBtn.querySelector('.theme-text');
+
+            if (currentTheme === 'dark') {
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light Mode';
+            } else {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark Mode';
+            }
+        };
+
+        updateThemeButton();
+
+        themeToggleBtn.addEventListener('click', () => {
+            themeManager.toggle();
+            updateThemeButton();
+
+            // Close the dropdown after toggling
+            const userMenu = document.getElementById('user-menu-admin');
+            if (userMenu) {
+                userMenu.classList.remove('active');
+            }
+        });
+
+        window.addEventListener('themechange', updateThemeButton);
     }
 
     // Tabs Management

@@ -64,6 +64,9 @@ class ExercisesPage {
             });
         }
 
+        // Setup theme toggle
+        this.setupThemeToggle();
+
         // Toggle dropdown
         const userMenu = document.getElementById('user-menu');
         if (userMenu) {
@@ -80,6 +83,40 @@ class ExercisesPage {
                 userMenu.classList.remove('active');
             }
         });
+    }
+
+    setupThemeToggle() {
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if (!themeToggleBtn) return;
+
+        const updateThemeButton = () => {
+            const currentTheme = themeManager.getTheme();
+            const themeIcon = themeToggleBtn.querySelector('.theme-icon');
+            const themeText = themeToggleBtn.querySelector('.theme-text');
+
+            if (currentTheme === 'dark') {
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light Mode';
+            } else {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark Mode';
+            }
+        };
+
+        updateThemeButton();
+
+        themeToggleBtn.addEventListener('click', () => {
+            themeManager.toggle();
+            updateThemeButton();
+
+            // Close the dropdown after toggling
+            const userMenu = document.getElementById('user-menu');
+            if (userMenu) {
+                userMenu.classList.remove('active');
+            }
+        });
+
+        window.addEventListener('themechange', updateThemeButton);
     }
 
     updateTime() {
