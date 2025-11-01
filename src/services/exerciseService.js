@@ -157,10 +157,14 @@ async function createExercise(exerciseData) {
 			}
 		}
 
-		return await databaseService.createExercise({
+		// Map 'order' from frontend to 'order_num' for database
+		const dbData = {
 			...exerciseData,
-			chapter_id: chapterId
-		});
+			chapter_id: chapterId,
+			order_num: exerciseData.order
+		};
+
+		return await databaseService.createExercise(dbData);
 	} catch (error) {
 		console.error('Error creating exercise:', error);
 		throw error;
@@ -175,7 +179,43 @@ async function createExercise(exerciseData) {
  */
 async function updateExercise(id, exerciseData) {
 	try {
-		return await databaseService.updateExercise(id, exerciseData);
+		// Get the current exercise to preserve fields that shouldn't change
+		const currentExercise = await databaseService.getExerciseWithTests(id);
+
+		if (!currentExercise) {
+			throw new Error('Exercise not found');
+		}
+
+		// Find or create chapter if chapter name is provided
+		let chapterId = exerciseData.chapter_id || currentExercise.chapter_id;
+
+		if (exerciseData.chapter && exerciseData.chapter !== currentExercise.chapter) {
+			// Chapter is changing - find or create the new chapter
+			const chapters = await databaseService.getChaptersByLanguage('bash');
+			let chapter = chapters.find(c => c.name === exerciseData.chapter);
+
+			if (!chapter) {
+				// Create new chapter
+				chapterId = exerciseData.chapter.toLowerCase().replace(/\s+/g, '-');
+				chapter = await databaseService.createChapter({
+					id: chapterId,
+					language_id: 'bash',
+					name: exerciseData.chapter,
+					order_num: chapters.length + 1
+				});
+			} else {
+				chapterId = chapter.id;
+			}
+		}
+
+		// Use the provided order, or preserve the current order if not provided
+		const orderNum = exerciseData.order !== undefined ? exerciseData.order : currentExercise.order_num;
+
+		return await databaseService.updateExercise(id, {
+			...exerciseData,
+			chapter_id: chapterId,
+			order_num: orderNum
+		});
 	} catch (error) {
 		console.error('Error updating exercise:', error);
 		throw error;

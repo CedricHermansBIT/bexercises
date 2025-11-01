@@ -171,7 +171,7 @@ router.post('/exercises', async (req, res) => {
 			solution: exerciseData.solution,
 			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order || 0
+			order: exerciseData.order // Frontend calculates the correct order
 		};
 
 		await exerciseService.createExercise(exercise);
@@ -218,7 +218,7 @@ router.put('/exercises/:id', async (req, res) => {
 			solution: exerciseData.solution,
 			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order || 0
+			order: exerciseData.order // Don't default to 0, let service layer handle it
 		};
 
 		await exerciseService.updateExercise(exerciseId, exercise);

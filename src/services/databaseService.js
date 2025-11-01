@@ -439,13 +439,41 @@ class DatabaseService {
 	}
 
 	async updateExercise(id, data) {
-		const { title, description, solution, order_num, testCases } = data;
-		
+		const { title, description, solution, order_num, chapter_id, testCases } = data;
+
+		// Build the UPDATE query dynamically based on what's provided
+		const updates = [];
+		const values = [];
+
+		if (title !== undefined) {
+			updates.push('title = ?');
+			values.push(title);
+		}
+		if (description !== undefined) {
+			updates.push('description = ?');
+			values.push(description);
+		}
+		if (solution !== undefined) {
+			updates.push('solution = ?');
+			values.push(solution);
+		}
+		if (order_num !== undefined) {
+			updates.push('order_num = ?');
+			values.push(order_num);
+		}
+		if (chapter_id !== undefined) {
+			updates.push('chapter_id = ?');
+			values.push(chapter_id);
+		}
+
+		updates.push('updated_at = CURRENT_TIMESTAMP');
+		values.push(id);
+
 		await this.db.run(`
 			UPDATE exercises 
-			SET title = ?, description = ?, solution = ?, order_num = ?, updated_at = CURRENT_TIMESTAMP
+			SET ${updates.join(', ')}
 			WHERE id = ?
-		`, [title, description, solution, order_num, id]);
+		`, values);
 
 		// Delete and recreate test cases
 		if (testCases && Array.isArray(testCases)) {
