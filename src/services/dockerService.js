@@ -116,30 +116,47 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 
 		try {
 			if (!fsSync.existsSync(sourcePath)) {
-				console.warn(`Fixture file not found: ${sourcePath}`);
+				console.warn(`Fixture file/folder not found: ${sourcePath}`);
 				continue;
 			}
 
-			console.log(`[copyFixtures] Source exists on disk, copying from filesystem...`);
-			await fs.copyFile(sourcePath, destPath);
+			const stat = await fs.stat(sourcePath);
 
-			let mode;
-			if (fixturePermissions && fixturePermissions[fixtureName] !== undefined) {
-				mode = fixturePermissions[fixtureName];
+			if (stat.isDirectory()) {
+				// Copy directory
+				console.log(`[copyFixtures] Source is a directory, creating folder...`);
+				await fs.mkdir(destPath, { recursive: true });
+
+				// Set permissions
+				let mode = fixturePermissions[fixtureName] !== undefined
+					? fixturePermissions[fixtureName]
+					: stat.mode;
+				await fs.chmod(destPath, mode);
+
+				copiedFiles.push(fixtureName);
+				console.log(`✓ Created folder: ${fixtureName} -> ${destPath}`);
 			} else {
-				const stat = await fs.stat(sourcePath);
-				mode = stat.mode;
+				// Copy file
+				console.log(`[copyFixtures] Source exists on disk, copying from filesystem...`);
+				await fs.copyFile(sourcePath, destPath);
+
+				let mode;
+				if (fixturePermissions && fixturePermissions[fixtureName] !== undefined) {
+					mode = fixturePermissions[fixtureName];
+				} else {
+					mode = stat.mode;
+				}
+				await fs.chmod(destPath, mode);
+
+				copiedFiles.push(fixtureName);
+				console.log(`✓ Copied fixture: ${fixtureName} -> ${destPath}`);
 			}
-			await fs.chmod(destPath, mode);
 
-			copiedFiles.push(fixtureName);
-			console.log(`✓ Copied fixture: ${fixtureName} -> ${destPath}`);
-
-			// Verify the file exists in destination
+			// Verify the file/folder exists in destination
 			if (fsSync.existsSync(destPath)) {
 				console.log(`✓ Verified: ${destPath} exists in tmpdir`);
 			} else {
-				console.error(`✗ File not found after copy: ${destPath}`);
+				console.error(`✗ File/folder not found after copy: ${destPath}`);
 			}
 		} catch (err) {
 			console.error(`Error copying fixture ${fixtureName}:`, err.message, err.stack);

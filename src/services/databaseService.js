@@ -154,12 +154,25 @@ class DatabaseService {
 			CREATE TABLE IF NOT EXISTS fixture_files (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				filename TEXT UNIQUE NOT NULL,
+				type TEXT DEFAULT 'file' CHECK(type IN ('file', 'folder')),
 				content TEXT,
 				size INTEGER,
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);
+
+		// Add type column if it doesn't exist (migration for existing databases)
+		try {
+			await this.db.exec(`
+				ALTER TABLE fixture_files ADD COLUMN type TEXT DEFAULT 'file' CHECK(type IN ('file', 'folder'))
+			`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding type column to fixture_files:', err.message);
+			}
+		}
 
 		// Test case fixtures junction table
 		await this.db.exec(`
@@ -629,12 +642,12 @@ class DatabaseService {
 		return this.db.get('SELECT * FROM fixture_files WHERE filename = ?', [filename]);
 	}
 
-	async createFixtureFile(filename, content) {
-		const size = Buffer.byteLength(content, 'utf8');
+	async createFixtureFile(filename, content, type = 'file') {
+		const size = type === 'file' ? Buffer.byteLength(content || '', 'utf8') : 0;
 		await this.db.run(`
-			INSERT OR REPLACE INTO fixture_files (filename, content, size, updated_at)
-			VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-		`, [filename, content, size]);
+			INSERT OR REPLACE INTO fixture_files (filename, type, content, size, updated_at)
+			VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+		`, [filename, type, type === 'file' ? content : null, size]);
 		return this.getFixtureFile(filename);
 	}
 

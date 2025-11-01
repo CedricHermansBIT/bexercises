@@ -277,14 +277,18 @@ router.get('/fixtures', async (req, res) => {
 
 /**
  * POST /api/admin/fixtures
- * Upload a new fixture file
+ * Upload a new fixture file or create a folder
  */
 router.post('/fixtures', async (req, res) => {
 	try {
-		const { filename, content } = req.body;
+		const { filename, content, type = 'file' } = req.body;
 
-		if (!filename || !content) {
-			return res.status(400).json({ error: 'Missing filename or content' });
+		if (!filename) {
+			return res.status(400).json({ error: 'Missing filename' });
+		}
+
+		if (type === 'file' && !content) {
+			return res.status(400).json({ error: 'Missing content for file' });
 		}
 
 		// Validate filename (no path traversal)
@@ -292,13 +296,25 @@ router.post('/fixtures', async (req, res) => {
 			return res.status(400).json({ error: 'Invalid filename' });
 		}
 
-		const file = await require('../services/databaseService').createFixtureFile(filename, content);
+		// Validate type
+		if (!['file', 'folder'].includes(type)) {
+			return res.status(400).json({ error: 'Invalid type. Must be "file" or "folder"' });
+		}
+
+		const file = await require('../services/databaseService').createFixtureFile(filename, content, type);
 
 		// Also save to fixtures directory for Docker access
 		const filePath = path.join(config.paths.fixtures, filename);
-		await fs.writeFile(filePath, content, 'utf8');
 
-		res.json({ success: true, filename });
+		if (type === 'folder') {
+			// Create directory
+			await fs.mkdir(filePath, { recursive: true });
+		} else {
+			// Create file
+			await fs.writeFile(filePath, content, 'utf8');
+		}
+
+		res.json({ success: true, filename, type });
 	} catch (error) {
 		console.error('Error uploading fixture:', error);
 		res.status(500).json({
@@ -333,7 +349,7 @@ router.get('/fixtures/:filename', async (req, res) => {
 
 /**
  * DELETE /api/admin/fixtures/:filename
- * Delete a fixture file
+ * Delete a fixture file or folder
  */
 router.delete('/fixtures/:filename', async (req, res) => {
 	try {
@@ -344,21 +360,29 @@ router.delete('/fixtures/:filename', async (req, res) => {
 			return res.status(400).json({ error: 'Invalid filename' });
 		}
 
+		// Get fixture info to determine type
+		const fixture = await require('../services/databaseService').getFixtureFile(filename);
+
 		await require('../services/databaseService').deleteFixtureFile(filename);
 
 		// Also delete from fixtures directory
 		const filePath = path.join(config.paths.fixtures, filename);
 		try {
-			await fs.unlink(filePath);
+			const stat = await fs.stat(filePath);
+			if (stat.isDirectory()) {
+				await fs.rm(filePath, { recursive: true, force: true });
+			} else {
+				await fs.unlink(filePath);
+			}
 		} catch (err) {
-			console.warn('File not found in fixtures directory:', err.message);
+			console.warn('File/folder not found in fixtures directory:', err.message);
 		}
 
 		res.json({ success: true });
 	} catch (error) {
 		console.error('Error deleting fixture:', error);
 		res.status(500).json({
-			error: 'Failed to delete file',
+			error: 'Failed to delete file/folder',
 			detail: error.message
 		});
 	}

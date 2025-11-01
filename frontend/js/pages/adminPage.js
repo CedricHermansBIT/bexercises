@@ -151,6 +151,10 @@ class AdminPage {
             if (fileInput) fileInput.click();
         });
 
+        addListener('create-folder-btn', 'click', () => {
+            this.createFolder();
+        });
+
         addListener('file-upload-input', 'change', (e) => {
             this.handleFileUpload(e);
         });
@@ -742,16 +746,25 @@ class AdminPage {
             const usageCount = this.getFileUsageCount(file.filename);
             const usageText = usageCount > 0 ? `Used in ${usageCount} test case(s)` : 'Not used';
 
+            const isFolder = file.type === 'folder';
+            const icon = isFolder ? '📁' : '📄';
+            const sizeText = isFolder ? 'Folder' : this.formatFileSize(file.size);
+
+            // Only show view button for files, not folders
+            const viewButton = isFolder ? '' : `
+                <button class="icon-btn" data-action="view" data-filename="${file.filename}" title="View">
+                    <span>👁</span>
+                </button>
+            `;
+
             item.innerHTML = `
                 <div class="file-info">
-                    <span class="file-name">📄 ${file.filename}</span>
-                    <span class="file-size">${this.formatFileSize(file.size)}</span>
+                    <span class="file-name">${icon} ${file.filename}</span>
+                    <span class="file-size">${sizeText}</span>
                     <span class="file-usage">${usageText}</span>
                 </div>
                 <div class="file-actions">
-                    <button class="icon-btn" data-action="view" data-filename="${file.filename}" title="View">
-                        <span>👁</span>
-                    </button>
+                    ${viewButton}
                     <button class="icon-btn delete" data-action="delete" data-filename="${file.filename}" title="Delete">
                         <span>🗑</span>
                     </button>
@@ -839,6 +852,31 @@ class AdminPage {
         // Refresh test cases UI to show newly uploaded files in fixture dropdowns
         this.renderTestCases();
         e.target.value = '';
+    }
+
+    async createFolder() {
+        const foldername = prompt('Enter folder name:');
+
+        if (!foldername || !foldername.trim()) {
+            return;
+        }
+
+        const trimmedName = foldername.trim();
+
+        // Validate folder name (no special characters or path separators)
+        if (!/^[a-zA-Z0-9_-]+$/.test(trimmedName)) {
+            alert('Folder name can only contain letters, numbers, hyphens, and underscores');
+            return;
+        }
+
+        try {
+            await this.apiService.createFixtureFolder(trimmedName);
+            await this.loadFiles();
+            // Refresh test cases UI to show newly created folder in fixture dropdowns
+            this.renderTestCases();
+        } catch (error) {
+            alert(`Failed to create folder: ${error.message}`);
+        }
     }
 
     readFileAsText(file) {

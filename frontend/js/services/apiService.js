@@ -260,12 +260,32 @@ class ApiService {
 		const response = await fetch(`${this.baseUrl}/api/admin/fixtures`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ filename, content })
+			body: JSON.stringify({ filename, content, type: 'file' })
 		});
 
 		if (!response.ok) {
 			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
 			throw new Error(error.error || `Failed to upload file: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Create a fixture folder (admin only)
+	 * @param {string} foldername - Folder name
+	 * @returns {Promise<Object>} Creation result
+	 */
+	async createFixtureFolder(foldername) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ filename: foldername, type: 'folder' })
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to create folder: ${response.status}`);
 		}
 
 		return response.json();
