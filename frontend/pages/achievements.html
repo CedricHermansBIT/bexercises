@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BITLab ~ achievements</title>
+    <script src="../js/utils/faviconUtils.js"></script>
+    <script src="../js/utils/themeUtils.js"></script>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="hyprland-theme">
+    <div id="achievements-screen" class="screen active">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="back-button" id="back-btn">
+                    <span>󰁍</span> back
+                </button>
+                <span class="workspace-indicator">[🏆]</span>
+                <span class="app-title">Achievements</span>
+            </div>
+            <div class="topbar-center">
+                <span class="topbar-subtitle" id="points-display">0 points</span>
+            </div>
+            <div class="topbar-right">
+                <button class="topbar-btn" id="leaderboard-btn-achievements" title="Leaderboard">
+                    <span>🏆</span>
+                </button>
+                <button class="topbar-btn admin-only" id="admin-btn-achievements" title="Admin Panel" style="display: none;">
+                    <span>⚙️</span>
+                </button>
+                <span class="system-time" id="system-time">00:00</span>
+                <div class="user-menu" id="user-menu">
+                    <span class="user-icon">󰀄</span>
+                    <div class="user-dropdown">
+                        <button class="dropdown-item" id="theme-toggle-btn">
+                            <span class="theme-icon">☀️</span> <span class="theme-text">Light Mode</span>
+                        </button>
+                        <button class="dropdown-item" id="logout-btn">
+                            <span>󰗼</span> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="achievements-content">
+            <div class="achievements-header">
+                <h1 class="page-title">$ cat /achievements/*.badge</h1>
+                <div class="achievements-stats">
+                    <div class="stat-card">
+                        <span class="stat-label">Earned</span>
+                        <span class="stat-value" id="earned-count">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Total</span>
+                        <span class="stat-value" id="total-count">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Progress</span>
+                        <span class="stat-value" id="progress-percent">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="achievements-filters">
+                <button class="filter-btn active" data-filter="all">all</button>
+                <button class="filter-btn" data-filter="earned">earned</button>
+                <button class="filter-btn" data-filter="locked">locked</button>
+            </div>
+
+            <div class="achievements-grid" id="achievements-grid">
+                <!-- Achievements will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/pages/achievementsPage.js"></script>
+</body>
+</html>
+

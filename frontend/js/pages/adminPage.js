@@ -361,7 +361,6 @@ class AdminPage {
         document.getElementById('exercise-id').disabled = false;
         document.getElementById('exercise-title').value = '';
         document.getElementById('exercise-chapter').value = 'Shell scripting';
-        document.getElementById('exercise-order').value = '';
         document.getElementById('exercise-description').value = '';
         this.solutionEditor.setValue('#!/bin/bash\n\n# Write the solution here\n');
 
@@ -421,7 +420,6 @@ class AdminPage {
             document.getElementById('exercise-id').disabled = true;
             document.getElementById('exercise-title').value = exercise.title;
             document.getElementById('exercise-chapter').value = exercise.chapter || 'Shell scripting';
-            document.getElementById('exercise-order').value = exercise.order || '';
             document.getElementById('exercise-description').value = exercise.description;
             this.solutionEditor.setValue(exercise.solution);
 
@@ -532,11 +530,28 @@ class AdminPage {
             }
         }
 
+        // Calculate order for new exercises or preserve for updates
+        let order;
+        if (this.currentExercise) {
+            // Preserve current order when editing
+            order = this.currentExercise.order;
+        } else {
+            // For new exercises, find the highest order in the selected chapter and add 1
+            const exercisesInChapter = this.exercises.filter(ex => ex.chapter === chapter);
+            if (exercisesInChapter.length > 0) {
+                const maxOrder = Math.max(...exercisesInChapter.map(ex => ex.order || 0));
+                order = maxOrder + 1;
+            } else {
+                // First exercise in this chapter
+                order = 1;
+            }
+        }
+
         const exerciseData = {
             id: document.getElementById('exercise-id').value.trim(),
             title: document.getElementById('exercise-title').value.trim(),
             chapter: chapter,
-            order: parseInt(document.getElementById('exercise-order').value) || 0,
+            order: order,
             description: document.getElementById('exercise-description').value.trim(),
             solution: this.solutionEditor.getValue(),
             testCases: this.testCases
