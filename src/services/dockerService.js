@@ -108,6 +108,28 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 	console.log(`[copyFixtures] tmpdir: ${tmpdir}, fixtures:`, fixtures);
 	console.log(`[copyFixtures] fixtures path: ${config.paths.fixtures}`);
 
+	/**
+	 * Recursively copy a directory
+	 */
+	async function copyDirRecursive(src, dest) {
+		await fs.mkdir(dest, { recursive: true });
+		const entries = await fs.readdir(src, { withFileTypes: true });
+
+		for (const entry of entries) {
+			const srcPath = path.join(src, entry.name);
+			const destPath = path.join(dest, entry.name);
+
+			if (entry.isDirectory()) {
+				await copyDirRecursive(srcPath, destPath);
+			} else {
+				await fs.copyFile(srcPath, destPath);
+				// Preserve permissions
+				const stat = await fs.stat(srcPath);
+				await fs.chmod(destPath, stat.mode);
+			}
+		}
+	}
+
 	for (const fixtureName of fixtures) {
 		const sourcePath = path.join(config.paths.fixtures, fixtureName);
 		const destPath = path.join(tmpdir, fixtureName);
@@ -123,18 +145,18 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 			const stat = await fs.stat(sourcePath);
 
 			if (stat.isDirectory()) {
-				// Copy directory
-				console.log(`[copyFixtures] Source is a directory, creating folder...`);
-				await fs.mkdir(destPath, { recursive: true });
+				// Copy directory recursively with all its contents
+				console.log(`[copyFixtures] Source is a directory, copying recursively...`);
+				await copyDirRecursive(sourcePath, destPath);
 
-				// Set permissions
+				// Set permissions on the root folder
 				let mode = fixturePermissions[fixtureName] !== undefined
 					? fixturePermissions[fixtureName]
 					: stat.mode;
 				await fs.chmod(destPath, mode);
 
 				copiedFiles.push(fixtureName);
-				console.log(`✓ Created folder: ${fixtureName} -> ${destPath}`);
+				console.log(`✓ Copied folder with contents: ${fixtureName} -> ${destPath}`);
 			} else {
 				// Copy file
 				console.log(`[copyFixtures] Source exists on disk, copying from filesystem...`);

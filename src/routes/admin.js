@@ -389,6 +389,155 @@ router.delete('/fixtures/:filename', async (req, res) => {
 });
 
 /**
+ * GET /api/admin/fixtures/:foldername/contents
+ * Get the contents of a folder (list files inside)
+ */
+router.get('/fixtures/:foldername/contents', async (req, res) => {
+	try {
+		const foldername = req.params.foldername;
+
+		// Validate foldername (no path traversal)
+		if (foldername.includes('..') || foldername.includes('/') || foldername.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid foldername' });
+		}
+
+		// Check that the folder exists in database
+		const fixture = await require('../services/databaseService').getFixtureFile(foldername);
+		if (!fixture || fixture.type !== 'folder') {
+			return res.status(404).json({ error: 'Folder not found' });
+		}
+
+		// Read the folder contents from filesystem
+		const folderPath = path.join(config.paths.fixtures, foldername);
+
+		try {
+			const files = await fs.readdir(folderPath);
+			const fileDetails = await Promise.all(files.map(async (filename) => {
+				const filePath = path.join(folderPath, filename);
+				const stats = await fs.stat(filePath);
+
+				// Only include files, not subdirectories
+				if (stats.isFile()) {
+					return {
+						name: filename,
+						size: stats.size
+					};
+				}
+				return null;
+			}));
+
+			// Filter out nulls (subdirectories)
+			const filesOnly = fileDetails.filter(f => f !== null);
+
+			res.json(filesOnly);
+		} catch (err) {
+			// Folder doesn't exist on filesystem
+			if (err.code === 'ENOENT') {
+				res.json([]); // Empty folder
+			} else {
+				throw err;
+			}
+		}
+	} catch (error) {
+		console.error('Error reading folder contents:', error);
+		res.status(500).json({
+			error: 'Failed to read folder contents',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * POST /api/admin/fixtures/:foldername/files
+ * Upload a file to a folder
+ */
+router.post('/fixtures/:foldername/files', async (req, res) => {
+	try {
+		const foldername = req.params.foldername;
+		const { filename, content } = req.body;
+
+		// Validate foldername (no path traversal)
+		if (foldername.includes('..') || foldername.includes('/') || foldername.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid foldername' });
+		}
+
+		// Validate filename (no path traversal or separators)
+		if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid filename' });
+		}
+
+		if (!content) {
+			return res.status(400).json({ error: 'Missing content' });
+		}
+
+		// Check that the folder exists in database
+		const fixture = await require('../services/databaseService').getFixtureFile(foldername);
+		if (!fixture || fixture.type !== 'folder') {
+			return res.status(404).json({ error: 'Folder not found' });
+		}
+
+		// Write the file to the folder
+		const folderPath = path.join(config.paths.fixtures, foldername);
+		const filePath = path.join(folderPath, filename);
+
+		// Ensure folder exists
+		await fs.mkdir(folderPath, { recursive: true });
+
+		// Write the file
+		await fs.writeFile(filePath, content, 'utf8');
+
+		res.json({ success: true, filename });
+	} catch (error) {
+		console.error('Error uploading file to folder:', error);
+		res.status(500).json({
+			error: 'Failed to upload file to folder',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * DELETE /api/admin/fixtures/:foldername/files/:filename
+ * Delete a file from a folder
+ */
+router.delete('/fixtures/:foldername/files/:filename', async (req, res) => {
+	try {
+		const foldername = req.params.foldername;
+		const filename = req.params.filename;
+
+		// Validate foldername (no path traversal)
+		if (foldername.includes('..') || foldername.includes('/') || foldername.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid foldername' });
+		}
+
+		// Validate filename (no path traversal or separators)
+		if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid filename' });
+		}
+
+		// Check that the folder exists in database
+		const fixture = await require('../services/databaseService').getFixtureFile(foldername);
+		if (!fixture || fixture.type !== 'folder') {
+			return res.status(404).json({ error: 'Folder not found' });
+		}
+
+		// Delete the file from the folder
+		const folderPath = path.join(config.paths.fixtures, foldername);
+		const filePath = path.join(folderPath, filename);
+
+		await fs.unlink(filePath);
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deleting file from folder:', error);
+		res.status(500).json({
+			error: 'Failed to delete file from folder',
+			detail: error.message
+		});
+	}
+});
+
+/**
  * GET /api/admin/users
  * Get all users with their statistics
  */

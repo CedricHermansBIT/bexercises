@@ -750,8 +750,12 @@ class AdminPage {
             const icon = isFolder ? '📁' : '📄';
             const sizeText = isFolder ? 'Folder' : this.formatFileSize(file.size);
 
-            // Only show view button for files, not folders
-            const viewButton = isFolder ? '' : `
+            // For folders, show manage button; for files, show view button
+            const actionButton = isFolder ? `
+                <button class="icon-btn" data-action="manage" data-filename="${file.filename}" title="Manage folder contents">
+                    <span>📂</span>
+                </button>
+            ` : `
                 <button class="icon-btn" data-action="view" data-filename="${file.filename}" title="View">
                     <span>👁</span>
                 </button>
@@ -764,7 +768,7 @@ class AdminPage {
                     <span class="file-usage">${usageText}</span>
                 </div>
                 <div class="file-actions">
-                    ${viewButton}
+                    ${actionButton}
                     <button class="icon-btn delete" data-action="delete" data-filename="${file.filename}" title="Delete">
                         <span>🗑</span>
                     </button>
@@ -777,6 +781,13 @@ class AdminPage {
             btn.addEventListener('click', (e) => {
                 const filename = e.target.closest('button').dataset.filename;
                 this.viewFile(filename);
+            });
+        });
+
+        list.querySelectorAll('[data-action="manage"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const foldername = e.target.closest('button').dataset.filename;
+                this.manageFolderContents(foldername);
             });
         });
 
@@ -917,6 +928,117 @@ class AdminPage {
             modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
         } catch (error) {
             alert(`Failed to view file: ${error.message}`);
+        }
+    }
+
+    async manageFolderContents(foldername) {
+        try {
+            // Get the list of files in the folder
+            const folderContents = await this.apiService.getFolderContents(foldername);
+
+            const modal = document.createElement('div');
+            modal.className = 'file-viewer-modal folder-manager-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📁 ${foldername}</h3>
+                        <button class="modal-close">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="folder-actions">
+                            <button class="action-btn primary" id="upload-to-folder-btn">
+                                <span>📤</span> Upload Files
+                            </button>
+                            <input type="file" id="folder-file-upload-input" multiple style="display: none;">
+                        </div>
+                        <div class="folder-contents" id="folder-contents-list">
+                            ${this.renderFolderContentsList(folderContents)}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const closeModal = () => {
+                document.body.removeChild(modal);
+            };
+
+            modal.querySelector('.modal-close').addEventListener('click', closeModal);
+            modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
+
+            // Upload button
+            const uploadBtn = modal.querySelector('#upload-to-folder-btn');
+            const fileInput = modal.querySelector('#folder-file-upload-input');
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async (e) => {
+                await this.handleFolderFileUpload(e, foldername);
+                // Refresh folder contents
+                const newContents = await this.apiService.getFolderContents(foldername);
+                modal.querySelector('#folder-contents-list').innerHTML = this.renderFolderContentsList(newContents);
+                this.attachFolderFileDeleteHandlers(modal, foldername);
+                e.target.value = '';
+            });
+
+            // Attach delete handlers
+            this.attachFolderFileDeleteHandlers(modal, foldername);
+        } catch (error) {
+            alert(`Failed to open folder: ${error.message}`);
+        }
+    }
+
+    renderFolderContentsList(contents) {
+        if (!contents || contents.length === 0) {
+            return '<p class="no-files">This folder is empty. Upload files to add them.</p>';
+        }
+
+        return contents.map(file => `
+            <div class="folder-file-item">
+                <span class="folder-file-name">📄 ${file.name}</span>
+                <span class="folder-file-size">${this.formatFileSize(file.size)}</span>
+                <button class="icon-btn delete folder-file-delete" data-filename="${file.name}" title="Delete">
+                    <span>🗑</span>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    attachFolderFileDeleteHandlers(modal, foldername) {
+        modal.querySelectorAll('.folder-file-delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const filename = e.target.closest('button').dataset.filename;
+                await this.deleteFolderFile(foldername, filename);
+                // Refresh folder contents
+                const newContents = await this.apiService.getFolderContents(foldername);
+                modal.querySelector('#folder-contents-list').innerHTML = this.renderFolderContentsList(newContents);
+                this.attachFolderFileDeleteHandlers(modal, foldername);
+            });
+        });
+    }
+
+    async handleFolderFileUpload(e, foldername) {
+        const files = Array.from(e.target.files);
+
+        for (const file of files) {
+            try {
+                const content = await this.readFileAsText(file);
+                await this.apiService.uploadFileToFolder(foldername, file.name, content);
+            } catch (error) {
+                alert(`Failed to upload ${file.name}: ${error.message}`);
+            }
+        }
+    }
+
+    async deleteFolderFile(foldername, filename) {
+        if (!confirm(`Delete ${filename} from ${foldername}?`)) {
+            return;
+        }
+
+        try {
+            await this.apiService.deleteFileFromFolder(foldername, filename);
+        } catch (error) {
+            alert(`Failed to delete file: ${error.message}`);
         }
     }
 

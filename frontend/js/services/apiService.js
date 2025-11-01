@@ -322,6 +322,60 @@ class ApiService {
 	}
 
 	/**
+	 * Get folder contents (admin only)
+	 * @param {string} foldername - Folder name
+	 * @returns {Promise<Array>} Array of file objects with name and size
+	 */
+	async getFolderContents(foldername) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures/${encodeURIComponent(foldername)}/contents`);
+		if (!response.ok) {
+			throw new Error(`Failed to get folder contents: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Upload a file to a folder (admin only)
+	 * @param {string} foldername - Folder name
+	 * @param {string} filename - File name
+	 * @param {string} content - File content
+	 * @returns {Promise<Object>} Upload result
+	 */
+	async uploadFileToFolder(foldername, filename, content) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures/${encodeURIComponent(foldername)}/files`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ filename, content })
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to upload file: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Delete a file from a folder (admin only)
+	 * @param {string} foldername - Folder name
+	 * @param {string} filename - File name
+	 * @returns {Promise<void>}
+	 */
+	async deleteFileFromFolder(foldername, filename) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures/${encodeURIComponent(foldername)}/files/${encodeURIComponent(filename)}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to delete file: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
 	 * Get all users (admin only)
 	 * @returns {Promise<Array>} List of users with statistics
 	 */
