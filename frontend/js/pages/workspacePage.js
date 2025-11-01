@@ -4,7 +4,7 @@ import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
 import TestResults from '../components/testResults.js';
 import Statistics from '../components/statistics.js';
-import { initializeResizableSidebars } from '../utils/resizeUtils.js';
+import { initializeResizableSidebars, makeVerticallyResizable } from '../utils/resizeUtils.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 
 // Achievement notifications (load as script tag)
@@ -53,6 +53,22 @@ class WorkspacePage {
 
         // Initialize resizable sidebar
         initializeResizableSidebars();
+
+        // Initialize vertical resize between editor and results
+        makeVerticallyResizable(
+            '.resize-handle-vertical',
+            '.editor-container',
+            '.results-container',
+            200,  // min editor height
+            150,  // min results height
+            'workspace-editor-height',
+            () => {
+                // Refresh CodeMirror when resizing
+                if (this.codeEditor) {
+                    this.codeEditor.refresh();
+                }
+            }
+        );
 
         // Get exercise ID from URL or session storage
         const urlParams = new URLSearchParams(window.location.search);
