@@ -172,6 +172,35 @@ class DatabaseService {
 			)
 		`);
 
+		// Achievements table
+		await this.db.exec(`
+			CREATE TABLE IF NOT EXISTS achievements (
+				id TEXT PRIMARY KEY,
+				name TEXT NOT NULL,
+				description TEXT,
+				icon TEXT,
+				category TEXT,
+				points INTEGER DEFAULT 0,
+				requirement_type TEXT,
+				requirement_value INTEGER,
+				hidden BOOLEAN DEFAULT 0,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+
+		// User achievements junction table
+		await this.db.exec(`
+			CREATE TABLE IF NOT EXISTS user_achievements (
+				user_id INTEGER NOT NULL,
+				achievement_id TEXT NOT NULL,
+				earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				progress INTEGER DEFAULT 0,
+				PRIMARY KEY (user_id, achievement_id),
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+				FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE
+			)
+		`);
+
 		// Create indexes for better performance
 		await this.db.exec(`
 			CREATE INDEX IF NOT EXISTS idx_chapters_language ON chapters(language_id);
@@ -180,7 +209,73 @@ class DatabaseService {
 			CREATE INDEX IF NOT EXISTS idx_user_progress_user ON user_progress(user_id);
 			CREATE INDEX IF NOT EXISTS idx_user_progress_exercise ON user_progress(exercise_id);
 			CREATE INDEX IF NOT EXISTS idx_users_google ON users(google_id);
+			CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id);
+			CREATE INDEX IF NOT EXISTS idx_achievements_category ON achievements(category);
 		`);
+
+		// Seed default achievements
+		await this.seedDefaultAchievements();
+	}
+
+	/**
+	 * Seed default achievements
+	 */
+	async seedDefaultAchievements() {
+		const defaultAchievements = [
+			// Getting Started
+			{ id: 'first-steps', name: 'First Steps', description: 'Complete your first exercise', icon: '🎯', category: 'getting-started', points: 10, requirement_type: 'exercises_completed', requirement_value: 1 },
+			{ id: 'quick-learner', name: 'Quick Learner', description: 'Complete 5 exercises', icon: '📚', category: 'progress', points: 25, requirement_type: 'exercises_completed', requirement_value: 5 },
+			{ id: 'dedicated', name: 'Dedicated', description: 'Complete 10 exercises', icon: '💪', category: 'progress', points: 50, requirement_type: 'exercises_completed', requirement_value: 10 },
+			{ id: 'master', name: 'Master', description: 'Complete 25 exercises', icon: '🏆', category: 'progress', points: 100, requirement_type: 'exercises_completed', requirement_value: 25 },
+			{ id: 'legendary', name: 'Legendary', description: 'Complete 50 exercises', icon: '👑', category: 'progress', points: 250, requirement_type: 'exercises_completed', requirement_value: 50 },
+
+			// Perfect Scores
+			{ id: 'perfectionist', name: 'Perfectionist', description: 'Complete an exercise on the first try', icon: '✨', category: 'skill', points: 20, requirement_type: 'first_try_completions', requirement_value: 1 },
+			{ id: 'flawless', name: 'Flawless', description: 'Complete 5 exercises on first try', icon: '💎', category: 'skill', points: 50, requirement_type: 'first_try_completions', requirement_value: 5 },
+			{ id: 'untouchable', name: 'Untouchable', description: 'Complete 10 exercises on first try', icon: '🌟', category: 'skill', points: 100, requirement_type: 'first_try_completions', requirement_value: 10 },
+
+			// Persistence
+			{ id: 'persistent', name: 'Persistent', description: 'Complete an exercise after 10+ attempts', icon: '🔥', category: 'persistence', points: 30, requirement_type: 'persistent_completion', requirement_value: 1 },
+			{ id: 'never-give-up', name: 'Never Give Up', description: 'Complete an exercise after 20+ attempts', icon: '💪', category: 'persistence', points: 50, requirement_type: 'persistent_completion_20', requirement_value: 1 },
+
+			// Speed
+			{ id: 'speed-demon', name: 'Speed Demon', description: 'Complete 3 exercises in one hour', icon: '⚡', category: 'speed', points: 40, requirement_type: 'exercises_per_hour', requirement_value: 3 },
+			{ id: 'marathon-runner', name: 'Marathon Runner', description: 'Complete 10 exercises in one day', icon: '🏃', category: 'speed', points: 75, requirement_type: 'exercises_per_day', requirement_value: 10 },
+
+			// Time-based
+			{ id: 'night-owl', name: 'Night Owl', description: 'Complete an exercise between midnight and 5 AM', icon: '🦉', category: 'time', points: 15, requirement_type: 'night_completion', requirement_value: 1 },
+			{ id: 'early-bird', name: 'Early Bird', description: 'Complete an exercise between 5 AM and 8 AM', icon: '🐦', category: 'time', points: 15, requirement_type: 'morning_completion', requirement_value: 1 },
+
+			// Streaks
+			{ id: 'streak-starter', name: 'Streak Starter', description: 'Complete exercises on 3 consecutive days', icon: '📅', category: 'streak', points: 30, requirement_type: 'daily_streak', requirement_value: 3 },
+			{ id: 'committed', name: 'Committed', description: 'Complete exercises on 7 consecutive days', icon: '🔥', category: 'streak', points: 70, requirement_type: 'daily_streak', requirement_value: 7 },
+			{ id: 'unstoppable', name: 'Unstoppable', description: 'Complete exercises on 30 consecutive days', icon: '🌟', category: 'streak', points: 200, requirement_type: 'daily_streak', requirement_value: 30 },
+
+			// Chapter Completion
+			{ id: 'chapter-complete', name: 'Chapter Master', description: 'Complete all exercises in a chapter', icon: '📖', category: 'mastery', points: 50, requirement_type: 'chapter_complete', requirement_value: 1 },
+			{ id: 'all-chapters', name: 'Complete Mastery', description: 'Complete all chapters', icon: '🎓', category: 'mastery', points: 500, requirement_type: 'all_chapters_complete', requirement_value: 1 },
+		];
+
+		for (const achievement of defaultAchievements) {
+			try {
+				await this.db.run(`
+					INSERT OR IGNORE INTO achievements (id, name, description, icon, category, points, requirement_type, requirement_value, hidden)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+				`, [
+					achievement.id,
+					achievement.name,
+					achievement.description,
+					achievement.icon,
+					achievement.category,
+					achievement.points,
+					achievement.requirement_type,
+					achievement.requirement_value,
+					achievement.hidden || 0
+				]);
+			} catch (e) {
+				// Achievement already exists
+			}
+		}
 	}
 
 	// ============= Language Methods =============
@@ -621,16 +716,432 @@ class DatabaseService {
 	}
 
 	/**
+	 * Get achievement points leaderboard
+	 * @param {string|null} languageId - Optional language ID (not used for achievement leaderboard, but kept for consistency)
+	 * @returns {Promise<Array>} Leaderboard data ranked by achievement points
+	 */
+	async getAchievementLeaderboard() {
+		const query = `
+			SELECT
+				u.id,
+				u.display_name,
+				COALESCE(SUM(a.points), 0) as total_points,
+				COUNT(ua.achievement_id) as achievements_earned,
+				(SELECT COUNT(*) FROM achievements) as total_achievements
+			FROM users u
+			LEFT JOIN user_achievements ua ON u.id = ua.user_id
+			LEFT JOIN achievements a ON ua.achievement_id = a.id
+			GROUP BY u.id, u.display_name
+			HAVING total_points > 0
+			ORDER BY total_points DESC, achievements_earned DESC
+			LIMIT 100
+		`;
+
+		return this.db.all(query);
+	}
+
+	// ============= Achievement Methods =============
+
+	/**
+	 * Get all achievements
+	 */
+	async getAllAchievements() {
+		return this.db.all('SELECT * FROM achievements ORDER BY category, points');
+	}
+
+	/**
+	 * Get user's earned achievements
+	 */
+	async getUserAchievements(userId) {
+		return this.db.all(`
+			SELECT a.*, ua.earned_at, ua.progress
+			FROM achievements a
+			JOIN user_achievements ua ON a.id = ua.achievement_id
+			WHERE ua.user_id = ?
+			ORDER BY ua.earned_at DESC
+		`, [userId]);
+	}
+
+	/**
+	 * Get user's achievement progress (including unearned)
+	 */
+	async getUserAchievementProgress(userId) {
+		return this.db.all(`
+			SELECT 
+				a.*,
+				ua.earned_at,
+				ua.progress,
+				CASE WHEN ua.earned_at IS NOT NULL THEN 1 ELSE 0 END as earned
+			FROM achievements a
+			LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = ?
+			ORDER BY earned DESC, a.category, a.points
+		`, [userId]);
+	}
+
+	/**
+	 * Award achievement to user
+	 */
+	async awardAchievement(userId, achievementId, progress = 100) {
+		try {
+			await this.db.run(`
+				INSERT OR REPLACE INTO user_achievements (user_id, achievement_id, progress, earned_at)
+				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+			`, [userId, achievementId, progress]);
+			return true;
+		} catch (e) {
+			console.error('Error awarding achievement:', e);
+			return false;
+		}
+	}
+
+	/**
 	 * Close the database connection
 	 */
-	async close() {
+	async updateAchievementProgress(userId, achievementId, progress) {
+		await this.db.run(`
+			INSERT OR REPLACE INTO user_achievements (user_id, achievement_id, progress)
+			VALUES (?, ?, ?)
+		`, [userId, achievementId, progress]);
+	}
+
+	/**
+	 * Get user's total achievement points
+	 */
+	async getUserAchievementPoints(userId) {
+		const result = await this.db.get(`
+			SELECT COALESCE(SUM(a.points), 0) as total_points
+			FROM achievements a
+			JOIN user_achievements ua ON a.id = ua.achievement_id
+			WHERE ua.user_id = ?
+		`, [userId]);
+		return result.total_points || 0;
+	}
+
+	/**
+	 * Check and award achievements for a user
+	 */
+	async checkAndAwardAchievements(userId) {
+		const newAchievements = [];
+
+		// Get user stats
+		const completedCount = await this.db.get(`
+			SELECT COUNT(*) as count FROM user_progress WHERE user_id = ? AND completed = 1
+		`, [userId]);
+		const totalCompleted = completedCount.count;
+
+		const firstTryCount = await this.db.get(`
+			SELECT COUNT(*) as count FROM user_progress 
+			WHERE user_id = ? AND completed = 1 AND attempts = 1
+		`, [userId]);
+		const firstTryCompletions = firstTryCount.count;
+
+		// Check exercises_completed achievements
+		const completionAchievements = await this.db.all(`
+			SELECT * FROM achievements 
+			WHERE requirement_type = 'exercises_completed' 
+			AND requirement_value <= ?
+			AND id NOT IN (SELECT achievement_id FROM user_achievements WHERE user_id = ?)
+		`, [totalCompleted, userId]);
+
+		for (const achievement of completionAchievements) {
+			await this.awardAchievement(userId, achievement.id);
+			newAchievements.push(achievement);
+		}
+
+		// Check first_try_completions achievements
+		const firstTryAchievements = await this.db.all(`
+			SELECT * FROM achievements 
+			WHERE requirement_type = 'first_try_completions' 
+			AND requirement_value <= ?
+			AND id NOT IN (SELECT achievement_id FROM user_achievements WHERE user_id = ?)
+		`, [firstTryCompletions, userId]);
+
+		for (const achievement of firstTryAchievements) {
+			await this.awardAchievement(userId, achievement.id);
+			newAchievements.push(achievement);
+		}
+
+		return newAchievements;
+	}
+
+	/**
+	 * Check time-based achievements (night owl, early bird)
+	 */
+	async checkTimeBasedAchievements(userId) {
+		const hour = new Date().getHours();
+		const newAchievements = [];
+
+		// Night Owl (midnight to 5 AM)
+		if (hour >= 0 && hour < 5) {
+			const hasAchievement = await this.db.get(`
+				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'night-owl'
+			`, [userId]);
+
+			if (!hasAchievement) {
+				await this.awardAchievement(userId, 'night-owl');
+				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'night-owl'`);
+				newAchievements.push(achievement);
+			}
+		}
+
+		// Early Bird (5 AM to 8 AM)
+		if (hour >= 5 && hour < 8) {
+			const hasAchievement = await this.db.get(`
+				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'early-bird'
+			`, [userId]);
+
+			if (!hasAchievement) {
+				await this.awardAchievement(userId, 'early-bird');
+				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'early-bird'`);
+				newAchievements.push(achievement);
+			}
+		}
+
+		return newAchievements;
+	}
+
+	/**
+	 * Check persistence achievements
+	 */
+	async checkPersistenceAchievements(userId, attempts) {
+		const newAchievements = [];
+
+		// Persistent (10+ attempts)
+		if (attempts >= 10) {
+			const hasAchievement = await this.db.get(`
+				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'persistent'
+			`, [userId]);
+
+			if (!hasAchievement) {
+				await this.awardAchievement(userId, 'persistent');
+				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'persistent'`);
+				newAchievements.push(achievement);
+			}
+		}
+
+		// Never Give Up (20+ attempts)
+		if (attempts >= 20) {
+			const hasAchievement = await this.db.get(`
+				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'never-give-up'
+			`, [userId]);
+
+			if (!hasAchievement) {
+				await this.awardAchievement(userId, 'never-give-up');
+				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'never-give-up'`);
+				newAchievements.push(achievement);
+			}
+		}
+
+		return newAchievements;
+	}
+
+	/**
+	 * Check speed achievements (exercises per hour/day)
+	 */
+	async checkSpeedAchievements(userId) {
+		const newAchievements = [];
+		const now = new Date();
+
+		// Check exercises completed in the last hour
+		const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+		const lastHourCompletions = await this.db.get(`
+			SELECT COUNT(*) as count 
+			FROM user_progress 
+			WHERE user_id = ? 
+			AND completed = 1 
+			AND completed_at >= ?
+		`, [userId, oneHourAgo.toISOString()]);
+
+		if (lastHourCompletions.count >= 3) {
+			const hasAchievement = await this.db.get(`
+				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'speed-demon'
+			`, [userId]);
+
+			if (!hasAchievement) {
+				await this.awardAchievement(userId, 'speed-demon');
+				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'speed-demon'`);
+				newAchievements.push(achievement);
+			}
+		}
+
+		// Check exercises completed today
+		const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+		const todayCompletions = await this.db.get(`
+			SELECT COUNT(*) as count 
+			FROM user_progress 
+			WHERE user_id = ? 
+			AND completed = 1 
+			AND completed_at >= ?
+		`, [userId, todayStart]);
+
+		if (todayCompletions.count >= 10) {
+			const hasAchievement = await this.db.get(`
+				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'marathon-runner'
+			`, [userId]);
+
+			if (!hasAchievement) {
+				await this.awardAchievement(userId, 'marathon-runner');
+				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'marathon-runner'`);
+				newAchievements.push(achievement);
+			}
+		}
+
+		return newAchievements;
+	}
+
+	/**
+	 * Check streak achievements (consecutive days)
+	 */
+	async checkStreakAchievements(userId) {
+		const newAchievements = [];
+
+		// Get all days with completions, ordered by date
+		const completionDays = await this.db.all(`
+			SELECT DISTINCT DATE(completed_at) as completion_date
+			FROM user_progress
+			WHERE user_id = ? AND completed = 1
+			ORDER BY completion_date DESC
+		`, [userId]);
+
+		if (completionDays.length === 0) return newAchievements;
+
+		// Calculate current streak
+		let currentStreak = 1;
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+
+		for (let i = 0; i < completionDays.length - 1; i++) {
+			const currentDate = new Date(completionDays[i].completion_date);
+			const nextDate = new Date(completionDays[i + 1].completion_date);
+
+			// Check if dates are consecutive
+			const diffDays = Math.floor((currentDate - nextDate) / (1000 * 60 * 60 * 24));
+
+			if (diffDays === 1) {
+				currentStreak++;
+			} else {
+				break;
+			}
+		}
+
+		// Check if streak is current (includes today or yesterday)
+		const mostRecentDate = new Date(completionDays[0].completion_date);
+		const daysSinceLastCompletion = Math.floor((today - mostRecentDate) / (1000 * 60 * 60 * 24));
+
+		if (daysSinceLastCompletion > 1) {
+			currentStreak = 0; // Streak broken
+		}
+
+		// Award streak achievements
+		const streakAchievements = [
+			{ id: 'streak-starter', days: 3 },
+			{ id: 'committed', days: 7 },
+			{ id: 'unstoppable', days: 30 }
+		];
+
+		for (const streakAch of streakAchievements) {
+			if (currentStreak >= streakAch.days) {
+				const hasAchievement = await this.db.get(`
+					SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?
+				`, [userId, streakAch.id]);
+
+				if (!hasAchievement) {
+					await this.awardAchievement(userId, streakAch.id);
+					const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = ?`, [streakAch.id]);
+					newAchievements.push(achievement);
+				}
+			}
+		}
+
+		return newAchievements;
+	}
+
+	/**
+	 * Check chapter and mastery achievements
+	 */
+	async checkChapterAchievements(userId, exerciseId) {
+		const newAchievements = [];
+
+		// Get the chapter of the completed exercise
+		const exercise = await this.db.get(`
+			SELECT e.*, c.language_id 
+			FROM exercises e
+			JOIN chapters c ON e.chapter_id = c.id
+			WHERE e.id = ?
+		`, [exerciseId]);
+
+		if (!exercise) return newAchievements;
+
+		// Check if all exercises in this chapter are completed
+		const chapterProgress = await this.db.get(`
+			SELECT 
+				COUNT(*) as total_exercises,
+				SUM(CASE WHEN up.completed = 1 THEN 1 ELSE 0 END) as completed_exercises
+			FROM exercises e
+			LEFT JOIN user_progress up ON e.id = up.exercise_id AND up.user_id = ?
+			WHERE e.chapter_id = ?
+		`, [userId, exercise.chapter_id]);
+
+		if (chapterProgress.total_exercises === chapterProgress.completed_exercises) {
+			// Chapter completed!
+			const hasChapterAchievement = await this.db.get(`
+				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'chapter-complete'
+			`, [userId]);
+
+			if (!hasChapterAchievement) {
+				await this.awardAchievement(userId, 'chapter-complete');
+				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'chapter-complete'`);
+				newAchievements.push(achievement);
+			}
+
+			// Check if ALL chapters are now complete
+			const allChaptersProgress = await this.db.get(`
+				SELECT 
+					COUNT(DISTINCT c.id) as total_chapters,
+					COUNT(DISTINCT CASE 
+						WHEN chapter_stats.total = chapter_stats.completed THEN c.id 
+					END) as completed_chapters
+				FROM chapters c
+				JOIN exercises e ON c.id = e.chapter_id
+				LEFT JOIN (
+					SELECT 
+						e2.chapter_id,
+						COUNT(*) as total,
+						SUM(CASE WHEN up2.completed = 1 THEN 1 ELSE 0 END) as completed
+					FROM exercises e2
+					LEFT JOIN user_progress up2 ON e2.id = up2.exercise_id AND up2.user_id = ?
+					GROUP BY e2.chapter_id
+				) as chapter_stats ON c.id = chapter_stats.chapter_id
+				WHERE c.language_id = ?
+			`, [userId, exercise.language_id]);
+
+			if (allChaptersProgress.total_chapters === allChaptersProgress.completed_chapters) {
+				const hasAllChaptersAchievement = await this.db.get(`
+					SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'all-chapters'
+				`, [userId]);
+
+				if (!hasAllChaptersAchievement) {
+					await this.awardAchievement(userId, 'all-chapters');
+					const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'all-chapters'`);
+					newAchievements.push(achievement);
+				}
+			}
+		}
+
+		return newAchievements;
+	}
+
+	/**
+	 * Close the database connection
+	 */
+	async closeDatabase() {
 		if (this.db) {
 			await this.db.close();
+			console.log('Database connection closed');
 		}
 	}
 }
 
-// Create singleton instance
 const databaseService = new DatabaseService();
 
 module.exports = databaseService;
