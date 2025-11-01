@@ -80,14 +80,52 @@ router.post('/exercises/:id/run', async (req, res) => {
 
 		// Save user progress if authenticated
 		if (req.user && req.user.id) {
+			// Get progress before saving to check attempts
+			const progressBefore = await databaseService.getUserProgress(req.user.id, req.params.id);
+
 			await databaseService.saveUserProgress(req.user.id, req.params.id, {
 				completed: allPassed,
 				last_submission: script
 			});
 
+			// Check for achievements
+			const newAchievements = [];
+
+			if (allPassed) {
+				// Get current progress to check attempts
+				const progressAfter = await databaseService.getUserProgress(req.user.id, req.params.id);
+
+				// Check general achievements (exercises completed, first try)
+				const generalAchievements = await databaseService.checkAndAwardAchievements(req.user.id);
+				newAchievements.push(...generalAchievements);
+
+				// Check time-based achievements
+				const timeAchievements = await databaseService.checkTimeBasedAchievements(req.user.id);
+				newAchievements.push(...timeAchievements);
+
+				// Check persistence achievements
+				const persistenceAchievements = await databaseService.checkPersistenceAchievements(
+					req.user.id,
+					progressAfter.attempts
+				);
+				newAchievements.push(...persistenceAchievements);
+
+				// Check speed achievements (exercises per hour/day)
+				const speedAchievements = await databaseService.checkSpeedAchievements(req.user.id);
+				newAchievements.push(...speedAchievements);
+
+				// Check streak achievements (consecutive days)
+				const streakAchievements = await databaseService.checkStreakAchievements(req.user.id);
+				newAchievements.push(...streakAchievements);
+
+				// Check chapter completion achievements
+				const chapterAchievements = await databaseService.checkChapterAchievements(req.user.id, req.params.id);
+				newAchievements.push(...chapterAchievements);
+			}
+
 			// Get user-specific statistics from database
 			const statistics = await statisticsService.getExerciseStatistics(req.params.id, req.user.id);
-			res.json({ results, statistics });
+			res.json({ results, statistics, newAchievements });
 		} else {
 			// For non-authenticated users, return global statistics
 			const statistics = await statisticsService.updateStatistics(req.params.id, results);
@@ -138,6 +176,54 @@ router.get('/leaderboard/:languageId?', async (req, res) => {
 	} catch (error) {
 		console.error('Error fetching leaderboard:', error);
 		res.status(500).json({ error: 'Failed to load leaderboard' });
+	}
+});
+
+/**
+ * GET /api/leaderboard-achievements
+ * Get achievement points leaderboard
+ */
+router.get('/leaderboard-achievements', async (req, res) => {
+	try {
+		const leaderboard = await databaseService.getAchievementLeaderboard();
+		res.json(leaderboard);
+	} catch (error) {
+		console.error('Error fetching achievement leaderboard:', error);
+		res.status(500).json({ error: 'Failed to load achievement leaderboard' });
+	}
+});
+
+/**
+ * GET /api/achievements
+ * Get all available achievements
+ */
+router.get('/achievements', async (req, res) => {
+	try {
+		const achievements = await databaseService.getAllAchievements();
+		res.json(achievements);
+	} catch (error) {
+		console.error('Error fetching achievements:', error);
+		res.status(500).json({ error: 'Failed to load achievements' });
+	}
+});
+
+/**
+ * GET /api/achievements/user
+ * Get current user's achievements and progress
+ */
+router.get('/achievements/user', async (req, res) => {
+	try {
+		if (!req.user || !req.user.id) {
+			return res.status(401).json({ error: 'Not authenticated' });
+		}
+
+		const progress = await databaseService.getUserAchievementProgress(req.user.id);
+		const points = await databaseService.getUserAchievementPoints(req.user.id);
+
+		res.json({ achievements: progress, totalPoints: points });
+	} catch (error) {
+		console.error('Error fetching user achievements:', error);
+		res.status(500).json({ error: 'Failed to load user achievements' });
 	}
 });
 

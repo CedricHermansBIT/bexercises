@@ -31,7 +31,8 @@
 		"passport-google-oauth20": "^2.0.0",
 		"sqlite": "^5.1.1",
 		"sqlite3": "^5.1.7",
-		"uuid": "^9.0.0"
+		"uuid": "^9.0.0",
+		"which": "^5.0.0"
 	},
 	"devDependencies": {
 		"eslint": "^9.38.0",

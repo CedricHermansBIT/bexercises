@@ -191,7 +191,38 @@ async function runScriptInContainer(tmpdir, args = [], inputs = [], timeoutMs = 
 			...args
 		];
 
-		const docker = spawn('docker', dockerArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+        // Check if docker is installed, if not check if podman is available and use it as a drop-in replacement (not hardcoded paths)
+        let dockerCmd = 'docker';
+        const isDockerAvailable = (() => {
+            try {
+                const which = require('which');
+                which.sync('docker');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        )();
+        if (!isDockerAvailable) {
+            const isPodmanAvailable = (() => {
+                try {
+                    const which = require('which');
+                    which.sync('podman');
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+            )();
+            if (isPodmanAvailable) {
+                dockerCmd = 'podman';
+                console.log('Docker not found, using Podman as a drop-in replacement.');
+            } else {
+                throw new Error('Neither Docker nor Podman is installed or found in PATH.');
+            }
+        }
+
+		const docker = spawn(dockerCmd, dockerArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
 
 		let stdout = '';
 		let stderr = '';

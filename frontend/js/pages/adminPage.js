@@ -55,6 +55,14 @@ class AdminPage {
         // Setup tabs
         this.setupTabs();
 
+        // Read tab from URL parameter and switch to it
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabFromUrl = urlParams.get('tab');
+        if (tabFromUrl && ['exercises', 'files', 'users'].includes(tabFromUrl)) {
+            this.currentTab = tabFromUrl;
+            this.switchTab(tabFromUrl);
+        }
+
         // Load data - exercises first, then files (files need exercises for usage count)
         await this.loadExercises();
         await this.loadFiles();
@@ -242,6 +250,11 @@ class AdminPage {
 
     switchTab(tabName) {
         this.currentTab = tabName;
+
+        // Update URL parameter without reloading page
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.pushState({}, '', url);
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabName);

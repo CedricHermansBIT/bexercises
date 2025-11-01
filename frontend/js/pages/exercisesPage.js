@@ -27,6 +27,9 @@ class ExercisesPage {
             return;
         }
 
+        // Setup admin access
+        this.setupAdminAccess();
+
         // Get selected language from session storage
         this.currentLanguage = sessionStorage.getItem('selectedLanguage') || 'bash';
 
@@ -119,6 +122,15 @@ class ExercisesPage {
         window.addEventListener('themechange', updateThemeButton);
     }
 
+    setupAdminAccess() {
+        if (this.authComponent.isAdmin()) {
+            const adminBtns = document.querySelectorAll('.admin-only');
+            adminBtns.forEach(btn => {
+                btn.style.display = 'flex';
+            });
+        }
+    }
+
     updateTime() {
         const now = new Date();
         const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -135,11 +147,27 @@ class ExercisesPage {
             });
         }
 
+        // Achievements button
+        const achievementsBtn = document.getElementById('achievements-btn-exercises');
+        if (achievementsBtn) {
+            achievementsBtn.addEventListener('click', () => {
+                navigateTo('achievements.html');
+            });
+        }
+
         // Leaderboard button
         const leaderboardBtn = document.getElementById('leaderboard-btn-exercises');
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
                 navigateTo('leaderboard.html');
+            });
+        }
+
+        // Admin button
+        const adminBtn = document.getElementById('admin-btn-exercises');
+        if (adminBtn) {
+            adminBtn.addEventListener('click', () => {
+                navigateTo('admin.html');
             });
         }
 

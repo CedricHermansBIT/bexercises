@@ -377,6 +377,42 @@ class ApiService {
 		}
 		return response.json();
 	}
+
+	/**
+	 * Get achievement points leaderboard
+	 * @returns {Promise<Array>} Achievement leaderboard rankings
+	 */
+	async getAchievementLeaderboard() {
+		const response = await fetch(`${this.baseUrl}/api/leaderboard-achievements`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch achievement leaderboard: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Get all available achievements
+	 * @returns {Promise<Array>} Array of achievements
+	 */
+	async getAllAchievements() {
+		const response = await fetch(`${this.baseUrl}/api/achievements`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch achievements: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Get current user's achievements and progress
+	 * @returns {Promise<Object>} User achievements and total points
+	 */
+	async getUserAchievements() {
+		const response = await fetch(`${this.baseUrl}/api/achievements/user`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch user achievements: ${response.status}`);
+		}
+		return response.json();
+	}
 }
 
 export default ApiService;

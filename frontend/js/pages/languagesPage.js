@@ -108,15 +108,10 @@ class LanguagesPage {
 
     setupAdminAccess() {
         if (this.authComponent.isAdmin()) {
-            const topbarRight = document.querySelector('#language-screen .topbar-right');
-            const adminBtn = document.createElement('button');
-            adminBtn.className = 'action-btn';
-            adminBtn.innerHTML = '<span>⚙</span> Admin';
-            adminBtn.style.marginRight = '1rem';
-            adminBtn.addEventListener('click', () => {
-                navigateTo('admin.html');
+            const adminBtns = document.querySelectorAll('.admin-only');
+            adminBtns.forEach(btn => {
+                btn.style.display = 'flex';
             });
-            topbarRight.insertBefore(adminBtn, topbarRight.firstChild);
         }
     }
 
@@ -279,6 +274,14 @@ class LanguagesPage {
             </div>
             -->
         `;
+        // Achievements link
+        const achievementsLink = document.getElementById('achievements-btn-language');
+        if (achievementsLink) {
+            achievementsLink.addEventListener('click', () => {
+                navigateTo('achievements.html');
+            });
+        }
+
         // Leaderboard link
         const leaderboardLink = document.getElementById('leaderboard-btn-language');
         if (leaderboardLink) {
@@ -286,6 +289,15 @@ class LanguagesPage {
                 navigateTo('leaderboard.html');
             });
         }
+
+        // Admin button
+        const adminBtn = document.getElementById('admin-btn-language');
+        if (adminBtn) {
+            adminBtn.addEventListener('click', () => {
+                navigateTo('admin.html');
+            });
+        }
+
         // Add click handlers
         const languageCards = grid.querySelectorAll('.language-card:not(.coming-soon)');
         languageCards.forEach(card => {

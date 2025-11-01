@@ -26,6 +26,12 @@
                 <span class="topbar-subtitle">top performers</span>
             </div>
             <div class="topbar-right">
+                <button class="topbar-btn" id="achievements-btn-leaderboard" title="Achievements">
+                    <span>🏅</span>
+                </button>
+                <button class="topbar-btn admin-only" id="admin-btn-leaderboard" title="Admin Panel" style="display: none;">
+                    <span>⚙️</span>
+                </button>
                 <span class="system-time" id="system-time">00:00</span>
                 <div class="user-menu" id="user-menu">
                     <span class="user-icon">󰀄</span>
@@ -72,6 +78,7 @@
 
                 <div class="leaderboard-tabs">
                     <button class="tab-btn active" data-tab="global">Global</button>
+                    <button class="tab-btn" data-tab="achievements">🏅 Achievements</button>
                     <!-- Language tabs will be added dynamically -->
                 </div>
             </div>
@@ -88,6 +95,22 @@
                             <div class="rate-col">Success Rate</div>
                         </div>
                         <div id="global-rankings" class="table-body">
+                            <!-- Rankings will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievements Leaderboard -->
+                <div id="achievements-tab" class="leaderboard-panel">
+                    <div class="leaderboard-table">
+                        <div class="table-header">
+                            <div class="rank-col">Rank</div>
+                            <div class="user-col">User</div>
+                            <div class="score-col">Points</div>
+                            <div class="achievements-col">Achievements</div>
+                            <div class="completion-col">Completion</div>
+                        </div>
+                        <div id="achievements-rankings" class="table-body">
                             <!-- Rankings will be populated here -->
                         </div>
                     </div>

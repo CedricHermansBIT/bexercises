@@ -34,6 +34,9 @@ class LeaderboardPage {
             return;
         }
 
+        // Setup admin access
+        this.setupAdminAccess();
+
         // Update time display
         this.updateTime();
         setInterval(() => this.updateTime(), 1000);
@@ -111,6 +114,22 @@ class LeaderboardPage {
                 this.toggleAutoRefresh(e.target.checked);
             });
         }
+
+        // Achievements button
+        const achievementsBtn = document.getElementById('achievements-btn-leaderboard');
+        if (achievementsBtn) {
+            achievementsBtn.addEventListener('click', () => {
+                navigateTo('achievements.html');
+            });
+        }
+
+        // Admin button
+        const adminBtn = document.getElementById('admin-btn-leaderboard');
+        if (adminBtn) {
+            adminBtn.addEventListener('click', () => {
+                navigateTo('admin.html');
+            });
+        }
     }
 
     setupLogout() {
@@ -179,6 +198,15 @@ class LeaderboardPage {
         });
 
         window.addEventListener('themechange', updateThemeButton);
+    }
+
+    setupAdminAccess() {
+        if (this.authComponent.isAdmin()) {
+            const adminBtns = document.querySelectorAll('.admin-only');
+            adminBtns.forEach(btn => {
+                btn.style.display = 'flex';
+            });
+        }
     }
 
     async switchTab(tabName) {
@@ -472,7 +500,13 @@ class LeaderboardPage {
                 container.innerHTML = '<div class="loading-spinner">Loading rankings...</div>';
             }
 
-            const rankings = await this.apiService.getLeaderboard(languageId);
+            let rankings;
+            if (tabName === 'achievements') {
+                rankings = await this.apiService.getAchievementLeaderboard();
+            } else {
+                rankings = await this.apiService.getLeaderboard(languageId);
+            }
+
             this.rankings[tabName] = rankings;
             this.lastUpdated = new Date();
             this.renderRankings(tabName);
@@ -529,12 +563,12 @@ class LeaderboardPage {
         const currentUserId = this.authComponent.getCurrentUser()?.id;
         let currentUserRank = null;
 
+        // Check if this is the achievements tab
+        const isAchievementsTab = tabName === 'achievements';
+
         rankings.forEach((user, index) => {
             const rank = index + 1;
             const isCurrentUser = currentUserId === user.id;
-            const successRate = user.total_attempts > 0
-                ? Math.round((user.completed_count / user.total_attempts) * 100)
-                : 0;
 
             if (isCurrentUser) {
                 currentUserRank = rank;
@@ -549,29 +583,65 @@ class LeaderboardPage {
             else if (rank === 2) rankDisplay = '🥈';
             else if (rank === 3) rankDisplay = '🥉';
 
-            html += `
-                <div class="ranking-row ${userClass}" data-user-id="${user.id}">
-                    <div class="rank-col">
-                        <span class="rank-number ${rankClass}">${rankDisplay}</span>
+            if (isAchievementsTab) {
+                // Achievements leaderboard format
+                const completionPercent = user.total_achievements > 0
+                    ? Math.round((user.achievements_earned / user.total_achievements) * 100)
+                    : 0;
+
+                html += `
+                    <div class="ranking-row ${userClass}" data-user-id="${user.id}">
+                        <div class="rank-col">
+                            <span class="rank-number ${rankClass}">${rankDisplay}</span>
+                        </div>
+                        <div class="user-col">
+                            <span class="user-name">${this.escapeHtml(user.display_name || 'Anonymous')}</span>
+                            ${isCurrentUser ? '<span class="you-badge">YOU</span>' : ''}
+                        </div>
+                        <div class="score-col">
+                            <span class="score">${user.total_points}</span>
+                            <span class="score-label">points</span>
+                        </div>
+                        <div class="achievements-col">
+                            <span class="attempts">${user.achievements_earned}/${user.total_achievements}</span>
+                            <span class="attempts-label">achievements</span>
+                        </div>
+                        <div class="completion-col">
+                            <span class="rate ${completionPercent >= 80 ? 'high' : completionPercent >= 50 ? 'medium' : 'low'}">${completionPercent}%</span>
+                            <span class="rate-label">completion</span>
+                        </div>
                     </div>
-                    <div class="user-col">
-                        <span class="user-name">${this.escapeHtml(user.display_name || 'Anonymous')}</span>
-                        ${isCurrentUser ? '<span class="you-badge">YOU</span>' : ''}
+                `;
+            } else {
+                // Exercise leaderboard format
+                const successRate = user.total_attempts > 0
+                    ? Math.round((user.completed_count / user.total_attempts) * 100)
+                    : 0;
+
+                html += `
+                    <div class="ranking-row ${userClass}" data-user-id="${user.id}">
+                        <div class="rank-col">
+                            <span class="rank-number ${rankClass}">${rankDisplay}</span>
+                        </div>
+                        <div class="user-col">
+                            <span class="user-name">${this.escapeHtml(user.display_name || 'Anonymous')}</span>
+                            ${isCurrentUser ? '<span class="you-badge">YOU</span>' : ''}
+                        </div>
+                        <div class="score-col">
+                            <span class="score">${user.completed_count}</span>
+                            <span class="score-label">completed</span>
+                        </div>
+                        <div class="attempts-col">
+                            <span class="attempts">${user.total_attempts || 0}</span>
+                            <span class="attempts-label">attempts</span>
+                        </div>
+                        <div class="rate-col">
+                            <span class="rate ${successRate >= 80 ? 'high' : successRate >= 50 ? 'medium' : 'low'}">${successRate}%</span>
+                            <span class="rate-label">success</span>
+                        </div>
                     </div>
-                    <div class="score-col">
-                        <span class="score">${user.completed_count}</span>
-                        <span class="score-label">completed</span>
-                    </div>
-                    <div class="attempts-col">
-                        <span class="attempts">${user.total_attempts || 0}</span>
-                        <span class="attempts-label">attempts</span>
-                    </div>
-                    <div class="rate-col">
-                        <span class="rate ${successRate >= 80 ? 'high' : successRate >= 50 ? 'medium' : 'low'}">${successRate}%</span>
-                        <span class="rate-label">success</span>
-                    </div>
-                </div>
-            `;
+                `;
+            }
         });
 
         container.innerHTML = html;
@@ -595,10 +665,29 @@ class LeaderboardPage {
         if (!summaryContainer || rankings.length === 0) return;
 
         const totalUsers = rankings.length;
-        const avgCompleted = Math.round(
-            rankings.reduce((sum, user) => sum + user.completed_count, 0) / totalUsers
-        );
-        const topScore = rankings[0]?.completed_count || 0;
+
+        // Check if this is achievements leaderboard (has total_points) or exercises leaderboard (has completed_count)
+        const isAchievementsTab = rankings[0] && 'total_points' in rankings[0];
+
+        let avgValue, topScore, avgLabel, topLabel;
+
+        if (isAchievementsTab) {
+            // Achievements leaderboard stats
+            avgValue = Math.round(
+                rankings.reduce((sum, user) => sum + (user.total_points || 0), 0) / totalUsers
+            );
+            topScore = rankings[0]?.total_points || 0;
+            avgLabel = 'Avg Points';
+            topLabel = 'Top Points';
+        } else {
+            // Exercise leaderboard stats
+            avgValue = Math.round(
+                rankings.reduce((sum, user) => sum + (user.completed_count || 0), 0) / totalUsers
+            );
+            topScore = rankings[0]?.completed_count || 0;
+            avgLabel = 'Average';
+            topLabel = 'Top Score';
+        }
 
         let rankText = currentUserRank ? `#${currentUserRank}` : 'Unranked';
         if (currentUserRank === 1) rankText = '🥇 #1';
@@ -611,12 +700,12 @@ class LeaderboardPage {
                 <span class="stat-value">${totalUsers}</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Top Score</span>
+                <span class="stat-label">${topLabel}</span>
                 <span class="stat-value">${topScore}</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Average</span>
-                <span class="stat-value">${avgCompleted}</span>
+                <span class="stat-label">${avgLabel}</span>
+                <span class="stat-value">${avgValue}</span>
             </div>
             <div class="stat-item ${currentUserRank ? 'highlight' : ''}">
                 <span class="stat-label">Your Rank</span>

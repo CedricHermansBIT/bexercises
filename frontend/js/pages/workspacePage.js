@@ -7,6 +7,9 @@ import Statistics from '../components/statistics.js';
 import { initializeResizableSidebars } from '../utils/resizeUtils.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 
+// Achievement notifications (load as script tag)
+// Note: This is loaded via script tag since it's not a module
+
 class WorkspacePage {
     constructor() {
         this.apiService = new ApiService();
@@ -31,6 +34,9 @@ class WorkspacePage {
             navigateTo('login.html');
             return;
         }
+
+        // Setup admin access
+        this.setupAdminAccess();
 
         // Update time display
         this.updateTime();
@@ -108,11 +114,27 @@ class WorkspacePage {
             });
         }
 
+        // Achievements button
+        const achievementsBtn = document.getElementById('achievements-btn-workspace');
+        if (achievementsBtn) {
+            achievementsBtn.addEventListener('click', () => {
+                navigateTo('achievements.html');
+            });
+        }
+
         // Leaderboard button
         const leaderboardBtn = document.getElementById('leaderboard-btn-workspace');
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
                 navigateTo('leaderboard.html');
+            });
+        }
+
+        // Admin button
+        const adminBtn = document.getElementById('admin-btn-workspace');
+        if (adminBtn) {
+            adminBtn.addEventListener('click', () => {
+                navigateTo('admin.html');
             });
         }
 
@@ -190,6 +212,15 @@ class WorkspacePage {
         });
 
         window.addEventListener('themechange', updateThemeButton);
+    }
+
+    setupAdminAccess() {
+        if (this.authComponent.isAdmin()) {
+            const adminBtns = document.querySelectorAll('.admin-only');
+            adminBtns.forEach(btn => {
+                btn.style.display = 'flex';
+            });
+        }
     }
 
     async loadExercise(exerciseId) {
@@ -279,6 +310,14 @@ class WorkspacePage {
             // Display statistics
             if (data.statistics) {
                 this.statistics.display(data.statistics);
+            }
+
+            // Show achievement notifications if any were earned
+            if (data.newAchievements && data.newAchievements.length > 0) {
+                // Use global function from achievementNotification.js
+                if (typeof showAchievementNotifications === 'function') {
+                    showAchievementNotifications(data.newAchievements);
+                }
             }
 
             // Refresh CodeMirror after results are shown to recalculate dimensions
