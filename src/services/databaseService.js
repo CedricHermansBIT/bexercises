@@ -609,9 +609,13 @@ class DatabaseService {
 	async getUserStatistics(userId) {
 		const stats = await this.db.get(`
 			SELECT 
-				COUNT(*) as total_attempts,
-				SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as total_completed,
-				AVG(attempts) as avg_attempts
+				COUNT(DISTINCT exercise_id) as exercises_attempted,
+				SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
+				SUM(attempts) as total_test_runs,
+				SUM(successful_attempts) as total_successful_runs,
+				SUM(failed_attempts) as total_failed_runs,
+				AVG(attempts) as avg_attempts_per_exercise,
+				MAX(started_at) as last_activity
 			FROM user_progress
 			WHERE user_id = ?
 		`, [userId]);

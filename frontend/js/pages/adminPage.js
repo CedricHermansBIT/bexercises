@@ -1207,6 +1207,25 @@ class AdminPage {
         return div.innerHTML;
     }
 
+    // Helper method to format date/time with proper timezone
+    formatDateTime(dateString, includeTime = false) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (includeTime) {
+            // Format with both date and time, using user's local timezone
+            return date.toLocaleString(undefined, {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
+
     // User Management
     async loadUsers() {
         try {
@@ -1234,15 +1253,14 @@ class AdminPage {
             item.dataset.userId = user.id;
             item.style.cursor = 'pointer';
 
-            const completionRate = user.total_attempts > 0 
-                ? Math.round((user.completed_count / user.total_attempts) * 100) 
+            const completionRate = user.exercises_attempted > 0
+                ? Math.round((user.exercises_completed / user.exercises_attempted) * 100)
                 : 0;
             
             const adminBadge = user.is_admin ? '<span class="admin-badge">👑 Admin</span>' : '';
-            const lastLogin = user.last_login 
-                ? new Date(user.last_login).toLocaleDateString() 
-                : 'Never';
-            
+            const lastLogin = this.formatDateTime(user.last_login) || 'Never';
+            const lastActivity = this.formatDateTime(user.last_activity) || 'No activity';
+
             item.innerHTML = `
                 <div class="user-info">
                     <div class="user-name">
@@ -1250,9 +1268,11 @@ class AdminPage {
                     </div>
                     <div class="user-email">${user.email || ''}</div>
                     <div class="user-stats">
-                        <span class="stat-badge">${user.completed_count}/${user.total_attempts} completed</span>
-                        <span class="stat-badge">${completionRate}% success</span>
-                        <span class="stat-badge">Last login: ${lastLogin}</span>
+                        <span class="stat-badge" title="Exercises where user submitted at least one attempt">📚 ${user.exercises_attempted || 0} exercises tried</span>
+                        <span class="stat-badge" title="Exercises successfully completed">✅ ${user.exercises_completed || 0} completed</span>
+                        <span class="stat-badge" title="Total test runs across all exercises">🔄 ${user.total_test_runs || 0} test runs</span>
+                        <span class="stat-badge" title="Achievements unlocked">🏆 ${user.achievements_unlocked || 0} achievements</span>
+                        <span class="stat-badge">Last activity: ${lastActivity}</span>
                     </div>
                 </div>
             `;
@@ -1342,72 +1362,120 @@ class AdminPage {
                     </div>
                     <div class="info-item">
                         <label>Member Since:</label>
-                        <span>${new Date(data.user.created_at).toLocaleDateString()}</span>
+                        <span>${this.formatDateTime(data.user.created_at)}</span>
                     </div>
                     <div class="info-item">
                         <label>Last Login:</label>
-                        <span>${new Date(data.user.last_login).toLocaleString()}</span>
+                        <span>${this.formatDateTime(data.user.last_login, true)}</span>
                     </div>
                 </div>
             `;
             
-            // ...existing code for statistics and progress...
-
+            // Render enhanced statistics
             const statsContent = document.getElementById('user-stats-content');
-            const completionRate = data.statistics.total_attempts > 0 
-                ? Math.round((data.statistics.total_completed / data.statistics.total_attempts) * 100) 
+            const completionRate = data.statistics.exercises_attempted > 0
+                ? Math.round((data.statistics.exercises_completed / data.statistics.exercises_attempted) * 100)
+                : 0;
+
+            const successRate = data.statistics.total_test_runs > 0
+                ? Math.round((data.statistics.total_successful_runs / data.statistics.total_test_runs) * 100)
                 : 0;
             
             statsContent.innerHTML = `
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-value">${data.statistics.total_completed || 0}</div>
-                        <div class="stat-label">Completed</div>
+                        <div class="stat-value">${data.statistics.exercises_attempted || 0}</div>
+                        <div class="stat-label">Exercises Tried</div>
+                        <div class="stat-sublabel">Submitted at least once</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${data.statistics.total_attempts || 0}</div>
-                        <div class="stat-label">Total Attempts</div>
+                        <div class="stat-value">${data.statistics.exercises_completed || 0}</div>
+                        <div class="stat-label">Exercises Completed</div>
+                        <div class="stat-sublabel">${completionRate}% completion rate</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${completionRate}%</div>
-                        <div class="stat-label">Success Rate</div>
+                        <div class="stat-value">${data.statistics.total_test_runs || 0}</div>
+                        <div class="stat-label">Total Test Runs</div>
+                        <div class="stat-sublabel">${data.statistics.total_successful_runs || 0} passed, ${data.statistics.total_failed_runs || 0} failed</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${Math.round(data.statistics.avg_attempts || 0)}</div>
-                        <div class="stat-label">Avg Attempts</div>
+                        <div class="stat-value">${Math.round(data.statistics.avg_attempts_per_exercise || 0)}</div>
+                        <div class="stat-label">Avg Tests per Exercise</div>
+                        <div class="stat-sublabel">${successRate}% test success rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.statistics.total_achievements || 0}</div>
+                        <div class="stat-label">Achievements Unlocked</div>
+                        <div class="stat-sublabel">${data.statistics.total_points || 0} points</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.statistics.last_activity ? this.formatDateTime(data.statistics.last_activity) : 'N/A'}</div>
+                        <div class="stat-value-sub">${data.statistics.last_activity ? new Date(data.statistics.last_activity).toLocaleTimeString() : ''}</div>
+                        <div class="stat-label">Last Activity</div>
+                        <div class="stat-sublabel">Most recent submission</div>
                     </div>
                 </div>
             `;
             
-            // Render progress
+            // Render achievements
+            const achievementsHTML = this.renderAchievements(data.achievements);
+
+            // Render progress with latest submissions
             const progressContent = document.getElementById('user-progress-content');
             if (data.progress.length === 0) {
                 progressContent.innerHTML = '<p class="no-progress">No exercises attempted yet</p>';
             } else {
-                let progressHTML = '<div class="progress-list">';
-                
+                let progressHTML = '<div class="progress-list" style="margin-top: 2rem;">';
+
                 data.progress.forEach(p => {
                     const statusIcon = p.completed ? '✅' : '❌';
                     const statusClass = p.completed ? 'completed' : 'incomplete';
-                    
+
+                    // Format last submission time - show both date and time using helper
+                    const lastSubmissionFormatted = this.formatDateTime(p.started_at, true);
+
                     progressHTML += `
                         <div class="progress-item ${statusClass}">
                             <div class="progress-header">
                                 <span class="status-icon">${statusIcon}</span>
                                 <span class="exercise-title">${p.exercise_title}</span>
-                                <span class="attempts-badge">${p.attempts} attempt(s)</span>
+                                <span class="attempts-badge" title="Total test runs for this exercise">${p.attempts} test run(s)</span>
+                                <span class="attempts-badge" title="Successful vs failed attempts">✓${p.successful_attempts || 0} / ✗${p.failed_attempts || 0}</span>
                             </div>
                             <div class="progress-details">
                                 <span class="chapter-tag">${p.language_name} / ${p.chapter_name}</span>
-                                <span class="date-info">Started: ${new Date(p.started_at).toLocaleDateString()}</span>
-                                ${p.completed_at ? `<span class="date-info">Completed: ${new Date(p.completed_at).toLocaleDateString()}</span>` : ''}
+                                <span class="date-info" title="First attempt">Started: ${this.formatDateTime(p.started_at)}</span>
+                                ${p.completed_at ? `<span class="date-info" title="Successfully completed">Completed: ${this.formatDateTime(p.completed_at)}</span>` : ''}
+                                <span class="date-info" title="Most recent submission with time">Last submission: ${lastSubmissionFormatted}</span>
                             </div>
+                            ${p.last_submission ? `
+                            <div class="submission-preview">
+                                <details>
+                                    <summary class="submission-summary">
+                                        <span class="summary-icon">📄</span>
+                                        <span class="summary-text">View latest submission</span>
+                                        <span class="summary-hint">(${p.last_submission.split('\n').length} lines)</span>
+                                    </summary>
+                                    <div class="code-preview-container">
+                                        <div class="code-preview-header">
+                                            <span class="code-language">bash</span>
+                                            <span class="code-lines">${p.last_submission.split('\n').length} lines</span>
+                                        </div>
+                                        <pre class="code-preview"><code>${this.escapeHtml(p.last_submission)}</code></pre>
+                                    </div>
+                                </details>
+                            </div>
+                            ` : `
+                            <div class="submission-preview">
+                                <p class="no-submission">No submission code recorded</p>
+                            </div>
+                            `}
                         </div>
                     `;
                 });
                 
                 progressHTML += '</div>';
-                progressContent.innerHTML = progressHTML;
+                progressContent.innerHTML = achievementsHTML + progressHTML;
             }
             
         } catch (error) {
@@ -1421,6 +1489,34 @@ class AdminPage {
         this.currentUser = null;
     }
     
+    renderAchievements(achievements) {
+        if (!achievements || achievements.length === 0) {
+            return '<div class="achievements-section"><h3>Achievements</h3><p class="no-achievements">No achievements unlocked yet</p></div>';
+        }
+
+        let html = '<div class="achievements-section"><h3>🏆 Achievements Unlocked</h3><div class="achievements-grid">';
+
+        achievements.forEach(achievement => {
+            const earnedDate = this.formatDateTime(achievement.earned_at);
+            html += `
+                <div class="achievement-card">
+                    <div class="achievement-icon">${achievement.achievement_icon || '🏆'}</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">${achievement.achievement_name}</div>
+                        <div class="achievement-description">${achievement.achievement_description}</div>
+                        <div class="achievement-meta">
+                            <span class="achievement-points">${achievement.points} points</span>
+                            <span class="achievement-date">Unlocked: ${earnedDate}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div></div>';
+        return html;
+    }
+
     async toggleUserAdmin(userId) {
         const user = this.users.find(u => u.id === userId);
         if (!user) return;

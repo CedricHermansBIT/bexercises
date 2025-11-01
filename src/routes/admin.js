@@ -545,7 +545,7 @@ router.get('/users', async (req, res) => {
 	try {
 		const databaseService = require('../services/databaseService');
 
-		// Get all users
+		// Get all users with enhanced statistics
 		const users = await databaseService.db.all(`
 			SELECT 
 				u.id,
@@ -555,11 +555,14 @@ router.get('/users', async (req, res) => {
 				u.is_admin,
 				u.created_at,
 				u.last_login,
-				COUNT(DISTINCT up.exercise_id) as total_attempts,
-				SUM(CASE WHEN up.completed = 1 THEN 1 ELSE 0 END) as completed_count,
-				SUM(up.attempts) as total_test_runs
+				COUNT(DISTINCT up.exercise_id) as exercises_attempted,
+				SUM(CASE WHEN up.completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
+				SUM(up.attempts) as total_test_runs,
+				MAX(up.started_at) as last_activity,
+				COUNT(DISTINCT ua.achievement_id) as achievements_unlocked
 			FROM users u
 			LEFT JOIN user_progress up ON u.id = up.user_id
+			LEFT JOIN user_achievements ua ON u.id = ua.user_id
 			GROUP BY u.id
 			ORDER BY u.last_login DESC
 		`);
@@ -590,11 +593,12 @@ router.get('/users/:id', async (req, res) => {
 			return res.status(404).json({ error: 'User not found' });
 		}
 
-		// Get user's progress
+		// Get user's progress with latest submission
 		const progress = await databaseService.db.all(`
 			SELECT 
 				up.*,
 				e.title as exercise_title,
+				e.id as exercise_id,
 				c.name as chapter_name,
 				l.name as language_name
 			FROM user_progress up
@@ -605,13 +609,41 @@ router.get('/users/:id', async (req, res) => {
 			ORDER BY up.started_at DESC
 		`, [userId]);
 
-		// Get statistics
+		// Get user's achievements
+		const achievements = await databaseService.db.all(`
+			SELECT 
+				ua.*,
+				a.name as achievement_name,
+				a.description as achievement_description,
+				a.icon as achievement_icon,
+				a.points
+			FROM user_achievements ua
+			JOIN achievements a ON ua.achievement_id = a.id
+			WHERE ua.user_id = ?
+			ORDER BY ua.earned_at DESC
+		`, [userId]);
+
+		// Get enhanced statistics
 		const stats = await databaseService.getUserStatistics(userId);
+
+		// Add total achievement points
+		const achievementStats = await databaseService.db.get(`
+			SELECT 
+				COUNT(*) as total_achievements,
+				COALESCE(SUM(a.points), 0) as total_points
+			FROM user_achievements ua
+			JOIN achievements a ON ua.achievement_id = a.id
+			WHERE ua.user_id = ?
+		`, [userId]);
 
 		res.json({
 			user,
 			progress,
-			statistics: stats
+			achievements,
+			statistics: {
+				...stats,
+				...achievementStats
+			}
 		});
 	} catch (error) {
 		console.error('Error fetching user details:', error);
