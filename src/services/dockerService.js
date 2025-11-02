@@ -64,7 +64,7 @@ async function createTempScript(scriptContents) {
 	const normalized = String(scriptContents).replace(/\r\n/g, '\n');
 	const tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-'));
 
-	await fs.chmod(tmpdir, 0o755);
+	await fs.chmod(tmpdir, 0o777);
 
 	const scriptPath = path.join(tmpdir, 'script.sh');
 
