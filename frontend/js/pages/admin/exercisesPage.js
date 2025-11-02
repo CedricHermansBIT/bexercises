@@ -24,6 +24,7 @@ class ExercisesPage {
         this.selectedLanguage = 'all';
         this.pendingChapterLanguage = null;
         this.pendingChapterName = null;
+        this.availableFiles = [];
 
         this.init();
     }
@@ -57,6 +58,7 @@ class ExercisesPage {
         // Load data
         await this.loadLanguages();
         await this.loadExercises();
+        await this.loadFiles();
 
         // Setup event listeners
         this.setupEventListeners();
@@ -167,6 +169,15 @@ class ExercisesPage {
             this.populateExerciseList();
         } catch (error) {
             console.error('Failed to load exercises:', error);
+        }
+    }
+
+    async loadFiles() {
+        try {
+            this.availableFiles = await this.apiService.getFixtureFiles();
+        } catch (error) {
+            console.error('Failed to load files:', error);
+            this.availableFiles = [];
         }
     }
 
@@ -378,9 +389,6 @@ class ExercisesPage {
             document.getElementById('exercise-editor').style.display = 'block';
             document.getElementById('test-preview').style.display = 'none';
 
-            // Reset save button text
-            document.getElementById('save-exercise-btn').textContent = 'Save Exercise';
-
             setTimeout(() => {
                 this.solutionEditor.refresh();
             }, 100);
@@ -403,13 +411,13 @@ class ExercisesPage {
     async testSolution() {
         const solution = this.solutionEditor.getValue();
 
-        if (!solution || !solution.trim()) {
-            alert('Please write a solution first');
+        if (!solution.trim()) {
+            alert('Please enter a solution script');
             return;
         }
 
         if (this.testCases.length === 0) {
-            alert('Please add at least one test case');
+            alert('Please add at least one test case before testing');
             return;
         }
 
@@ -422,18 +430,18 @@ class ExercisesPage {
 
             for (let i = 0; i < this.testCases.length; i++) {
                 const testCase = this.testCases[i];
+
+                // Use fixtures from the test case (populated from database)
                 const fixtures = testCase.fixtures || [];
 
                 resultsHtml += `<div class="test-case-result"><h4>Test Case ${i + 1}</h4>`;
 
-                // Run the test case to get expected output
                 const result = await this.apiService.runTestCase(solution, {
                     arguments: testCase.arguments || [],
                     input: testCase.input || [],
                     fixtures: fixtures
                 });
 
-                // Store expected output and exit code in the test case
                 this.testCases[i].expectedOutput = result.output;
                 this.testCases[i].expectedExitCode = result.exitCode;
 
@@ -451,18 +459,12 @@ class ExercisesPage {
                 resultsHtml += '</div>';
             }
 
-            // Re-render test cases to show updated state
             this.renderTestCases();
 
-            // Display results
-            const container = document.getElementById('test-results-container');
-            container.innerHTML = resultsHtml;
+            document.getElementById('test-results-container').innerHTML = resultsHtml;
             document.getElementById('test-preview').style.display = 'block';
-
-            // Update save button text to indicate testing is done
             document.getElementById('save-exercise-btn').textContent =
                 this.currentExercise ? 'Update Exercise' : 'Create Exercise';
-
         } catch (error) {
             alert('Failed to test solution: ' + error.message);
         } finally {
@@ -562,11 +564,29 @@ class ExercisesPage {
     }
 
     discardChanges() {
-        document.getElementById('exercise-editor').style.display = 'none';
+        if (confirm('Discard all changes?')) {
+            this.cancelEdit();
+        }
+    }
+
+    modifyProceed() {
         document.getElementById('test-preview').style.display = 'none';
-        document.getElementById('admin-welcome').style.display = 'flex';
+        setTimeout(() => {
+            this.solutionEditor.refresh();
+            this.solutionEditor.focus();
+        }, 100);
+    }
+
+    discardExercise() {
+        if (confirm('Discard all changes?')) {
+            this.cancelEdit();
+        }
+    }
+
+    cancelEdit() {
         this.currentExercise = null;
-        this.testCases = [];
+        document.getElementById('exercise-editor').style.display = 'none';
+        document.getElementById('admin-welcome').style.display = 'flex';
     }
 
     // Test Cases Management
@@ -574,6 +594,7 @@ class ExercisesPage {
         this.testCases.push({
             arguments: [],
             input: [],
+            fixtures: [],
             expectedOutput: '',
             expectedExitCode: 0
         });
@@ -587,67 +608,89 @@ class ExercisesPage {
 
     renderTestCases() {
         const container = document.getElementById('test-cases-container');
-        if (!container) return;
+        if (!container) {
+            console.warn('test-cases-container not found');
+            return;
+        }
 
         container.innerHTML = '';
 
         this.testCases.forEach((testCase, index) => {
-            const div = document.createElement('div');
-            div.className = 'test-case-item';
+            const testCaseDiv = document.createElement('div');
+            testCaseDiv.className = 'test-case-item';
 
-            div.innerHTML = `
+            // Build fixture files options
+            const fixtureOptions = this.availableFiles.map(f => {
+                const isSelected = (testCase.fixtures || []).includes(f.filename);
+                return `<option value="${f.filename}" ${isSelected ? 'selected' : ''}>${f.filename}</option>`;
+            }).join('');
+
+            testCaseDiv.innerHTML = `
                 <div class="test-case-header">
                     <span>Test Case ${index + 1}</span>
-                    <button class="icon-btn delete" data-index="${index}">
-                        <span>🗑️</span>
+                    <button type="button" class="icon-btn delete" data-index="${index}">
+                        <span>🗑</span>
                     </button>
                 </div>
                 <div class="test-case-fields">
                     <div class="form-group-inline">
-                        <label>Arguments (comma-separated)</label>
-                        <input type="text" class="form-input" data-field="arguments" data-index="${index}" 
-                            value="${(testCase.arguments || []).join(', ')}" placeholder="arg1, arg2, arg3">
+                        <label>Fixture Files (files needed for this test)</label>
+                        <select multiple class="form-input fixture-select" data-field="fixtures" data-index="${index}"
+                                 style="min-height: 80px;">
+                            ${fixtureOptions || '<option disabled>No files available - upload files first</option>'}
+                        </select>
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">Hold Ctrl/Cmd to select multiple files</small>
                     </div>
                     <div class="form-group-inline">
-                        <label>Input Lines (one per line)</label>
-                        <textarea class="form-input" data-field="input" data-index="${index}" 
-                            rows="3" placeholder="line1&#10;line2&#10;line3">${(testCase.input || []).join('\n')}</textarea>
+                        <label>Arguments (comma-separated, include filenames)</label>
+                        <input type="text" class="form-input" data-field="arguments" data-index="${index}"
+                                value="${(testCase.arguments || []).join(', ')}" placeholder="arg1, arg2, file.txt">
                     </div>
                     <div class="form-group-inline">
-                        <label>Expected Output</label>
-                        <textarea class="form-input" data-field="expectedOutput" data-index="${index}" 
-                            rows="3" placeholder="Expected output">${testCase.expectedOutput || ''}</textarea>
+                        <label>STDIN Input (one per line)</label>
+                        <textarea class="form-input" data-field="input" data-index="${index}"
+                                   rows="3" placeholder="Line 1\nLine 2\nLine 3">${(testCase.input || []).join('\n')}</textarea>
                     </div>
                     <div class="form-group-inline">
-                        <label>Expected Exit Code</label>
-                        <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}" 
-                            value="${testCase.expectedExitCode || 0}">
+                        <label>Expected Output (auto-filled when testing)</label>
+                        <textarea class="form-input" data-field="expectedOutput" data-index="${index}"
+                                   rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected Exit Code (auto-filled when testing)</label>
+                        <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}"
+                                value="${testCase.expectedExitCode || 0}" readonly style="background: #2a2a2a;">
                     </div>
                 </div>
             `;
+            container.appendChild(testCaseDiv);
+        });
 
-            container.appendChild(div);
+        container.querySelectorAll('[data-field]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const field = e.target.dataset.field;
+                let value = e.target.value;
 
-            // Add event listeners
-            div.querySelector('[data-field="arguments"]').addEventListener('input', (e) => {
-                const args = e.target.value.split(',').map(a => a.trim()).filter(a => a);
-                this.testCases[index].arguments = args;
+                if (field === 'fixtures') {
+                    // Get all selected options for multi-select
+                    const select = e.target;
+                    value = Array.from(select.selectedOptions).map(opt => opt.value);
+                } else if (field === 'arguments') {
+                    value = value.split(',').map(s => s.trim()).filter(s => s);
+                } else if (field === 'input') {
+                    value = value.split('\n').filter(s => s !== '');
+                } else if (field === 'expectedExitCode') {
+                    value = parseInt(value) || 0;
+                }
+
+                this.testCases[index][field] = value;
             });
+        });
 
-            div.querySelector('[data-field="input"]').addEventListener('input', (e) => {
-                const lines = e.target.value.split('\n');
-                this.testCases[index].input = lines;
-            });
-
-            div.querySelector('[data-field="expectedOutput"]').addEventListener('input', (e) => {
-                this.testCases[index].expectedOutput = e.target.value;
-            });
-
-            div.querySelector('[data-field="expectedExitCode"]').addEventListener('input', (e) => {
-                this.testCases[index].expectedExitCode = parseInt(e.target.value) || 0;
-            });
-
-            div.querySelector('.icon-btn.delete').addEventListener('click', () => {
+        container.querySelectorAll('.icon-btn.delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.closest('button').dataset.index);
                 this.removeTestCase(index);
             });
         });
