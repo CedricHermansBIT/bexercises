@@ -1,12 +1,14 @@
 // frontend/js/pages/leaderboardPage.js
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
+import NotificationBanner from '../components/notificationBanner.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 
 class LeaderboardPage {
     constructor() {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
+        this.notificationBanner = new NotificationBanner();
 
         // Make auth component globally accessible
         window.authComponent = this.authComponent;
@@ -33,6 +35,9 @@ class LeaderboardPage {
             navigateTo('login.html');
             return;
         }
+
+        // Initialize notification banner
+        await this.notificationBanner.init();
 
         // Setup admin access
         this.setupAdminAccess();

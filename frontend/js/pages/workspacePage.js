@@ -2,6 +2,7 @@
 import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
+import NotificationBanner from '../components/notificationBanner.js';
 import TestResults from '../components/testResults.js';
 import Statistics from '../components/statistics.js';
 import { initializeResizableSidebars, makeVerticallyResizable } from '../utils/resizeUtils.js';
@@ -15,6 +16,7 @@ class WorkspacePage {
         this.apiService = new ApiService();
         this.storageService = new StorageService();
         this.authComponent = new AuthComponent(this.apiService);
+        this.notificationBanner = new NotificationBanner();
         this.testResults = new TestResults();
         this.statistics = new Statistics();
 
@@ -34,6 +36,9 @@ class WorkspacePage {
             navigateTo('login.html');
             return;
         }
+
+        // Initialize notification banner
+        await this.notificationBanner.init();
 
         // Setup admin access
         this.setupAdminAccess();

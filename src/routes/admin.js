@@ -716,5 +716,124 @@ router.delete('/users/:id', async (req, res) => {
 	}
 });
 
+/**
+ * GET /api/admin/notifications
+ * Get all notifications (admin only)
+ */
+router.get('/notifications', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+		const notifications = await databaseService.getAllNotifications();
+		res.json(notifications);
+	} catch (error) {
+		console.error('Error fetching notifications:', error);
+		res.status(500).json({
+			error: 'Failed to fetch notifications',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * POST /api/admin/notifications
+ * Create a new notification (admin only)
+ */
+router.post('/notifications', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+		const { title, message, type, expires_at } = req.body;
+
+		if (!title || !message) {
+			return res.status(400).json({ error: 'Title and message are required' });
+		}
+
+		const notification = await databaseService.createNotification({
+			title,
+			message,
+			type: type || 'info',
+			created_by: req.user ? req.user.id : null,
+			expires_at: expires_at || null
+		});
+
+		res.json(notification);
+	} catch (error) {
+		console.error('Error creating notification:', error);
+		res.status(500).json({
+			error: 'Failed to create notification',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * PUT /api/admin/notifications/:id
+ * Update a notification (admin only)
+ */
+router.put('/notifications/:id', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+		const notificationId = parseInt(req.params.id);
+		const { title, message, type, expires_at, is_active } = req.body;
+
+		const notification = await databaseService.updateNotification(notificationId, {
+			title,
+			message,
+			type,
+			expires_at,
+			is_active
+		});
+
+		res.json(notification);
+	} catch (error) {
+		console.error('Error updating notification:', error);
+		res.status(500).json({
+			error: 'Failed to update notification',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * DELETE /api/admin/notifications/:id
+ * Delete a notification (admin only)
+ */
+router.delete('/notifications/:id', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+		const notificationId = parseInt(req.params.id);
+
+		await databaseService.deleteNotification(notificationId);
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deleting notification:', error);
+		res.status(500).json({
+			error: 'Failed to delete notification',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * POST /api/admin/notifications/:id/deactivate
+ * Deactivate a notification (admin only)
+ */
+router.post('/notifications/:id/deactivate', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+		const notificationId = parseInt(req.params.id);
+
+		await databaseService.deactivateNotification(notificationId);
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deactivating notification:', error);
+		res.status(500).json({
+			error: 'Failed to deactivate notification',
+			detail: error.message
+		});
+	}
+});
+
 module.exports = router;
 

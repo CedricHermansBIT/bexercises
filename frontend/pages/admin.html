@@ -51,6 +51,7 @@
                     <button class="tab-btn active" data-tab="exercises">Exercises</button>
                     <button class="tab-btn" data-tab="files">Files</button>
                     <button class="tab-btn" data-tab="users">Users</button>
+                    <button class="tab-btn" data-tab="notifications">Notifications</button>
                 </div>
 
                 <!-- Exercises Tab -->
@@ -104,6 +105,21 @@
                     </div>
                     <div class="users-list" id="users-list">
                         <!-- Users will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Notifications Tab -->
+                <div id="notifications-tab" class="tab-content">
+                    <div class="sidebar-header">
+                        <button class="action-btn primary" id="new-notification-btn">
+                            <span>+</span> New Notification
+                        </button>
+                        <button class="action-btn" id="refresh-notifications-btn">
+                            <span>🔄</span> Refresh
+                        </button>
+                    </div>
+                    <div class="notifications-list" id="notifications-list">
+                        <!-- Notifications will be populated here -->
                     </div>
                 </div>
             </div>
@@ -223,6 +239,43 @@
                     <div class="user-progress-section">
                         <h3>Exercise Progress</h3>
                         <div id="user-progress-content"></div>
+                    </div>
+                </div>
+
+                <!-- Notification Editor Form -->
+                <div id="notification-editor" class="notification-editor" style="display: none;">
+                    <div class="notification-form">
+                        <h3 id="notification-editor-title">New Notification</h3>
+
+                        <div class="form-group">
+                            <label for="notification-title">Title</label>
+                            <input type="text" id="notification-title" class="form-input" placeholder="Notification title">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notification-message">Message</label>
+                            <textarea id="notification-message" class="form-textarea" placeholder="Notification message"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notification-type">Type</label>
+                            <select id="notification-type" class="form-input">
+                                <option value="info">Info</option>
+                                <option value="warning">Warning</option>
+                                <option value="success">Success</option>
+                                <option value="error">Error</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notification-expires">Expires At (optional)</label>
+                            <input type="datetime-local" id="notification-expires" class="form-input">
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="action-btn primary" id="save-notification-btn">Save Notification</button>
+                            <button class="action-btn" id="cancel-notification-btn">Cancel</button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -220,6 +220,21 @@ class DatabaseService {
 			)
 		`);
 
+		// Notifications table
+		await this.db.exec(`
+			CREATE TABLE IF NOT EXISTS notifications (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				title TEXT NOT NULL,
+				message TEXT NOT NULL,
+				type TEXT DEFAULT 'info' CHECK(type IN ('info', 'warning', 'success', 'error')),
+				created_by INTEGER,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				expires_at DATETIME,
+				is_active BOOLEAN DEFAULT 1,
+				FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+			)
+		`);
+
 		// Create indexes for better performance
 		await this.db.exec(`
 			CREATE INDEX IF NOT EXISTS idx_chapters_language ON chapters(language_id);
@@ -230,6 +245,7 @@ class DatabaseService {
 			CREATE INDEX IF NOT EXISTS idx_users_google ON users(google_id);
 			CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id);
 			CREATE INDEX IF NOT EXISTS idx_achievements_category ON achievements(category);
+			CREATE INDEX IF NOT EXISTS idx_notifications_active ON notifications(is_active, created_at);
 		`);
 
 		// Seed default achievements
@@ -1181,6 +1197,94 @@ class DatabaseService {
 		}
 
 		return newAchievements;
+	}
+
+	// ============= Notification Methods =============
+
+	async getActiveNotifications() {
+		const now = new Date().toISOString();
+		return this.db.all(`
+			SELECT n.*, u.display_name as created_by_name
+			FROM notifications n
+			LEFT JOIN users u ON n.created_by = u.id
+			WHERE n.is_active = 1 
+			AND (n.expires_at IS NULL OR n.expires_at > ?)
+			ORDER BY n.created_at DESC
+		`, [now]);
+	}
+
+	async getAllNotifications() {
+		return this.db.all(`
+			SELECT n.*, u.display_name as created_by_name
+			FROM notifications n
+			LEFT JOIN users u ON n.created_by = u.id
+			ORDER BY n.created_at DESC
+		`);
+	}
+
+	async getNotification(id) {
+		return this.db.get(`
+			SELECT n.*, u.display_name as created_by_name
+			FROM notifications n
+			LEFT JOIN users u ON n.created_by = u.id
+			WHERE n.id = ?
+		`, [id]);
+	}
+
+	async createNotification(data) {
+		const { title, message, type, created_by, expires_at } = data;
+		const result = await this.db.run(`
+			INSERT INTO notifications (title, message, type, created_by, expires_at)
+			VALUES (?, ?, ?, ?, ?)
+		`, [title, message, type || 'info', created_by || null, expires_at || null]);
+
+		return this.getNotification(result.lastID);
+	}
+
+	async updateNotification(id, data) {
+		const { title, message, type, expires_at, is_active } = data;
+
+		const updates = [];
+		const values = [];
+
+		if (title !== undefined) {
+			updates.push('title = ?');
+			values.push(title);
+		}
+		if (message !== undefined) {
+			updates.push('message = ?');
+			values.push(message);
+		}
+		if (type !== undefined) {
+			updates.push('type = ?');
+			values.push(type);
+		}
+		if (expires_at !== undefined) {
+			updates.push('expires_at = ?');
+			values.push(expires_at);
+		}
+		if (is_active !== undefined) {
+			updates.push('is_active = ?');
+			values.push(is_active ? 1 : 0);
+		}
+
+		values.push(id);
+
+		await this.db.run(`
+			UPDATE notifications 
+			SET ${updates.join(', ')}
+			WHERE id = ?
+		`, values);
+
+		return this.getNotification(id);
+	}
+
+	async deleteNotification(id) {
+		await this.db.run('DELETE FROM notifications WHERE id = ?', [id]);
+	}
+
+	async deactivateNotification(id) {
+		await this.db.run('UPDATE notifications SET is_active = 0 WHERE id = ?', [id]);
 	}
 
 	/**

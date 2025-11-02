@@ -436,6 +436,101 @@ class ApiService {
 	}
 
 	/**
+	 * Get active notifications
+	 * @returns {Promise<Array>} Active notifications
+	 */
+	async getNotifications() {
+		const response = await fetch(`${this.baseUrl}/api/notifications`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch notifications: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Get all notifications (admin only)
+	 * @returns {Promise<Array>} All notifications
+	 */
+	async getAllNotifications() {
+		const response = await fetch(`${this.baseUrl}/api/admin/notifications`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch all notifications: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Create a notification (admin only)
+	 * @param {Object} notification - Notification data
+	 * @returns {Promise<Object>} Created notification
+	 */
+	async createNotification(notification) {
+		const response = await fetch(`${this.baseUrl}/api/admin/notifications`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(notification)
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to create notification: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Update a notification (admin only)
+	 * @param {number} id - Notification ID
+	 * @param {Object} updates - Notification updates
+	 * @returns {Promise<Object>} Updated notification
+	 */
+	async updateNotification(id, updates) {
+		const response = await fetch(`${this.baseUrl}/api/admin/notifications/${id}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(updates)
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to update notification: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Delete a notification (admin only)
+	 * @param {number} id - Notification ID
+	 * @returns {Promise<void>}
+	 */
+	async deleteNotification(id) {
+		const response = await fetch(`${this.baseUrl}/api/admin/notifications/${id}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to delete notification: ${response.status}`);
+		}
+	}
+
+	/**
+	 * Deactivate a notification (admin only)
+	 * @param {number} id - Notification ID
+	 * @returns {Promise<void>}
+	 */
+	async deactivateNotification(id) {
+		const response = await fetch(`${this.baseUrl}/api/admin/notifications/${id}/deactivate`, {
+			method: 'POST'
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to deactivate notification: ${response.status}`);
+		}
+	}
+
+	/**
 	 * Get leaderboard data, optionally filtered by language
 	 * @param {string|null} languageId - Optional language ID to filter by
 	 * @returns {Promise<Array>} Leaderboard rankings

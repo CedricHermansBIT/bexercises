@@ -2,6 +2,7 @@
 import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
+import NotificationBanner from '../components/notificationBanner.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 
 class LanguagesPage {
@@ -9,6 +10,7 @@ class LanguagesPage {
         this.apiService = new ApiService();
         this.storageService = new StorageService();
         this.authComponent = new AuthComponent(this.apiService);
+        this.notificationBanner = new NotificationBanner();
 
         // Make auth component globally accessible
         window.authComponent = this.authComponent;
@@ -25,6 +27,9 @@ class LanguagesPage {
             navigateTo('login.html');
             return;
         }
+
+        // Initialize notification banner
+        await this.notificationBanner.init();
 
         // Update time display
         this.updateTime();

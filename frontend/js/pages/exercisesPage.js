@@ -2,12 +2,14 @@
 import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
+import NotificationBanner from '../components/notificationBanner.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 class ExercisesPage {
     constructor() {
         this.apiService = new ApiService();
         this.storageService = new StorageService();
         this.authComponent = new AuthComponent(this.apiService);
+        this.notificationBanner = new NotificationBanner();
 
         // Make auth component globally accessible
         window.authComponent = this.authComponent;
@@ -26,6 +28,9 @@ class ExercisesPage {
             navigateTo('login.html');
             return;
         }
+
+        // Initialize notification banner
+        await this.notificationBanner.init();
 
         // Setup admin access
         this.setupAdminAccess();

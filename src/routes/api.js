@@ -227,4 +227,18 @@ router.get('/achievements/user', async (req, res) => {
 	}
 });
 
+/**
+ * GET /api/notifications
+ * Get active notifications
+ */
+router.get('/notifications', async (req, res) => {
+	try {
+		const notifications = await databaseService.getActiveNotifications();
+		res.json(notifications);
+	} catch (error) {
+		console.error('Error fetching notifications:', error);
+		res.status(500).json({ error: 'Failed to load notifications' });
+	}
+});
+
 module.exports = router;
