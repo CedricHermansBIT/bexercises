@@ -1,6 +1,8 @@
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
 import { navigateTo } from '../utils/navigationUtils.js';
+import themeManager from '../utils/themeUtils.js';
+import { setFavicon } from '../utils/faviconUtils.js';
 
 class LoginPage {
     constructor() {
@@ -13,6 +15,9 @@ class LoginPage {
     }
 
     async init() {
+        // Set favicon
+        setFavicon();
+
         const isAuthenticated = await this.authComponent.checkAuth();
 
         if (isAuthenticated) {

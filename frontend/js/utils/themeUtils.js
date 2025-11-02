@@ -79,8 +79,6 @@ if (document.readyState === 'loading') {
     themeManager.init();
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = themeManager;
-}
+// Export as ES6 module
+export default themeManager;
 

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Management - BITLab Admin</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../../admin.css">
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="back-button" id="back-to-dashboard">
+                <span>󰁍</span> back
+            </button>
+            <span class="workspace-indicator">[admin]</span>
+            <span class="app-title">Files</span>
+        </div>
+
+        <div class="topbar-center">
+            <span id="system-time">--:--</span>
+        </div>
+
+        <div class="topbar-right">
+            <button class="topbar-btn" id="theme-toggle-btn">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <div class="user-menu" id="user-menu-admin">
+                <span class="user-icon">👤</span>
+                <span id="user-display-name-admin">Admin</span>
+                <div class="user-dropdown">
+                    <button class="dropdown-item" id="logout-btn">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-layout">
+        <div class="resize-handle"></div>
+
+        <!-- Sidebar with files list -->
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <button class="action-btn primary" id="upload-file-btn">
+                    <span>📤</span> Upload Files
+                </button>
+                <button class="action-btn" id="upload-folder-btn">
+                    <span>📁</span> Upload Folder
+                </button>
+                <button class="action-btn" id="create-folder-btn">
+                    <span>➕</span> Create Folder
+                </button>
+                <input type="file" id="file-upload-input" multiple style="display: none;">
+                <input type="file" id="folder-upload-input" webkitdirectory directory multiple style="display: none;">
+            </div>
+            <div class="files-list" id="files-list">
+                <!-- Files will be populated here -->
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <div class="admin-main">
+            <!-- File Viewer -->
+            <div id="file-viewer" style="display: none;">
+                <div class="editor-section">
+                    <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="file-viewer-title">File Viewer</span>
+                        <button class="action-btn" id="close-file-viewer">Close</button>
+                    </div>
+                    <pre class="file-content" id="file-content-display"></pre>
+                </div>
+            </div>
+
+            <!-- Welcome/Empty State -->
+            <div id="admin-welcome" class="admin-welcome">
+                <div class="welcome-content">
+                    <h2>Fixture File Management</h2>
+                    <p>Upload and manage test fixture files used in exercises</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../js/pages/admin/filesPage.js"></script>
+</body>
+</html>
+

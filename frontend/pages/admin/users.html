@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - BITLab Admin</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../../admin.css">
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="back-button" id="back-to-dashboard">
+                <span>󰁍</span> back
+            </button>
+            <span class="workspace-indicator">[admin]</span>
+            <span class="app-title">Users</span>
+        </div>
+
+        <div class="topbar-center">
+            <span id="system-time">--:--</span>
+        </div>
+
+        <div class="topbar-right">
+            <button class="topbar-btn" id="theme-toggle-btn">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <div class="user-menu" id="user-menu-admin">
+                <span class="user-icon">👤</span>
+                <span id="user-display-name-admin">Admin</span>
+                <div class="user-dropdown">
+                    <button class="dropdown-item" id="logout-btn">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-layout">
+        <div class="resize-handle"></div>
+
+        <!-- Sidebar with users list -->
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <button class="action-btn" id="refresh-users-btn">
+                    <span>🔄</span> Refresh
+                </button>
+            </div>
+            <div class="users-list" id="users-list">
+                <!-- Users will be populated here -->
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <div class="admin-main">
+            <!-- Welcome/Empty State -->
+            <div id="admin-welcome" class="admin-welcome">
+                <div class="welcome-content">
+                    <h2>User Management</h2>
+                    <p>Select a user to view their details and progress</p>
+                </div>
+            </div>
+
+            <!-- User Details View -->
+            <div id="user-details" class="user-details" style="display: none;">
+                <div class="details-header">
+                    <h2 id="user-details-title">User Details</h2>
+                </div>
+
+                <div class="user-info-section">
+                    <h3>User Information</h3>
+                    <div id="user-info-content"></div>
+                </div>
+
+                <div class="user-stats-section">
+                    <h3>Statistics</h3>
+                    <div id="user-stats-content"></div>
+                </div>
+
+                <div class="user-progress-section">
+                    <h3>Exercise Progress</h3>
+                    <div id="user-progress-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../js/pages/admin/usersPage.js"></script>
+</body>
+</html>
+

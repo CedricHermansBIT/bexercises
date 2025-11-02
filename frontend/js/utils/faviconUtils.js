@@ -52,3 +52,6 @@ if (document.readyState === 'loading') {
     setFavicon();
 }
 
+// Export for ES6 modules
+export { setFavicon };
+

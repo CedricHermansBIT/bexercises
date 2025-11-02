@@ -4,6 +4,8 @@ import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
 import { navigateTo } from '../utils/navigationUtils.js';
+import themeManager from '../utils/themeUtils.js';
+import { setFavicon } from '../utils/faviconUtils.js';
 
 class LanguagesPage {
     constructor() {
@@ -27,6 +29,9 @@ class LanguagesPage {
             navigateTo('login.html');
             return;
         }
+
+        // Set favicon
+        setFavicon();
 
         // Initialize notification banner
         await this.notificationBanner.init();

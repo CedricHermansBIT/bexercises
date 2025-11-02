@@ -7,9 +7,9 @@ import TestResults from '../components/testResults.js';
 import Statistics from '../components/statistics.js';
 import { initializeResizableSidebars, makeVerticallyResizable } from '../utils/resizeUtils.js';
 import { navigateTo } from '../utils/navigationUtils.js';
-
-// Achievement notifications (load as script tag)
-// Note: This is loaded via script tag since it's not a module
+import themeManager from '../utils/themeUtils.js';
+import { setFavicon } from '../utils/faviconUtils.js';
+import { showAchievementNotifications } from '../components/achievementNotification.js';
 
 class WorkspacePage {
     constructor() {
@@ -30,6 +30,9 @@ class WorkspacePage {
     }
 
     async init() {
+        // Set favicon
+        setFavicon();
+
         // Check authentication - REQUIRED
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {

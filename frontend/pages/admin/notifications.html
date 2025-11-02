@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Management - BITLab Admin</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../../admin.css">
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="back-button" id="back-to-dashboard">
+                <span>󰁍</span> back
+            </button>
+            <span class="workspace-indicator">[admin]</span>
+            <span class="app-title">Notifications</span>
+        </div>
+
+        <div class="topbar-center">
+            <span id="system-time">--:--</span>
+        </div>
+
+        <div class="topbar-right">
+            <button class="topbar-btn" id="theme-toggle-btn">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <div class="user-menu" id="user-menu-admin">
+                <span class="user-icon">👤</span>
+                <span id="user-display-name-admin">Admin</span>
+                <div class="user-dropdown">
+                    <button class="dropdown-item" id="logout-btn">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-layout">
+        <div class="resize-handle"></div>
+
+        <!-- Sidebar with notifications list -->
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <button class="action-btn primary" id="new-notification-btn">
+                    <span>+</span> New Notification
+                </button>
+                <button class="action-btn" id="refresh-notifications-btn">
+                    <span>🔄</span> Refresh
+                </button>
+            </div>
+            <div class="notifications-list" id="notifications-list">
+                <!-- Notifications will be populated here -->
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <div class="admin-main">
+            <!-- Welcome/Empty State -->
+            <div id="admin-welcome" class="admin-welcome">
+                <div class="welcome-content">
+                    <h2>Notification Management</h2>
+                    <p>Create and manage system-wide announcements</p>
+                </div>
+            </div>
+
+            <!-- Notification Editor Form -->
+            <div id="notification-editor" class="notification-editor" style="display: none;">
+                <div class="notification-form">
+                    <h3 id="notification-editor-title">New Notification</h3>
+
+                    <div class="form-group">
+                        <label for="notification-title">Title</label>
+                        <input type="text" id="notification-title" class="form-input" placeholder="Notification title">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notification-message">Message</label>
+                        <textarea id="notification-message" class="form-textarea" placeholder="Notification message"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notification-type">Type</label>
+                        <select id="notification-type" class="form-input">
+                            <option value="info">Info</option>
+                            <option value="warning">Warning</option>
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notification-expires">Expires At (optional)</label>
+                        <input type="datetime-local" id="notification-expires" class="form-input">
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="action-btn primary" id="save-notification-btn">Save Notification</button>
+                        <button class="action-btn" id="cancel-notification-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../js/pages/admin/notificationsPage.js"></script>
+</body>
+</html>
+

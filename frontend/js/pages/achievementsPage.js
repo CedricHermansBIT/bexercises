@@ -3,6 +3,8 @@ import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
 import { navigateTo } from '../utils/navigationUtils.js';
+import themeManager from '../utils/themeUtils.js';
+import { setFavicon } from '../utils/faviconUtils.js';
 
 class AchievementsPage {
     constructor() {
@@ -22,6 +24,9 @@ class AchievementsPage {
             navigateTo('login.html');
             return;
         }
+
+        // Set favicon
+        setFavicon();
 
         // Initialize notification banner
         await this.notificationBanner.init();
@@ -247,7 +252,10 @@ class AchievementsPage {
             const earnedDate = new Date(achievement.earned_at);
             const dateSpan = document.createElement('span');
             dateSpan.className = 'achievement-date';
-            dateSpan.textContent = earnedDate.toLocaleDateString();
+            // Format date as MM/DD/YYYY -> DD/MM/YYYY
+            dateSpan.textContent = earnedDate.toLocaleDateString('en-GB');
+            const newLine = document.createTextNode(' | ');
+            footer.appendChild(newLine);
             footer.appendChild(dateSpan);
         }
 

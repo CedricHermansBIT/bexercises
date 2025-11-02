@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - BITLab</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../../admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="back-button" id="back-to-languages">
+                <span>󰁍</span> back
+            </button>
+            <span class="workspace-indicator">[admin]</span>
+            <span class="app-title">Dashboard</span>
+        </div>
+
+        <div class="topbar-center">
+            <span id="system-time">--:--</span>
+        </div>
+
+        <div class="topbar-right">
+            <button class="topbar-btn" id="achievements-btn" title="Achievements">
+                <span>🏅</span>
+            </button>
+            <button class="topbar-btn" id="leaderboard-btn" title="Leaderboard">
+                <span>🏆</span>
+            </button>
+            <button class="topbar-btn" id="theme-toggle-btn">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <div class="user-menu" id="user-menu-admin">
+                <span class="user-icon">👤</span>
+                <span id="user-display-name-admin">Admin</span>
+                <div class="user-dropdown">
+                    <button class="dropdown-item" id="logout-btn">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Grid -->
+    <div class="admin-dashboard">
+        <h1 class="dashboard-title">Admin Control Panel</h1>
+        <p class="dashboard-subtitle">Manage exercises, users, files, and notifications</p>
+
+        <div class="dashboard-grid">
+            <a href="exercises.html" class="dashboard-card">
+                <div class="card-icon">📝</div>
+                <h2>Exercises</h2>
+                <p>Create and manage exercises, chapters, and test cases</p>
+            </a>
+
+            <a href="users.html" class="dashboard-card">
+                <div class="card-icon">👥</div>
+                <h2>Users</h2>
+                <p>View user progress, statistics, and manage permissions</p>
+            </a>
+
+            <a href="files.html" class="dashboard-card">
+                <div class="card-icon">📁</div>
+                <h2>Fixture Files</h2>
+                <p>Upload and manage test fixture files</p>
+            </a>
+
+            <a href="notifications.html" class="dashboard-card">
+                <div class="card-icon">📢</div>
+                <h2>Notifications</h2>
+                <p>Create and manage system-wide announcements</p>
+            </a>
+        </div>
+    </div>
+
+    <script type="module" src="../../js/pages/admin/indexPage.js"></script>
+</body>
+</html>
+

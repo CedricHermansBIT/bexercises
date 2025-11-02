@@ -180,6 +180,18 @@ class DatabaseService {
 			}
 		}
 
+		// Add permissions column if it doesn't exist (migration for existing databases)
+		try {
+			await this.db.exec(`
+				ALTER TABLE fixture_files ADD COLUMN permissions TEXT DEFAULT 'rwxr-xr-x'
+			`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding permissions column to fixture_files:', err.message);
+			}
+		}
+
 		// Test case fixtures junction table
 		await this.db.exec(`
 			CREATE TABLE IF NOT EXISTS test_case_fixtures (
@@ -680,6 +692,14 @@ class DatabaseService {
 
 	async deleteFixtureFile(filename) {
 		await this.db.run('DELETE FROM fixture_files WHERE filename = ?', [filename]);
+	}
+
+	async updateFixturePermissions(filename, permissions) {
+		await this.db.run(
+			'UPDATE fixture_files SET permissions = ?, updated_at = CURRENT_TIMESTAMP WHERE filename = ?',
+			[permissions, filename]
+		);
+		return this.getFixtureFile(filename);
 	}
 
 	// ============= Exercise Statistics Methods =============

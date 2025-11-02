@@ -48,7 +48,5 @@ function showAchievementNotifications(achievements) {
 }
 
 // Export for use in modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { showAchievementNotification, showAchievementNotifications };
-}
+export { showAchievementNotification, showAchievementNotifications };
 

@@ -389,6 +389,51 @@ router.delete('/fixtures/:filename', async (req, res) => {
 });
 
 /**
+ * PUT /api/admin/fixtures/:filename/permissions
+ * Set file permissions (Linux rwx format)
+ */
+router.put('/fixtures/:filename/permissions', async (req, res) => {
+	try {
+		const filename = req.params.filename;
+		const { permissions } = req.body;
+
+		if (!permissions) {
+			return res.status(400).json({ error: 'Permissions required' });
+		}
+
+		// Validate permissions format (rwxr-xr-x or similar)
+		if (!/^[r\-][w\-][x\-][r\-][w\-][x\-][r\-][w\-][x\-]$/.test(permissions)) {
+			return res.status(400).json({ error: 'Invalid permissions format. Use rwxr-xr-x format' });
+		}
+
+		// Convert rwx format to octal (e.g., 'rwxr-xr-x' -> '755')
+		const permOctal = permissions.split('').reduce((acc, char, i) => {
+			const group = Math.floor(i / 3);
+			const bit = 2 - (i % 3);
+			if (char !== '-') {
+				acc[group] += Math.pow(2, bit);
+			}
+			return acc;
+		}, [0, 0, 0]).join('');
+
+		// Set permissions on the file in fixtures directory
+		const filePath = path.join(config.paths.fixtures, filename);
+		await fs.chmod(filePath, parseInt(permOctal, 8));
+
+		// Update in database
+		await require('../services/databaseService').updateFixturePermissions(filename, permissions);
+
+		res.json({ success: true, permissions });
+	} catch (error) {
+		console.error('Error setting file permissions:', error);
+		res.status(500).json({
+			error: 'Failed to set permissions',
+			detail: error.message
+		});
+	}
+});
+
+/**
  * GET /api/admin/fixtures/:foldername/contents
  * Get the contents of a folder (list files inside)
  */

@@ -322,6 +322,25 @@ class ApiService {
 	}
 
 	/**
+	 * Set file permissions (admin only)
+	 * @param {string} filename - File name
+	 * @param {string} permissions - Permission string (e.g., 'rwxr-xr-x' or octal like '755')
+	 * @returns {Promise<void>}
+	 */
+	async setFilePermissions(filename, permissions) {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures/${encodeURIComponent(filename)}/permissions`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ permissions })
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to set permissions: ${response.status}`);
+		}
+	}
+
+	/**
 	 * Get folder contents (admin only)
 	 * @param {string} foldername - Folder name
 	 * @returns {Promise<Array>} Array of file objects with name and size

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Management - BITLab Admin</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../../admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="back-button" id="back-to-dashboard">
+                <span>󰁍</span> back
+            </button>
+            <span class="workspace-indicator">[admin]</span>
+            <span class="app-title">Exercises</span>
+        </div>
+
+        <div class="topbar-center">
+            <span id="system-time">--:--</span>
+        </div>
+
+        <div class="topbar-right">
+            <button class="topbar-btn" id="theme-toggle-btn">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <div class="user-menu" id="user-menu-admin">
+                <span class="user-icon">👤</span>
+                <span id="user-display-name-admin">Admin</span>
+                <div class="user-dropdown">
+                    <button class="dropdown-item" id="logout-btn">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-layout">
+        <div class="resize-handle"></div>
+
+        <!-- Sidebar with exercise list -->
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="language-selector-admin">
+                    <label for="admin-language-select">Language:</label>
+                    <select id="admin-language-select" class="form-input">
+                        <option value="all">All Languages</option>
+                    </select>
+                </div>
+            </div>
+            <div class="sidebar-header">
+                <button class="action-btn primary" id="new-exercise-btn">
+                    <span>+</span> New Exercise
+                </button>
+                <button class="action-btn" id="new-chapter-btn">
+                    <span>📁</span> New Chapter
+                </button>
+                <button class="action-btn" id="reorder-mode-btn">
+                    <span>⇅</span> Reorder
+                </button>
+            </div>
+            <div class="exercises-list" id="exercises-list">
+                <!-- Exercise list will be populated here -->
+            </div>
+            <div id="reorder-actions" class="reorder-actions" style="display: none;">
+                <button class="action-btn primary" id="save-order-btn">
+                    <span>✓</span> Save Order
+                </button>
+                <button class="action-btn" id="cancel-order-btn">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <div class="admin-main">
+            <!-- Exercise Editor Form -->
+            <div id="exercise-editor" class="exercise-editor" style="display: none;">
+                <div class="editor-section">
+                    <h2 class="section-title" id="editor-title">New Exercise</h2>
+
+                    <div class="form-group">
+                        <label for="exercise-id">Exercise ID</label>
+                        <input type="text" id="exercise-id" class="form-input" placeholder="e.g., command-line-args">
+                        <span class="form-hint">Unique identifier (lowercase, hyphens only)</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise-title">Title</label>
+                        <input type="text" id="exercise-title" class="form-input" placeholder="e.g., Command Line Arguments">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise-chapter">Chapter</label>
+                        <select id="exercise-chapter" class="form-input">
+                            <option value="Shell scripting">Shell scripting</option>
+                        </select>
+                        <input type="text" id="new-chapter-input" class="form-input" placeholder="Enter new chapter name" style="display: none; margin-top: 0.5rem;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise-description">Description</label>
+                        <textarea id="exercise-description" class="form-textarea" placeholder="Exercise description (supports Markdown)"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise-solution">Solution Code</label>
+                        <textarea id="exercise-solution" class="form-code"></textarea>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h3 class="section-title">Test Cases</h3>
+                    <div id="test-cases-container"></div>
+                    <button class="action-btn" id="add-test-case-btn">
+                        <span>+</span> Add Test Case
+                    </button>
+                </div>
+
+                <div class="editor-section" id="test-preview" style="display: none;">
+                    <h3 class="section-title">Test Results</h3>
+                    <div id="test-results-container"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="action-btn primary" id="save-exercise-btn">
+                        Save Exercise
+                    </button>
+                    <button class="action-btn" id="test-solution-btn">
+                        Test Solution
+                    </button>
+                    <button class="action-btn" id="discard-btn">
+                        Discard
+                    </button>
+                </div>
+            </div>
+
+            <!-- Welcome/Empty State -->
+            <div id="admin-welcome" class="admin-welcome">
+                <div class="welcome-content">
+                    <h2>Exercise Management</h2>
+                    <p>Select an exercise to edit or create a new one</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/shell/shell.min.js"></script>
+    <script type="module" src="../../js/pages/admin/exercisesPage.js"></script>
+</body>
+</html>
+
