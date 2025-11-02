@@ -22,6 +22,8 @@ async function loadExercisesInternal() {
 				const fullExercise = await databaseService.getExerciseWithTests(exercise.id);
 				allExercises.push({
 					...fullExercise,
+					language_id: lang.id,
+					language: lang.name,
 					chapter: fullExercise.chapter_name || exercise.chapter_name,
 					chapter_order: exercise.chapter_order || 0,
 					order: fullExercise.order_num || exercise.order_num || 0

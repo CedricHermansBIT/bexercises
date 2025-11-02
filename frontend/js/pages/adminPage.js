@@ -24,6 +24,8 @@ class AdminPage {
         this.currentUser = null;
         this.notifications = [];
         this.currentNotification = null;
+        this.languages = [];
+        this.selectedLanguage = 'all';
 
         this.init();
     }
@@ -71,6 +73,7 @@ class AdminPage {
         }
 
         // Load data - exercises first, then files (files need exercises for usage count)
+        await this.loadLanguages();
         await this.loadExercises();
         await this.loadFiles();
         await this.loadUsers();
@@ -206,6 +209,11 @@ class AdminPage {
         addListener('cancel-notification-btn', 'click', () => {
             this.cancelNotificationEditor();
         });
+
+        addListener('admin-language-select', 'change', (e) => {
+            this.selectedLanguage = e.target.value;
+            this.populateExerciseList();
+        });
     }
 
     setupLogout() {
@@ -297,6 +305,29 @@ class AdminPage {
         });
     }
 
+    // Language Management
+    async loadLanguages() {
+        try {
+            this.languages = await this.apiService.getLanguages();
+            this.populateLanguageSelector();
+        } catch (error) {
+            console.error('Failed to load languages:', error);
+        }
+    }
+
+    populateLanguageSelector() {
+        const select = document.getElementById('admin-language-select');
+        if (!select) return;
+
+        // Keep "All Languages" option and add language options
+        const languageOptions = this.languages.map(lang =>
+            `<option value="${lang.id}">${lang.name}</option>`
+        ).join('');
+
+        select.innerHTML = `<option value="all">All Languages</option>${languageOptions}`;
+        select.value = this.selectedLanguage;
+    }
+
     // Exercise Management
     async loadExercises() {
         try {
@@ -312,13 +343,29 @@ class AdminPage {
         const list = document.getElementById('exercises-list');
         list.innerHTML = '';
 
+        // Filter exercises by selected language
+        const filteredExercises = this.selectedLanguage === 'all'
+            ? this.exercises
+            : this.exercises.filter(ex => {
+                // Extract language from chapter or exercise metadata
+                // Assuming exercises have a language_id or we can derive it from chapter structure
+                return ex.language_id === this.selectedLanguage ||
+                       (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
+            });
+
+        if (filteredExercises.length === 0) {
+            list.innerHTML = '<p class="no-files">No exercises found for this language</p>';
+            return;
+        }
+
         const chaptersMap = new Map(); // Use Map to preserve insertion order and store chapter data
-        this.exercises.forEach(ex => {
+        filteredExercises.forEach(ex => {
             const chapter = ex.chapter || 'Uncategorized';
             if (!chaptersMap.has(chapter)) {
                 chaptersMap.set(chapter, {
                     exercises: [],
-                    order: ex.chapter_order || 0
+                    order: ex.chapter_order || 0,
+                    language: ex.language || 'Unknown'
                 });
             }
             chaptersMap.get(chapter).exercises.push(ex);
@@ -332,7 +379,13 @@ class AdminPage {
             const chapterDiv = document.createElement('div');
             chapterDiv.className = 'exercise-group';
             chapterDiv.dataset.chapter = chapter;
-            chapterDiv.innerHTML = `<div class="group-title">${chapter}</div>`;
+
+            // Add language indicator if showing all languages
+            const languageTag = this.selectedLanguage === 'all' && chapterData.language
+                ? `<span class="chapter-language-tag">${chapterData.language}</span>`
+                : '';
+
+            chapterDiv.innerHTML = `<div class="group-title">${chapter} ${languageTag}</div>`;
 
             chapterData.exercises.sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(ex => {
                 const item = document.createElement('div');
@@ -411,6 +464,33 @@ class AdminPage {
     }
 
     createNewChapter() {
+        // Determine language for new chapter
+        let languageId = this.selectedLanguage;
+
+        // If "all" is selected, prompt for language
+        if (languageId === 'all') {
+            if (this.languages.length === 0) {
+                alert('No languages available. Please create a language first.');
+                return;
+            }
+
+            const languageOptions = this.languages.map((lang, idx) =>
+                `${idx + 1}. ${lang.name}`
+            ).join('\n');
+
+            const choice = prompt(`Select a language for the new chapter:\n${languageOptions}\n\nEnter the number:`);
+
+            if (!choice) return;
+
+            const choiceNum = parseInt(choice);
+            if (isNaN(choiceNum) || choiceNum < 1 || choiceNum > this.languages.length) {
+                alert('Invalid selection');
+                return;
+            }
+
+            languageId = this.languages[choiceNum - 1].id;
+        }
+
         const chapterName = prompt('Enter the name for the new chapter:');
 
         if (!chapterName || !chapterName.trim()) {
@@ -419,17 +499,24 @@ class AdminPage {
 
         const trimmedName = chapterName.trim();
 
+        // Check if chapter already exists for this language
         const existingChapters = new Set();
         this.exercises.forEach(ex => {
-            if (ex.chapter) existingChapters.add(ex.chapter);
+            if (ex.language_id === languageId && ex.chapter) {
+                existingChapters.add(ex.chapter);
+            }
         });
 
         if (existingChapters.has(trimmedName)) {
-            alert(`Chapter "${trimmedName}" already exists!`);
+            alert(`Chapter "${trimmedName}" already exists for this language!`);
             return;
         }
 
         alert(`Chapter "${trimmedName}" created! You can now create exercises in this chapter.`);
+
+        // Store the selected language and chapter for the new exercise
+        this.pendingChapterLanguage = languageId;
+        this.pendingChapterName = trimmedName;
 
         this.createNewExercise();
 
@@ -439,6 +526,7 @@ class AdminPage {
         const option = document.createElement('option');
         option.value = trimmedName;
         option.textContent = trimmedName;
+        option.dataset.languageId = languageId;
         select.insertBefore(option, select.querySelector('[value="__new__"]'));
         select.value = trimmedName;
     }
@@ -1112,13 +1200,19 @@ class AdminPage {
 
     updateChapterOptions() {
         const select = document.getElementById('exercise-chapter');
-        const chaptersMap = new Map(); // Use Map to store chapter names with their order
+        const chaptersData = new Map(); // Map to store chapter data: name -> {order, language_id, language_name}
 
-        // Collect chapters with their order_num
+        // Collect chapters with their metadata
         this.exercises.forEach(ex => {
             if (ex.chapter) {
-                if (!chaptersMap.has(ex.chapter)) {
-                    chaptersMap.set(ex.chapter, ex.chapter_order || 0);
+                const key = `${ex.language_id || 'unknown'}_${ex.chapter}`;
+                if (!chaptersData.has(key)) {
+                    chaptersData.set(key, {
+                        name: ex.chapter,
+                        order: ex.chapter_order || 0,
+                        language_id: ex.language_id || 'unknown',
+                        language_name: ex.language || 'Unknown'
+                    });
                 }
             }
         });
@@ -1126,16 +1220,53 @@ class AdminPage {
         const currentValue = select.value;
         select.innerHTML = '';
 
-        // Convert to array and sort by chapter_order
-        const sortedChapters = Array.from(chaptersMap.entries())
-            .sort((a, b) => a[1] - b[1]) // Sort by chapter_order (second element of tuple)
-            .map(entry => entry[0]); // Extract just the chapter name
+        // Group chapters by language
+        const byLanguage = new Map();
+        chaptersData.forEach((data, key) => {
+            if (!byLanguage.has(data.language_id)) {
+                byLanguage.set(data.language_id, []);
+            }
+            byLanguage.get(data.language_id).push(data);
+        });
 
-        sortedChapters.forEach(chapter => {
-            const option = document.createElement('option');
-            option.value = chapter;
-            option.textContent = chapter;
-            select.appendChild(option);
+        // Sort languages and create optgroups
+        const sortedLanguages = Array.from(byLanguage.entries())
+            .sort((a, b) => {
+                const langA = this.languages.find(l => l.id === a[0]);
+                const langB = this.languages.find(l => l.id === b[0]);
+                const orderA = langA ? langA.order_num || 0 : 999;
+                const orderB = langB ? langB.order_num || 0 : 999;
+                return orderA - orderB;
+            });
+
+        sortedLanguages.forEach(([languageId, chapters]) => {
+            // Sort chapters within language by order
+            const sortedChapters = chapters.sort((a, b) => a.order - b.order);
+
+            if (this.languages.length > 1) {
+                // Create optgroup if multiple languages
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = sortedChapters[0].language_name;
+
+                sortedChapters.forEach(chapter => {
+                    const option = document.createElement('option');
+                    option.value = chapter.name;
+                    option.textContent = chapter.name;
+                    option.dataset.languageId = chapter.language_id;
+                    optgroup.appendChild(option);
+                });
+
+                select.appendChild(optgroup);
+            } else {
+                // No optgroup needed for single language
+                sortedChapters.forEach(chapter => {
+                    const option = document.createElement('option');
+                    option.value = chapter.name;
+                    option.textContent = chapter.name;
+                    option.dataset.languageId = chapter.language_id;
+                    select.appendChild(option);
+                });
+            }
         });
 
         const newOption = document.createElement('option');
@@ -1242,20 +1373,80 @@ class AdminPage {
     // Helper method to format date/time with proper timezone
     formatDateTime(dateString, includeTime = false) {
         if (!dateString) return 'N/A';
-        const date = new Date(dateString);
+
+        let date;
+
+        // SQLite CURRENT_TIMESTAMP returns dates in format: "YYYY-MM-DD HH:MM:SS"
+        // Without timezone info, JavaScript treats this as LOCAL time, but it's actually UTC
+        // We need to explicitly treat it as UTC
+        if (typeof dateString === 'string') {
+            // Check if it's a plain datetime string without timezone (SQLite format)
+            // Format: "2025-01-02 10:30:45" or "2025-01-02T10:30:45"
+            const hasTimezone = dateString.includes('Z') || dateString.includes('+') || dateString.match(/-\d{2}:\d{2}$/);
+
+            if (!hasTimezone) {
+                // Replace space with 'T' if needed and append 'Z' to indicate UTC
+                const isoString = dateString.replace(' ', 'T') + 'Z';
+                date = new Date(isoString);
+            } else {
+                // Already has timezone info
+                date = new Date(dateString);
+            }
+        } else {
+            date = new Date(dateString);
+        }
+
+        // Check for invalid date
+        if (isNaN(date.getTime())) {
+            return 'Invalid Date';
+        }
+
         if (includeTime) {
             // Format with both date and time, using user's local timezone
             return date.toLocaleString(undefined, {
                 year: 'numeric',
-                month: 'numeric',
+                month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit'
             });
         } else {
-            return date.toLocaleDateString();
+            return date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
         }
+    }
+
+    formatTimeOnly(dateString) {
+        if (!dateString) return '';
+
+        let date;
+
+        if (typeof dateString === 'string') {
+            const hasTimezone = dateString.includes('Z') || dateString.includes('+') || dateString.match(/-\d{2}:\d{2}$/);
+
+            if (!hasTimezone) {
+                const isoString = dateString.replace(' ', 'T') + 'Z';
+                date = new Date(isoString);
+            } else {
+                date = new Date(dateString);
+            }
+        } else {
+            date = new Date(dateString);
+        }
+
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+
+        return date.toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
     }
 
     // User Management
@@ -1443,7 +1634,7 @@ class AdminPage {
                     </div>
                     <div class="stat-card">
                         <div class="stat-value">${data.statistics.last_activity ? this.formatDateTime(data.statistics.last_activity) : 'N/A'}</div>
-                        <div class="stat-value-sub">${data.statistics.last_activity ? new Date(data.statistics.last_activity).toLocaleTimeString() : ''}</div>
+                        <div class="stat-value-sub">${data.statistics.last_activity ? this.formatTimeOnly(data.statistics.last_activity) : ''}</div>
                         <div class="stat-label">Last Activity</div>
                         <div class="stat-sublabel">Most recent submission</div>
                     </div>

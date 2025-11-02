@@ -381,7 +381,7 @@ class DatabaseService {
 
 	async getExercisesByLanguage(languageId) {
 		return this.db.all(`
-			SELECT e.*, c.name as chapter_name, c.order_num as chapter_order
+			SELECT e.*, c.name as chapter_name, c.order_num as chapter_order, c.language_id
 			FROM exercises e
 			JOIN chapters c ON e.chapter_id = c.id
 			WHERE c.language_id = ?

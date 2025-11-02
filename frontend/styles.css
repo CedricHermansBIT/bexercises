@@ -1721,6 +1721,26 @@ body {
     min-width: 100px;
 }
 
+.language-selector-admin {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.language-selector-admin label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.language-selector-admin .form-input {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+}
+
 .reorder-actions {
     padding: 1rem;
     border-top: 1px solid var(--border-color);
@@ -1749,6 +1769,19 @@ body {
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chapter-language-tag {
+    background: var(--accent-blue);
+    color: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 .exercise-item {
