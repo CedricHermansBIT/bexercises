@@ -4,6 +4,7 @@ import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
 import { setupAdminCommon } from './adminUtils.js';
+import { setFavicon } from '../../utils/faviconUtils.js';
 
 class AdminIndexPage {
     constructor() {
@@ -30,6 +31,8 @@ class AdminIndexPage {
             navigateTo('languages.html');
             return;
         }
+
+        setFavicon();
 
         // Initialize notification banner
         await this.notificationBanner.init();

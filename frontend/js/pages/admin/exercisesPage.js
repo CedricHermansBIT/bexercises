@@ -4,6 +4,7 @@ import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
 import { setupAdminCommon, escapeHtml } from './adminUtils.js';
+import { setFavicon } from '../../utils/faviconUtils.js';
 
 class ExercisesPage {
     constructor() {
@@ -41,6 +42,8 @@ class ExercisesPage {
             navigateTo('languages.html');
             return;
         }
+
+        setFavicon();
 
         // Initialize notification banner
         await this.notificationBanner.init();

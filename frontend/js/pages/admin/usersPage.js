@@ -4,6 +4,7 @@ import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
 import { setupAdminCommon, formatDateTime, formatTimeOnly, escapeHtml } from './adminUtils.js';
+import { setFavicon } from '../../utils/faviconUtils.js';
 
 class UsersPage {
     constructor() {
@@ -33,6 +34,8 @@ class UsersPage {
             navigateTo('languages.html');
             return;
         }
+
+        setFavicon();
 
         // Initialize notification banner
         await this.notificationBanner.init();
@@ -226,34 +229,148 @@ class UsersPage {
         const container = document.getElementById('user-progress-content');
         if (!container) return;
 
+        // Render achievements first
+        let achievementsHTML = this.renderAchievements(data.achievements);
+
         if (!data.progress || data.progress.length === 0) {
-            container.innerHTML = '<p class="no-progress">No exercise progress yet</p>';
+            container.innerHTML = achievementsHTML + '<p class="no-progress">No exercise progress yet</p>';
             return;
         }
 
-        container.innerHTML = `
-            <div class="progress-list">
-                ${data.progress.map(p => {
-                    const statusIcon = p.completed ? '✅' : '🔄';
-                    const statusClass = p.completed ? 'completed' : 'incomplete';
-                    
-                    return `
-                        <div class="progress-item ${statusClass}">
-                            <div class="progress-header">
-                                <span class="status-icon">${statusIcon}</span>
-                                <span class="exercise-title">${escapeHtml(p.exercise_title)}</span>
-                                <span class="attempts-badge">${p.attempts} attempt${p.attempts !== 1 ? 's' : ''}</span>
+        let progressHTML = '<div class="progress-list" style="margin-top: 2rem;">';
+
+        data.progress.forEach(p => {
+            const statusIcon = p.completed ? '✅' : '❌';
+            const statusClass = p.completed ? 'completed' : 'incomplete';
+
+            // Format last submission time - use last_submission_at if available, otherwise started_at
+            const lastSubmissionTime = p.last_submission_at || p.started_at;
+            const lastSubmissionFormatted = formatDateTime(lastSubmissionTime, true);
+
+            progressHTML += `
+                <div class="progress-item ${statusClass}">
+                    <div class="progress-header">
+                        <span class="status-icon">${statusIcon}</span>
+                        <span class="exercise-title">${escapeHtml(p.exercise_title)}</span>
+                        <span class="attempts-badge" title="Total test runs for this exercise">${p.attempts} test run(s)</span>
+                        <span class="attempts-badge" title="Successful vs failed attempts">✓${p.successful_attempts || 0} / ✗${p.failed_attempts || 0}</span>
+                    </div>
+                    <div class="progress-details">
+                        <span class="chapter-tag">${escapeHtml(p.language_name || 'Unknown')} / ${escapeHtml(p.chapter_name || 'Unknown')}</span>
+                        <span class="date-info" title="First attempt">Started: ${formatDateTime(p.started_at)}</span>
+                        ${p.completed_at ? `<span class="date-info" title="Successfully completed">Completed: ${formatDateTime(p.completed_at)}</span>` : ''}
+                        <span class="date-info" title="Most recent submission with time">Last submission: ${lastSubmissionFormatted}</span>
+                    </div>
+                    ${p.last_submission ? `
+                    <div class="submission-preview">
+                        <details>
+                            <summary class="submission-summary">
+                                <span class="summary-icon">📄</span>
+                                <span class="summary-text">View latest submission</span>
+                                <span class="summary-hint">(${p.last_submission.split('\n').length} lines)</span>
+                            </summary>
+                            <div class="code-preview-container">
+                                <div class="code-preview-header">
+                                    <span class="code-language">bash</span>
+                                    <span class="code-lines">${p.last_submission.split('\n').length} lines</span>
+                                </div>
+                                <textarea class="code-editor-preview" data-mode="shell">${escapeHtml(p.last_submission)}</textarea>
                             </div>
-                            <div class="progress-details">
-                                <span class="chapter-tag">📁 ${escapeHtml(p.chapter || 'Unknown')}</span>
-                                <span class="date-info" title="First attempt">Started: ${formatDateTime(p.started_at)}</span>
-                                ${p.completed_at ? `<span class="date-info" title="Successfully completed">Completed: ${formatDateTime(p.completed_at)}</span>` : ''}
-                            </div>
+                        </details>
+                    </div>
+                    ` : `
+                    <div class="submission-preview">
+                        <p class="no-submission">No submission code recorded</p>
+                    </div>
+                    `}
+                </div>
+            `;
+        });
+
+        progressHTML += '</div>';
+        container.innerHTML = achievementsHTML + progressHTML;
+
+        // Initialize CodeMirror for all code previews
+        this.initializeCodePreviews();
+    }
+
+    renderAchievements(achievements) {
+        if (!achievements || achievements.length === 0) {
+            return '<div class="achievements-section"><h3>Achievements</h3><p class="no-achievements">No achievements unlocked yet</p></div>';
+        }
+
+        let html = '<div class="achievements-section"><h3>🏆 Achievements Unlocked</h3><div class="achievements-grid">';
+
+        achievements.forEach(achievement => {
+            const earnedDate = formatDateTime(achievement.earned_at);
+            html += `
+                <div class="achievement-card">
+                    <div class="achievement-icon">${achievement.achievement_icon || '🏆'}</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">${escapeHtml(achievement.achievement_name)}</div>
+                        <div class="achievement-description">${escapeHtml(achievement.achievement_description)}</div>
+                        <div class="achievement-meta">
+                            <span class="achievement-points">${achievement.points} points</span>
+                            <span class="achievement-date">Unlocked: ${earnedDate}</span>
                         </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div></div>';
+        return html;
+    }
+
+    initializeCodePreviews() {
+        // Wait for CodeMirror to be loaded
+        const tryInitialize = () => {
+            if (typeof CodeMirror === 'undefined' || !window.CodeMirror) {
+                console.warn('CodeMirror not loaded yet, retrying...');
+                setTimeout(tryInitialize, 100);
+                return;
+            }
+
+            const textareas = document.querySelectorAll('.code-editor-preview');
+
+            textareas.forEach(textarea => {
+                if (textarea.nextSibling && textarea.nextSibling.classList?.contains('CodeMirror')) {
+                    // Already initialized
+                    return;
+                }
+
+                const mode = textarea.dataset.mode || 'shell';
+
+                // Determine theme based on current mode
+                const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+                const editorTheme = currentTheme === 'dark' ? 'dracula' : 'default';
+
+                try {
+                    const editor = CodeMirror.fromTextArea(textarea, {
+                        mode: mode,
+                        theme: editorTheme,
+                        lineNumbers: true,
+                        readOnly: true,
+                        lineWrapping: true,
+                        viewportMargin: Infinity
+                    });
+
+                    // Make it compact
+                    editor.setSize(null, 'auto');
+
+                    // Listen for theme changes
+                    window.addEventListener('themechange', (e) => {
+                        const newTheme = e.detail.theme === 'dark' ? 'dracula' : 'default';
+                        editor.setOption('theme', newTheme);
+                    });
+                } catch (error) {
+                    console.error('Failed to initialize CodeMirror for textarea:', error);
+                }
+            });
+        };
+
+        // Start trying to initialize after a short delay
+        setTimeout(tryInitialize, 200);
     }
 }
 
