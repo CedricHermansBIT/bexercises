@@ -341,6 +341,25 @@ class ApiService {
 	}
 
 	/**
+	 * Sync fixture files database with filesystem (admin only)
+	 * Removes orphaned database entries that don't exist on filesystem
+	 * @returns {Promise<Object>} Sync result with removed count and files
+	 */
+	async syncFixtures() {
+		const response = await fetch(`${this.baseUrl}/api/admin/fixtures/sync`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' }
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to sync fixtures: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
 	 * Get folder contents (admin only)
 	 * @param {string} foldername - Folder name
 	 * @returns {Promise<Array>} Array of file objects with name and size

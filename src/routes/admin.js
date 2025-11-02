@@ -276,6 +276,49 @@ router.get('/fixtures', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/fixtures/sync
+ * Sync database with filesystem - remove orphaned entries
+ */
+router.post('/fixtures/sync', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+		const allFiles = await databaseService.getFixtureFiles();
+
+		let removedCount = 0;
+		const removedFiles = [];
+
+		for (const file of allFiles) {
+			const filePath = path.join(config.paths.fixtures, file.filename);
+
+			try {
+				// Check if file/folder exists on filesystem
+				await fs.stat(filePath);
+				// File exists, keep it
+			} catch (err) {
+				// File doesn't exist on filesystem, remove from database
+				await databaseService.deleteFixtureFile(file.filename);
+				removedFiles.push(file.filename);
+				removedCount++;
+				console.log('Removed orphaned database entry:', file.filename);
+			}
+		}
+
+		res.json({
+			success: true,
+			removedCount,
+			removedFiles,
+			message: `Removed ${removedCount} orphaned database entries`
+		});
+	} catch (error) {
+		console.error('Error syncing fixtures:', error);
+		res.status(500).json({
+			error: 'Failed to sync fixtures',
+			detail: error.message
+		});
+	}
+});
+
+/**
  * POST /api/admin/fixtures
  * Upload a new fixture file or create a folder
  */
@@ -291,17 +334,15 @@ router.post('/fixtures', async (req, res) => {
 			return res.status(400).json({ error: 'Missing content for file' });
 		}
 
-		// Validate filename (no path traversal)
-		if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-			return res.status(400).json({ error: 'Invalid filename' });
+		// Validate filename (no path traversal, but allow forward slashes for folder paths)
+		if (filename.includes('..') || filename.includes('\\')) {
+			return res.status(400).json({ error: 'Invalid filename - path traversal not allowed' });
 		}
 
 		// Validate type
 		if (!['file', 'folder'].includes(type)) {
 			return res.status(400).json({ error: 'Invalid type. Must be "file" or "folder"' });
 		}
-
-		const file = await require('../services/databaseService').createFixtureFile(filename, content, type);
 
 		// Also save to fixtures directory for Docker access
 		const filePath = path.join(config.paths.fixtures, filename);
@@ -310,11 +351,41 @@ router.post('/fixtures', async (req, res) => {
 			// Create directory
 			await fs.mkdir(filePath, { recursive: true });
 		} else {
-			// Create file
+			// Create file - ensure parent directories exist
+			const fileDir = path.dirname(filePath);
+			await fs.mkdir(fileDir, { recursive: true });
 			await fs.writeFile(filePath, content, 'utf8');
 		}
 
-		res.json({ success: true, filename, type });
+		// Detect actual file permissions from filesystem
+		let permissions = 'rwxr-xr-x'; // default
+		try {
+			const stats = await fs.stat(filePath);
+			const mode = stats.mode;
+
+			// Convert mode to rwx string
+			permissions = [
+				// Owner
+				(mode & 0o400) ? 'r' : '-',
+				(mode & 0o200) ? 'w' : '-',
+				(mode & 0o100) ? 'x' : '-',
+				// Group
+				(mode & 0o040) ? 'r' : '-',
+				(mode & 0o020) ? 'w' : '-',
+				(mode & 0o010) ? 'x' : '-',
+				// Others
+				(mode & 0o004) ? 'r' : '-',
+				(mode & 0o002) ? 'w' : '-',
+				(mode & 0o001) ? 'x' : '-'
+			].join('');
+		} catch (err) {
+			console.warn('Could not detect permissions for', filename, err.message);
+		}
+
+		// Create file in database with detected permissions
+		const file = await require('../services/databaseService').createFixtureFile(filename, content, type, permissions);
+
+		res.json({ success: true, filename, type, permissions });
 	} catch (error) {
 		console.error('Error uploading fixture:', error);
 		res.status(500).json({
@@ -325,54 +396,77 @@ router.post('/fixtures', async (req, res) => {
 });
 
 /**
- * GET /api/admin/fixtures/:filename
- * Get fixture file content
+ * DELETE /api/admin/fixtures/:filename(*)
+ * Delete a fixture file or folder (supports paths with slashes)
  */
-router.get('/fixtures/:filename', async (req, res) => {
+router.delete('/fixtures/:filename(*)', async (req, res) => {
 	try {
 		const filename = req.params.filename;
-		const file = await require('../services/databaseService').getFixtureFile(filename);
 
-		if (!file) {
-			return res.status(404).json({ error: 'File not found' });
+		if (!filename) {
+			return res.status(400).json({ error: 'Filename required' });
 		}
 
-		res.json({ content: file.content });
-	} catch (error) {
-		console.error('Error reading fixture:', error);
-		res.status(500).json({
-			error: 'Failed to read file',
-			detail: error.message
-		});
-	}
-});
-
-/**
- * DELETE /api/admin/fixtures/:filename
- * Delete a fixture file or folder
- */
-router.delete('/fixtures/:filename', async (req, res) => {
-	try {
-		const filename = req.params.filename;
-
 		// Validate filename (no path traversal)
-		if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+		if (filename.includes('..') || filename.includes('\\')) {
 			return res.status(400).json({ error: 'Invalid filename' });
 		}
 
-		// Get fixture info to determine type
-		const fixture = await require('../services/databaseService').getFixtureFile(filename);
+		const databaseService = require('../services/databaseService');
 
-		await require('../services/databaseService').deleteFixtureFile(filename);
+		// Normalize filename - remove trailing slash for directory check
+		const normalizedFilename = filename.endsWith('/') ? filename.slice(0, -1) : filename;
 
-		// Also delete from fixtures directory
-		const filePath = path.join(config.paths.fixtures, filename);
+		// Check if this is a directory on the filesystem
+		const filePath = path.join(config.paths.fixtures, normalizedFilename);
+		let isDirectory = false;
+
+		try {
+			const stat = await fs.stat(filePath);
+			isDirectory = stat.isDirectory();
+			console.log(`Filesystem check: ${normalizedFilename} is ${isDirectory ? 'directory' : 'file'}`);
+		} catch (err) {
+			// File/folder doesn't exist on filesystem, check database
+			const fixture = await databaseService.getFixtureFile(normalizedFilename);
+			isDirectory = fixture && fixture.type === 'folder';
+			console.log(`Database check: ${normalizedFilename} is ${isDirectory ? 'directory' : 'file'}`);
+		}
+
+		// Delete from database
+		if (isDirectory) {
+			// Delete folder and ALL files/subfolders within it from database
+			const allFiles = await databaseService.getFixtureFiles();
+			const folderPrefix = normalizedFilename + '/';
+
+			console.log(`Deleting folder ${normalizedFilename} and all files starting with ${folderPrefix}`);
+			console.log(`Total files in database: ${allFiles.length}`);
+
+			let deletedCount = 0;
+			// Delete all files and subfolders that start with this path
+			for (const file of allFiles) {
+				if (file.filename.startsWith(folderPrefix) || file.filename === normalizedFilename || file.filename === normalizedFilename + '/') {
+					await databaseService.deleteFixtureFile(file.filename);
+					console.log('Deleted from database:', file.filename);
+					deletedCount++;
+				}
+			}
+
+			console.log(`Deleted ${deletedCount} items from database`);
+		} else {
+			// Delete single file from database
+			console.log(`Deleting single file: ${normalizedFilename}`);
+			await databaseService.deleteFixtureFile(normalizedFilename);
+		}
+
+		// Delete from fixtures directory
 		try {
 			const stat = await fs.stat(filePath);
 			if (stat.isDirectory()) {
 				await fs.rm(filePath, { recursive: true, force: true });
+				console.log('Deleted folder from filesystem:', filePath);
 			} else {
 				await fs.unlink(filePath);
+				console.log('Deleted file from filesystem:', filePath);
 			}
 		} catch (err) {
 			console.warn('File/folder not found in fixtures directory:', err.message);
@@ -389,10 +483,10 @@ router.delete('/fixtures/:filename', async (req, res) => {
 });
 
 /**
- * PUT /api/admin/fixtures/:filename/permissions
- * Set file permissions (Linux rwx format)
+ * PUT /api/admin/fixtures/:filename(*)/permissions
+ * Set file permissions (Linux rwx format) - supports paths with slashes
  */
-router.put('/fixtures/:filename/permissions', async (req, res) => {
+router.put('/fixtures/:filename(*)/permissions', async (req, res) => {
 	try {
 		const filename = req.params.filename;
 		const { permissions } = req.body;
@@ -428,6 +522,40 @@ router.put('/fixtures/:filename/permissions', async (req, res) => {
 		console.error('Error setting file permissions:', error);
 		res.status(500).json({
 			error: 'Failed to set permissions',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * GET /api/admin/fixtures/:filename(*)
+ * Get fixture file content (supports paths with slashes) - MUST BE LAST
+ */
+router.get('/fixtures/:filename(*)', async (req, res) => {
+	try {
+		// Get the full path
+		const filename = req.params.filename;
+
+		if (!filename) {
+			return res.status(400).json({ error: 'Filename required' });
+		}
+
+		// Skip if this looks like a special endpoint (permissions, contents, etc.)
+		if (filename.endsWith('/permissions') || filename.endsWith('/contents') || filename.includes('/files/')) {
+			return res.status(404).json({ error: 'Not found' });
+		}
+
+		const file = await require('../services/databaseService').getFixtureFile(filename);
+
+		if (!file) {
+			return res.status(404).json({ error: 'File not found' });
+		}
+
+		res.json({ content: file.content });
+	} catch (error) {
+		console.error('Error reading fixture:', error);
+		res.status(500).json({
+			error: 'Failed to read file',
 			detail: error.message
 		});
 	}

@@ -23,14 +23,14 @@ class FilesPage {
         // Check authentication
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
-            navigateTo('../../login.html');
+            navigateTo('login.html');
             return;
         }
 
         // Check admin privileges
         if (!this.authComponent.isAdmin()) {
             alert('Access denied. Admin privileges required.');
-            navigateTo('../../languages.html');
+            navigateTo('languages.html');
             return;
         }
 
@@ -81,6 +81,13 @@ class FilesPage {
         if (createFolderBtn) {
             createFolderBtn.addEventListener('click', () => {
                 this.createFolder();
+            });
+        }
+
+        const syncDbBtn = document.getElementById('sync-db-btn');
+        if (syncDbBtn) {
+            syncDbBtn.addEventListener('click', async () => {
+                await this.syncDatabase();
             });
         }
 
@@ -216,6 +223,9 @@ class FilesPage {
                 <div class="file-usage">${usageText}</div>
             </div>
             <div class="file-actions">
+                <button class="icon-btn" data-action="upload-to-folder" data-folder="${escapeHtml(folder.fullPath)}" title="Upload Files to Folder">
+                    <span>📤</span>
+                </button>
                 <button class="icon-btn delete" data-action="delete" data-filename="${escapeHtml(folder.fullPath + '/')}" title="Delete">
                     <span>🗑️</span>
                 </button>
@@ -236,6 +246,12 @@ class FilesPage {
 
             const toggle = item.querySelector('.folder-toggle');
             toggle.textContent = isExpanded ? '📁' : '📂';
+        });
+
+        // Upload to folder button
+        item.querySelector('[data-action="upload-to-folder"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.uploadToFolder(folder.fullPath);
         });
 
         // Delete button
@@ -331,6 +347,37 @@ class FilesPage {
         await this.loadFiles();
     }
 
+    uploadToFolder(folderPath) {
+        // Create a temporary file input for this specific folder
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.style.display = 'none';
+
+        input.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+
+            for (const file of files) {
+                try {
+                    // Upload file with folder path prefix
+                    const fullPath = `${folderPath}/${file.name}`;
+                    const content = await this.readFileAsText(file);
+                    await this.apiService.uploadFixtureFile(fullPath, content);
+                } catch (error) {
+                    console.error(`Failed to upload ${file.name}:`, error);
+                    alert(`Failed to upload ${file.name}: ${error.message}`);
+                }
+            }
+
+            // Remove temp input and reload
+            document.body.removeChild(input);
+            await this.loadFiles();
+        });
+
+        document.body.appendChild(input);
+        input.click();
+    }
+
     readFileAsText(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -338,6 +385,27 @@ class FilesPage {
             reader.onerror = (e) => reject(e);
             reader.readAsText(file);
         });
+    }
+
+    async syncDatabase() {
+        if (!confirm('Sync database with filesystem? This will remove database entries for files that no longer exist on disk.')) {
+            return;
+        }
+
+        try {
+            const result = await this.apiService.syncFixtures();
+
+            if (result.removedCount > 0) {
+                alert(`✅ Database synced!\n\nRemoved ${result.removedCount} orphaned entries:\n\n${result.removedFiles.join('\n')}`);
+            } else {
+                alert('✅ Database is already in sync! No orphaned entries found.');
+            }
+
+            await this.loadFiles();
+        } catch (error) {
+            console.error('Failed to sync database:', error);
+            alert('Failed to sync database: ' + error.message);
+        }
     }
 
     async createFolder() {
@@ -415,7 +483,43 @@ class FilesPage {
     }
 
     getFileUsageCount(filename) {
-        // ...existing code...
+        let count = 0;
+
+        this.exercises.forEach(ex => {
+            if (ex.testCases && Array.isArray(ex.testCases)) {
+                ex.testCases.forEach((tc) => {
+                    // Count each test case only once, even if file appears in multiple fields
+                    let foundInThisTestCase = false;
+
+                    // Check fixtures array (legacy field)
+                    if (!foundInThisTestCase && tc.fixtures && Array.isArray(tc.fixtures)) {
+                        if (tc.fixtures.includes(filename)) {
+                            foundInThisTestCase = true;
+                        }
+                    }
+
+                    // Check arguments array
+                    if (!foundInThisTestCase && tc.arguments && Array.isArray(tc.arguments)) {
+                        if (tc.arguments.includes(filename)) {
+                            foundInThisTestCase = true;
+                        }
+                    }
+
+                    // Check input array (filenames might be in input for interactive scripts)
+                    if (!foundInThisTestCase && tc.input && Array.isArray(tc.input)) {
+                        if (tc.input.includes(filename)) {
+                            foundInThisTestCase = true;
+                        }
+                    }
+
+                    if (foundInThisTestCase) {
+                        count++;
+                    }
+                });
+            }
+        });
+
+        return count;
     }
 
     editFilePermissions(filename, currentPermissions) {

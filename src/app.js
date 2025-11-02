@@ -22,8 +22,9 @@ function createApp() {
 	// Logging
 	app.use(morgan('combined'));
 
-	// Body parsing
-	app.use(bodyParser.json({ limit: '200kb' }));
+	// Body parsing - increased limit to support large file/folder uploads
+	app.use(bodyParser.json({ limit: '50mb' }));
+	app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 	// Session configuration
 	app.use(session(config.session));

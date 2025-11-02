@@ -681,12 +681,12 @@ class DatabaseService {
 		return this.db.get('SELECT * FROM fixture_files WHERE filename = ?', [filename]);
 	}
 
-	async createFixtureFile(filename, content, type = 'file') {
+	async createFixtureFile(filename, content, type = 'file', permissions = 'rwxr-xr-x') {
 		const size = type === 'file' ? Buffer.byteLength(content || '', 'utf8') : 0;
 		await this.db.run(`
-			INSERT OR REPLACE INTO fixture_files (filename, type, content, size, updated_at)
-			VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-		`, [filename, type, type === 'file' ? content : null, size]);
+			INSERT OR REPLACE INTO fixture_files (filename, type, content, size, permissions, updated_at)
+			VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		`, [filename, type, type === 'file' ? content : null, size, permissions]);
 		return this.getFixtureFile(filename);
 	}
 

@@ -23,14 +23,14 @@ class UsersPage {
         // Check authentication
         const isAuthenticated = await this.authComponent.checkAuth();
         if (!isAuthenticated) {
-            navigateTo('../../login.html');
+            navigateTo('login.html');
             return;
         }
 
         // Check admin privileges
         if (!this.authComponent.isAdmin()) {
             alert('Access denied. Admin privileges required.');
-            navigateTo('../../languages.html');
+            navigateTo('languages.html');
             return;
         }
 
