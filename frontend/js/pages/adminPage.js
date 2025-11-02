@@ -22,6 +22,8 @@ class AdminPage {
         this.currentTab = 'exercises';
         this.users = [];
         this.currentUser = null;
+        this.notifications = [];
+        this.currentNotification = null;
 
         this.init();
     }
@@ -181,8 +183,12 @@ class AdminPage {
             this.cancelReorder();
         });
 
-        addListener('refresh-users-btn', 'click', () => {
-            this.loadUsers();
+        addListener('refresh-users-btn', 'click', async () => {
+            await this.loadUsers();
+            // If a user detail view is currently open, refresh it
+            if (this.currentUser && this.currentUser.user && this.currentUser.user.id) {
+                await this.viewUserDetails(this.currentUser.user.id);
+            }
         });
 
         addListener('new-notification-btn', 'click', () => {
@@ -394,6 +400,8 @@ class AdminPage {
         this.updateChapterOptions();
 
         document.getElementById('admin-welcome').style.display = 'none';
+        document.getElementById('user-details').style.display = 'none';
+        document.getElementById('notification-editor').style.display = 'none';
         document.getElementById('exercise-editor').style.display = 'block';
         document.getElementById('test-preview').style.display = 'none';
 
@@ -451,6 +459,8 @@ class AdminPage {
 
             this.renderTestCases();
             this.updateChapterOptions();
+            document.getElementById('user-details').style.display = 'none';
+            document.getElementById('notification-editor').style.display = 'none';
 
             document.getElementById('admin-welcome').style.display = 'none';
             document.getElementById('exercise-editor').style.display = 'block';
@@ -1316,6 +1326,7 @@ class AdminPage {
             // Show user details panel
             document.getElementById('admin-welcome').style.display = 'none';
             document.getElementById('exercise-editor').style.display = 'none';
+            document.getElementById('notification-editor').style.display = 'none';
             document.getElementById('user-details').style.display = 'block';
             
             // Update title and add action buttons
