@@ -10,6 +10,7 @@ import { navigateTo } from '../utils/navigationUtils.js';
 import themeManager from '../utils/themeUtils.js';
 import { setFavicon } from '../utils/faviconUtils.js';
 import { showAchievementNotifications } from '../components/achievementNotification.js';
+import soundEffects from '../utils/soundEffects.js';
 
 class WorkspacePage {
     constructor() {
@@ -236,6 +237,39 @@ class WorkspacePage {
         });
 
         window.addEventListener('themechange', updateThemeButton);
+
+        // Setup sound toggle
+        this.setupSoundToggle();
+    }
+
+    setupSoundToggle() {
+        const soundToggleBtn = document.getElementById('sound-toggle-btn');
+        if (!soundToggleBtn) return;
+
+        const updateSoundButton = () => {
+            const soundEnabled = soundEffects.isEnabled();
+            const soundIcon = soundToggleBtn.querySelector('.sound-icon');
+
+            if (soundEnabled) {
+                soundIcon.textContent = '🔊';
+                soundToggleBtn.title = 'Sound On (click to mute)';
+            } else {
+                soundIcon.textContent = '🔇';
+                soundToggleBtn.title = 'Sound Off (click to enable)';
+            }
+        };
+
+        updateSoundButton();
+
+        soundToggleBtn.addEventListener('click', () => {
+            const newState = soundEffects.toggle();
+            updateSoundButton();
+
+            // Play a test sound if enabled
+            if (newState) {
+                soundEffects.playClick();
+            }
+        });
     }
 
     setupAdminAccess() {
@@ -336,12 +370,23 @@ class WorkspacePage {
                 this.statistics.display(data.statistics);
             }
 
+            // Check test results and play appropriate sound
+            if (data.results && data.results.length > 0) {
+                const allPassed = data.results.every(r => r.passed);
+                const somePassed = data.results.some(r => r.passed);
+
+                if (allPassed) {
+                    soundEffects.playSuccess();
+                } else if (somePassed) {
+                    soundEffects.playPartialSuccess();
+                } else {
+                    soundEffects.playFailure();
+                }
+            }
+
             // Show achievement notifications if any were earned
             if (data.newAchievements && data.newAchievements.length > 0) {
-                // Use global function from achievementNotification.js
-                if (typeof showAchievementNotifications === 'function') {
-                    showAchievementNotifications(data.newAchievements);
-                }
+                showAchievementNotifications(data.newAchievements);
             }
 
             // Refresh CodeMirror after results are shown to recalculate dimensions

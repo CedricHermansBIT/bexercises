@@ -227,6 +227,40 @@ class LanguagesPage {
                     <span class="status-badge coming-soon">Coming Soon</span>
                 </div>
             </div>
+            <!-- R -->
+            <div class="language-card coming-soon" data-language="r">
+                <div class="language-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100" height="100" viewBox="0,0,256,256"><g fill="#b4befe" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal"><g transform="scale(5.12,5.12)"><path d="M25.5,8c-12.406,0 -22.5,6.93217 -22.5,15.45117c0,7.217 7.24305,13.29242 16.99805,14.98242v-6.87695c-4.168,-1.619 -6.99805,-4.42864 -6.99805,-7.55664c0,-4.879 6.869,-9 15,-9c7.129,0 12.15131,1.54388 14.44531,5.17188c1.178,1.864 1.56641,3.88902 1.56641,5.54102c0,2.459 -0.96095,4.59041 -2.75195,6.19141c0.002,0.004 0.45159,0.76692 1.05859,1.79492c3.531,-2.729 5.68164,-6.31805 5.68164,-10.24805c0,-8.519 -10.094,-15.45117 -22.5,-15.45117zM22.94531,19.22852c-0.524,0 -0.94727,0.42522 -0.94727,0.94922v20.5625c0,0.524 0.42327,0.94922 0.94727,0.94922h5.26172c0.524,0 0.94922,-0.42522 0.94922,-0.94922v-7.08984h2.28906c0.507,0 0.71995,0.14492 1.25195,1.16992c0.522,1.007 3.34484,6.15505 3.46484,6.37305c0.167,0.304 0.48503,0.49414 0.83203,0.49414h6.06445c0.341,0 0.65427,-0.18347 0.82227,-0.48047c0.168,-0.295 0.16423,-0.65722 -0.00977,-0.94922l-4.32227,-7.31445c-0.338,-0.585 -0.81627,-1.03109 -1.32227,-1.37109c1.898,-0.985 3.78516,-2.82437 3.78516,-5.85937c0,-6.484 -6.54577,-6.48437 -9.00977,-6.48437zM29.15234,24.63477h3.80273c0.958,0 1.73438,0.77442 1.73438,1.73242c0,0.958 -0.77638,1.73438 -1.73437,1.73437h-3.80273zM30.82813,35v3.99805c0.659,-0.118 1.31008,-0.24577 1.95508,-0.38477c-0.882,-1.62 -1.53408,-2.82528 -1.95508,-3.61328z"></path></g></g></svg>
+               </div>
+                <div class="language-info">
+                    <h2 class="language-name">R</h2>
+                    <p class="language-description">Statistical computing</p>
+                    <div class="language-meta">
+                        <span class="language-level">Coming Soon</span>
+                    </div>
+                </div>
+                <div class="language-status">
+                    <span class="status-badge coming-soon">Coming Soon</span>
+                </div>
+            </div>
+            <!-- MongoDB -->
+            <div class="language-card coming-soon" data-language="mongodb">
+                <div class="language-icon">
+<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+   <circle cx="512" cy="512" r="512" style="fill:#b4befe"/>
+   <path d="M648.86 449.44c-32.34-142.73-108.77-189.66-117-207.59-9-12.65-18.12-35.15-18.12-35.15-.15-.38-.39-1.05-.67-1.7-.93 12.65-1.41 17.53-13.37 30.29-18.52 14.48-113.54 94.21-121.27 256.37-7.21 151.24 109.25 241.36 125 252.85l1.79 1.27v-.11c.1.76 5 36 8.44 73.34H526a726.68 726.68 0 0 1 13-78.53l1-.65a204.48 204.48 0 0 0 20.11-16.45l.72-.65c33.48-30.93 93.67-102.47 93.08-216.53a347.07 347.07 0 0 0-5.05-56.76zM512.35 659.12s0-212.12 7-212.08c5.46 0 12.53 273.61 12.53 273.61-9.72-1.17-19.53-45.03-19.53-61.53z" style="fill:#fff"/>
+</svg>                </div>
+                <div class="language-info">
+                    <h2 class="language-name">MongoDB</h2>
+                    <p class="language-description">NoSQL database management</p>
+                    <div class="language-meta">
+                        <span class="language-level">Coming Soon</span>
+                    </div>
+                </div>
+                <div class="language-status">
+                    <span class="status-badge coming-soon">Coming Soon</span>
+                </div>
+            </div>
             <!--
             <div class="language-card coming-soon" data-language="javascript">
                 <div class="language-icon">

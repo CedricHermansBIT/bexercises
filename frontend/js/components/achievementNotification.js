@@ -1,10 +1,14 @@
 // frontend/js/components/achievementNotification.js
+import soundEffects from '../utils/soundEffects.js';
 
 /**
  * Show achievement notification popup
  * @param {Object} achievement - Achievement object with name, description, icon, points
  */
 function showAchievementNotification(achievement) {
+    // Play achievement sound
+    soundEffects.playAchievement();
+
     // Create notification element
     const notification = document.createElement('div');
     notification.className = 'achievement-notification';
