@@ -319,8 +319,8 @@ class DatabaseService {
 
 			// Streaks
 			{ id: 'streak-starter', name: 'Streak Starter', description: 'Complete exercises on 3 consecutive days', icon: '📅', category: 'streak', points: 30, requirement_type: 'daily_streak', requirement_value: 3 },
-			{ id: 'committed', name: 'Committed', description: 'Complete exercises on 7 consecutive days', icon: '🔥', category: 'streak', points: 70, requirement_type: 'daily_streak', requirement_value: 7 },
-			{ id: 'unstoppable', name: 'Unstoppable', description: 'Complete exercises on 30 consecutive days', icon: '🌟', category: 'streak', points: 200, requirement_type: 'daily_streak', requirement_value: 30 },
+			{ id: 'committed', name: 'Committed', description: 'Complete exercises on 5 consecutive days', icon: '🔥', category: 'streak', points: 50, requirement_type: 'daily_streak', requirement_value: 5 },
+			{ id: 'unstoppable', name: 'Unstoppable', description: 'Complete exercises on 7 consecutive days', icon: '🌟', category: 'streak', points: 100, requirement_type: 'daily_streak', requirement_value: 7 },
 
 			// Chapter Completion
 			{ id: 'chapter-complete', name: 'Chapter Master', description: 'Complete all exercises in a chapter', icon: '📖', category: 'mastery', points: 50, requirement_type: 'chapter_complete', requirement_value: 1 },
@@ -1156,8 +1156,8 @@ class DatabaseService {
 		// Award streak achievements
 		const streakAchievements = [
 			{ id: 'streak-starter', days: 3 },
-			{ id: 'committed', days: 7 },
-			{ id: 'unstoppable', days: 30 }
+			{ id: 'committed', days: 5 },
+			{ id: 'unstoppable', days: 7 }
 		];
 
 		for (const streakAch of streakAchievements) {
