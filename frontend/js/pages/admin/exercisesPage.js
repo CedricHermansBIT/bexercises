@@ -989,8 +989,8 @@ class ExercisesPage {
             statusDiv.innerHTML = `<p>Testing ${exercise.title} (${i + 1}/${exercisesWithSolutions.length})...</p><div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
 
             try {
-                // Get full exercise data with test cases
-                const fullExercise = await this.apiService.getExercise(exercise.id);
+                // Get full exercise data with test cases (admin endpoint)
+                const fullExercise = await this.apiService.getExerciseWithTests(exercise.id);
 
                 if (!fullExercise.testCases || fullExercise.testCases.length === 0) {
                     continue;
