@@ -3,6 +3,7 @@ const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const config = require('../config');
 
 /**
@@ -351,6 +352,76 @@ async function runScriptWithTestCase(script, args = [], inputs = [], fixtureName
 	}
 }
 
+/**
+ * Compute SHA-256 hash of a file
+ * @param {string} filePath - Path to file
+ * @returns {Promise<string>} Hex string of SHA-256 hash
+ */
+async function hashFile(filePath) {
+	return new Promise((resolve, reject) => {
+		const hash = crypto.createHash('sha256');
+		const stream = fsSync.createReadStream(filePath);
+
+		stream.on('data', (data) => hash.update(data));
+		stream.on('end', () => resolve(hash.digest('hex')));
+		stream.on('error', reject);
+	});
+}
+
+/**
+ * Hash multiple output files from a directory
+ * @param {string} tmpdir - Temporary directory where files were created
+ * @param {Array<string>} filenames - Array of filenames to hash
+ * @returns {Promise<Array<Object>>} Array of {filename, sha256, exists, error}
+ */
+async function hashOutputFiles(tmpdir, filenames = []) {
+	const results = [];
+
+	for (const filename of filenames) {
+		const filePath = path.join(tmpdir, filename);
+
+		try {
+			if (!fsSync.existsSync(filePath)) {
+				results.push({
+					filename,
+					sha256: null,
+					exists: false,
+					error: 'File not found'
+				});
+				continue;
+			}
+
+			const stat = await fs.stat(filePath);
+			if (!stat.isFile()) {
+				results.push({
+					filename,
+					sha256: null,
+					exists: false,
+					error: 'Not a file (might be a directory)'
+				});
+				continue;
+			}
+
+			const hash = await hashFile(filePath);
+			results.push({
+				filename,
+				sha256: hash,
+				exists: true,
+				size: stat.size
+			});
+		} catch (error) {
+			results.push({
+				filename,
+				sha256: null,
+				exists: false,
+				error: error.message
+			});
+		}
+	}
+
+	return results;
+}
+
 module.exports = {
 	normalizeOutput,
 	removeRecursive,
@@ -358,5 +429,7 @@ module.exports = {
 	copyFixtures,
 	runScriptInContainer,
 	runScript,
-	runScriptWithTestCase
+	runScriptWithTestCase,
+	hashFile,
+	hashOutputFiles
 };

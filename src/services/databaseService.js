@@ -89,6 +89,7 @@ class DatabaseService {
 				expected_output TEXT,
 				expected_stderr TEXT DEFAULT '',
 				expected_exit_code INTEGER DEFAULT 0,
+				expected_output_files TEXT DEFAULT '[]', -- JSON array of {filename, sha256}
 				order_num INTEGER DEFAULT 0,
 				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 			)
@@ -146,6 +147,13 @@ class DatabaseService {
 		// Add expected_stderr column to test_cases if it doesn't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN expected_stderr TEXT DEFAULT ''`);
+		} catch (e) {
+			// Column already exists
+		}
+
+		// Add expected_output_files column to test_cases if it doesn't exist (for existing databases)
+		try {
+			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN expected_output_files TEXT DEFAULT '[]'`);
 		} catch (e) {
 			// Column already exists
 		}
@@ -440,6 +448,7 @@ class DatabaseService {
 				expectedOutput: tc.expected_output || '',
 				expectedStderr: tc.expected_stderr || '',
 				expectedExitCode: tc.expected_exit_code != null ? tc.expected_exit_code : 0,
+				expectedOutputFiles: tc.expected_output_files ? JSON.parse(tc.expected_output_files) : [],
 				fixtures: fixtures.map(f => f.filename),
 				fixturePermissions: {} // TODO: Add permissions column if needed
 			};
@@ -462,8 +471,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -471,6 +480,7 @@ class DatabaseService {
 					tc.expectedOutput || '',
 					tc.expectedStderr || '',
 					tc.expectedExitCode || 0,
+					JSON.stringify(tc.expectedOutputFiles || []),
 					i
 				]);
 
@@ -539,8 +549,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -548,6 +558,7 @@ class DatabaseService {
 					tc.expectedOutput || '',
 					tc.expectedStderr || '',
 					tc.expectedExitCode || 0,
+					JSON.stringify(tc.expectedOutputFiles || []),
 					i
 				]);
 

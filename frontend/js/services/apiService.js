@@ -160,7 +160,7 @@ class ApiService {
 	/**
 	 * Run a specific test case (admin only)
 	 * @param {string} solution - Solution script
-	 * @param {Object} testCase - Test case with arguments, input, fixtures
+	 * @param {Object} testCase - Test case with arguments, input, fixtures, outputFiles
 	 * @returns {Promise<Object>} Test output and exit code
 	 */
 	async runTestCase(solution, testCase) {
@@ -171,7 +171,8 @@ class ApiService {
 				solution,
 				arguments: testCase.arguments || [],
 				input: testCase.input || [],
-				fixtures: testCase.fixtures || []
+				fixtures: testCase.fixtures || [],
+				outputFiles: testCase.outputFiles || []
 			})
 		});
 

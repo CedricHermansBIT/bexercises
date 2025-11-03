@@ -83,14 +83,61 @@ class TestResults {
 		const stderrMatch = (result.actualStderr || '') === (result.expectedStderr || '') ? '✓' : '✗';
 		const exitCodeMatch = result.exitCode === result.expectedExitCode ? '✓' : '✗';
 
-		details.innerHTML = `
-			<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
-			
+		// Check output files match
+		let filesMatch = '✓';
+		if (result.outputFiles && result.outputFiles.length > 0) {
+			filesMatch = result.outputFiles.every(f => f.matches) ? '✓' : '✗';
+		}
+
+		// Build tabs HTML
+		let tabsHtml = `
 			<div class="result-tabs">
 				<button class="result-tab active" data-tab="${tabId}-output">Output ${outputMatch}</button>
 				<button class="result-tab" data-tab="${tabId}-stderr">Stderr ${stderrMatch}</button>
+				${result.outputFiles && result.outputFiles.length > 0 ? `<button class="result-tab" data-tab="${tabId}-files">Files ${filesMatch}</button>` : ''}
 				<button class="result-tab" data-tab="${tabId}-exit">Exit Code ${exitCodeMatch}</button>
 			</div>
+		`;
+
+		// Build file comparison HTML
+		let filesTabHtml = '';
+		if (result.outputFiles && result.outputFiles.length > 0) {
+			let filesContent = '<div class="files-comparison">';
+			result.outputFiles.forEach(file => {
+				const statusIcon = file.matches ? '✓' : '✗';
+				const statusColor = file.matches ? 'var(--accent-green)' : 'var(--accent-red)';
+
+				filesContent += `
+					<div class="file-result" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid ${statusColor};">
+						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+							<strong>${this.escapeHtml(file.filename)}</strong>
+							<span style="color: ${statusColor};">${statusIcon} ${file.matches ? 'Match' : 'Mismatch'}</span>
+						</div>
+						${file.exists ? `
+							<div style="font-size: 0.85rem; color: var(--text-muted);">
+								<div>Expected: <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.expectedHash || 'N/A')}</code></div>
+								<div>Actual: <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.actualHash || 'N/A')}</code></div>
+								<div>Size: ${file.size || 0} bytes</div>
+							</div>
+						` : `
+							<div style="color: var(--accent-red); font-size: 0.85rem;">${file.error || 'File not found'}</div>
+						`}
+					</div>
+				`;
+			});
+			filesContent += '</div>';
+
+			filesTabHtml = `
+				<div class="result-tab-content" id="${tabId}-files">
+					${filesContent}
+				</div>
+			`;
+		}
+
+		details.innerHTML = `
+			<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
+			
+			${tabsHtml}
 			
 			<div class="result-tab-content active" id="${tabId}-output">
 				<div class="output-comparison">
@@ -117,6 +164,8 @@ class TestResults {
 					</div>
 				</div>
 			</div>
+			
+			${filesTabHtml}
 			
 			<div class="result-tab-content" id="${tabId}-exit">
 				<p><strong>Expected Exit Code:</strong> ${result.expectedExitCode}</p>

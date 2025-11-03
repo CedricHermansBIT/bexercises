@@ -114,25 +114,50 @@ router.post('/test-solution', async (req, res) => {
  */
 router.post('/run-test-case', async (req, res) => {
 	try {
-		const { solution, arguments: args = [], input = [], fixtures = [] } = req.body;
+		const { solution, arguments: args = [], input = [], fixtures = [], outputFiles = [] } = req.body;
 
 		if (!solution || typeof solution !== 'string') {
 			return res.status(400).json({ error: 'Missing solution script' });
 		}
 
-		console.log('Running test case:', { argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length });
+		console.log('Running test case:', { argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length });
 
 		// Run the script using Docker with test case parameters
 		const result = await dockerService.runScriptWithTestCase(solution, args, input, fixtures);
 
-		console.log('Test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length });
+		// Hash output files if specified
+		let fileHashes = [];
+		if (outputFiles && outputFiles.length > 0) {
+			const { createTempScript, hashOutputFiles, removeRecursive } = require('../services/dockerService');
+			const { tmpdir } = await createTempScript(solution);
+
+			try {
+				// Copy fixtures if needed
+				if (fixtures && fixtures.length > 0) {
+					const { copyFixtures } = require('../services/dockerService');
+					await copyFixtures(tmpdir, fixtures);
+				}
+
+				// Run script to generate output files
+				const { runScriptInContainer } = require('../services/dockerService');
+				await runScriptInContainer(tmpdir, args, input, require('../config').docker.timeout);
+
+				// Hash the specified output files
+				fileHashes = await hashOutputFiles(tmpdir, outputFiles);
+			} finally {
+				await removeRecursive(tmpdir);
+			}
+		}
+
+		console.log('Test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length, fileHashesLen: fileHashes.length });
 
 		res.json({
 			output: result.stdout,
 			stderr: result.stderr,
 			exitCode: result.exitCode,
 			timedOut: result.timedOut,
-			error: result.error
+			error: result.error,
+			fileHashes: fileHashes
 		});
 	} catch (error) {
 		console.error('Error running test case:', error);

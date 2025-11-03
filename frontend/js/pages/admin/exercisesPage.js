@@ -451,18 +451,46 @@ class ExercisesPage {
                 const result = await this.apiService.runTestCase(solution, {
                     arguments: testCase.arguments || [],
                     input: testCase.input || [],
-                    fixtures: fixtures
+                    fixtures: fixtures,
+                    outputFiles: testCase.outputFiles || []
                 });
 
                 this.testCases[i].expectedOutput = result.output;
                 this.testCases[i].expectedStderr = result.stderr || '';
                 this.testCases[i].expectedExitCode = result.exitCode;
 
+                // Store file hashes if any output files were specified
+                if (result.fileHashes && result.fileHashes.length > 0) {
+                    this.testCases[i].expectedOutputFiles = result.fileHashes.map(fh => ({
+                        filename: fh.filename,
+                        sha256: fh.sha256
+                    }));
+                }
+
+                let fileHashesHtml = '';
+                if (result.fileHashes && result.fileHashes.length > 0) {
+                    fileHashesHtml = '<p><strong>Output Files:</strong></p>';
+                    result.fileHashes.forEach(fh => {
+                        const status = fh.exists ? '✓' : '✗';
+                        const color = fh.exists ? 'var(--accent-green)' : 'var(--accent-red)';
+                        fileHashesHtml += `
+                            <div style="margin: 0.5rem 0; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 4px;">
+                                <span style="color: ${color};">${status}</span> <strong>${escapeHtml(fh.filename)}</strong><br>
+                                ${fh.exists ? `
+                                    <small style="color: var(--text-muted);">SHA-256: ${fh.sha256}</small><br>
+                                    <small style="color: var(--text-muted);">Size: ${fh.size} bytes</small>
+                                ` : `<small style="color: var(--accent-red);">${fh.error || 'File not found'}</small>`}
+                            </div>
+                        `;
+                    });
+                }
+
                 resultsHtml += `
                     <div class="test-result-details">
                         <p><strong>Arguments:</strong> ${(testCase.arguments || []).join(', ') || '(none)'}</p>
                         <p><strong>Input:</strong> ${(testCase.input || []).length} lines</p>
                         <p><strong>Fixtures Used:</strong> ${fixtures.join(', ') || '(none)'}</p>
+                        ${fileHashesHtml}
                         <p><strong>Output:</strong></p>
                         <pre class="test-output-preview">${escapeHtml(result.output)}</pre>
                         <p><strong>STDERR:</strong></p>
@@ -584,6 +612,11 @@ class ExercisesPage {
         }
     }
 
+    formatOutputFiles(files) {
+        if (!files || files.length === 0) return '';
+        return files.map(f => `${f.filename}: ${f.sha256 ? f.sha256.substring(0, 16) + '...' : 'N/A'}`).join('\n');
+    }
+
     modifyProceed() {
         document.getElementById('test-preview').style.display = 'none';
         setTimeout(() => {
@@ -610,8 +643,10 @@ class ExercisesPage {
             arguments: [],
             input: [],
             fixtures: [],
+            outputFiles: [],
             expectedOutput: '',
             expectedStderr: '',
+            expectedOutputFiles: [],
             expectedExitCode: 0
         });
         this.renderTestCases();
@@ -668,6 +703,12 @@ class ExercisesPage {
                                    rows="3" placeholder="Line 1\nLine 2\nLine 3">${(testCase.input || []).join('\n')}</textarea>
                     </div>
                     <div class="form-group-inline">
+                        <label>Expected Output Files (comma-separated filenames to verify)</label>
+                        <input type="text" class="form-input" data-field="outputFiles" data-index="${index}"
+                                value="${(testCase.outputFiles || []).join(', ')}" placeholder="output.txt, result.tar.gz">
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">Files created by script that will be hash-verified</small>
+                    </div>
+                    <div class="form-group-inline">
                         <label>Expected Output (auto-filled when testing)</label>
                         <textarea class="form-input" data-field="expectedOutput" data-index="${index}"
                                    rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
@@ -676,6 +717,11 @@ class ExercisesPage {
                         <label>Expected STDERR (auto-filled when testing)</label>
                         <textarea class="form-input" data-field="expectedStderr" data-index="${index}"
                                    rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedStderr || ''}</textarea>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected File Hashes (auto-filled when testing)</label>
+                        <textarea class="form-input" data-field="expectedOutputFiles" data-index="${index}"
+                                   rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${this.formatOutputFiles(testCase.expectedOutputFiles || [])}</textarea>
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Exit Code (auto-filled when testing)</label>
@@ -698,6 +744,8 @@ class ExercisesPage {
                     const select = e.target;
                     value = Array.from(select.selectedOptions).map(opt => opt.value);
                 } else if (field === 'arguments') {
+                    value = value.split(',').map(s => s.trim()).filter(s => s);
+                } else if (field === 'outputFiles') {
                     value = value.split(',').map(s => s.trim()).filter(s => s);
                 } else if (field === 'input') {
                     value = value.split('\n').filter(s => s !== '');
