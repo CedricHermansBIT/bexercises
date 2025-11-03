@@ -61,6 +61,7 @@ For each test case, the system compares:
 1. **Expected Output** vs **Actual Output** (stdout)
 2. **Expected STDERR** vs **Actual STDERR**
 3. **Expected Exit Code** vs **Actual Exit Code**
+4. **Expected Output File Hashes** vs **Actual Output File Hashes** (SHA-256)
 
 ### 🎯 Use Cases
 

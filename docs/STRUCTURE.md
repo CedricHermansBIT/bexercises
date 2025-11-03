@@ -21,9 +21,12 @@ BITLab/
 │   └── exercises.db-wal            # Write-ahead log (WAL mode)
 │
 ├── docs/                           # Documentation
+│   ├── BULK_TEST_VERIFICATION.md  # Bulk test verification guide
 │   ├── DEVELOPMENT.md              # Development guide
+│   ├── FILE_OUTPUT_VERIFICATION.md # File hash verification guide
 │   ├── FIRST_ADMIN_SETUP.md        # First admin setup instructions
 │   ├── QUICKSTART.md               # Quick setup guide
+│   ├── SERVICE_SETUP.md            # System service setup
 │   └── STRUCTURE.md                # This file
 │
 ├── fixtures/                       # Test fixtures for exercises
@@ -35,6 +38,8 @@ BITLab/
 │   └── testfile2                   # Another test file
 │
 ├── frontend/                       # Client-side application
+│   ├── admin.css                   # Admin-specific styles
+│   ├── favicon.ico                 # Site favicon
 │   ├── index.html                  # Entry point (redirects to login)
 │   ├── styles.css                  # Global styles
 │   │
@@ -42,18 +47,30 @@ BITLab/
 │   │   ├── main.js                 # Main entry point
 │   │   │
 │   │   ├── components/             # Reusable UI components
+│   │   │   ├── achievementNotification.js  # Achievement popups
 │   │   │   ├── authComponent.js    # Authentication handling
 │   │   │   ├── exerciseMenu.js     # Exercise navigation menu
+│   │   │   ├── notificationBanner.js # System notification banner
 │   │   │   ├── statistics.js       # Statistics display
-│   │   │   └── testResults.js      # Test results viewer
+│   │   │   ├── testResults.js      # Test results viewer
+│   │   │   └── themeToggle.js      # Dark/light theme switcher
 │   │   │
 │   │   ├── pages/                  # Page controllers
-│   │   │   ├── adminPage.js        # Admin panel logic
+│   │   │   ├── achievementsPage.js # Achievements page
+│   │   │   ├── adminPage.js        # Legacy admin panel logic
 │   │   │   ├── exercisesPage.js    # Exercise list page
 │   │   │   ├── languagesPage.js    # Language selection page
 │   │   │   ├── leaderboardPage.js  # Leaderboard display
 │   │   │   ├── loginPage.js        # Login page controller
-│   │   │   └── workspacePage.js    # Code editor workspace
+│   │   │   ├── workspacePage.js    # Code editor workspace
+│   │   │   │
+│   │   │   └── admin/              # New modular admin pages
+│   │   │       ├── adminUtils.js   # Shared admin utilities
+│   │   │       ├── exercisesPage.js # Exercise management
+│   │   │       ├── filesPage.js    # Fixture file management
+│   │   │       ├── indexPage.js    # Admin dashboard
+│   │   │       ├── notificationsPage.js # System notifications
+│   │   │       └── usersPage.js    # User management
 │   │   │
 │   │   ├── services/               # API and storage services
 │   │   │   ├── apiService.js       # Backend API client
@@ -61,17 +78,27 @@ BITLab/
 │   │   │
 │   │   └── utils/                  # Utility functions
 │   │       ├── basePathUtils.js    # Base path handling
+│   │       ├── faviconUtils.js     # Favicon management
 │   │       ├── navigationUtils.js  # Page navigation
 │   │       ├── resizeUtils.js      # Window resize handling
+│   │       ├── themeUtils.js       # Theme switching utilities
 │   │       └── urlUtils.js         # URL manipulation
 │   │
 │   └── pages/                      # HTML pages
-│       ├── admin.html              # Admin dashboard
+│       ├── achievements.html       # Achievements page
+│       ├── admin.html              # Legacy admin dashboard
 │       ├── exercises.html          # Exercise list view
 │       ├── languages.html          # Language selection
 │       ├── leaderboard.html        # Leaderboard view
 │       ├── login.html              # Login page
-│       └── workspace.html          # Code editor
+│       ├── workspace.html          # Code editor
+│       │
+│       └── admin/                  # New modular admin pages
+│           ├── exercises.html      # Exercise management
+│           ├── files.html          # File management
+│           ├── index.html          # Admin dashboard
+│           ├── notifications.html  # Notifications management
+│           └── users.html          # User management
 │
 ├── src/                            # Backend source code
 │   ├── app.js                      # Express app configuration
@@ -102,6 +129,9 @@ BITLab/
 │       └── testRunner.js           # Test execution engine
 │
 ├── .env                            # Environment variables (not in repo)
+├── .env.example                    # Example environment configuration
+├── .gitignore                      # Git ignore rules
+├── bitlab.png                      # Project logo
 ├── Dockerfile.runner               # Docker image for code execution
 ├── eslint.config.js                # ESLint configuration
 ├── exercises-internal.json         # Exercise definitions (legacy/backup)
@@ -150,9 +180,11 @@ Tables:
 - `users` - User accounts with Google OAuth data
 - `languages` - Programming languages configuration
 - `exercises` - Exercise metadata and order
-- `test_cases` - Individual test cases for exercises
+- `test_cases` - Individual test cases for exercises (includes expected stdout, stderr, exit code, and file hashes)
 - `submissions` - User code submissions
 - `exercise_progress` - User completion status
+- `fixture_files` - Reusable test fixtures
+- `test_case_fixtures` - Links test cases to fixtures
 
 ##### Exercise Service (`exerciseService.js`)
 Business logic for exercises:
@@ -168,12 +200,14 @@ Manages code execution in isolated containers:
 - Copy fixture files
 - Run containers with resource limits
 - Capture output and exit codes
+- Hash output files (SHA-256) for verification
 - Cleanup temporary files
 
 ##### Test Runner (`testRunner.js`)
 Executes test suites:
 - Runs all test cases for an exercise
-- Compares expected vs actual output
+- Compares expected vs actual output (stdout, stderr, exit code)
+- Verifies output file hashes (SHA-256)
 - Handles timeouts and errors
 - Returns detailed test results
 
@@ -201,6 +235,13 @@ Centralized authentication:
 - Handle logout
 - Update UI with user info
 
+##### Achievement Notification (`achievementNotification.js`)
+Achievement popup system:
+- Display earned achievement notifications
+- Animated popups with achievement details
+- Queue multiple achievements
+- Auto-dismiss with timing control
+
 ##### Exercise Menu (`exerciseMenu.js`)
 Sidebar navigation for exercises:
 - Display exercise list
@@ -208,12 +249,30 @@ Sidebar navigation for exercises:
 - Highlight current exercise
 - Navigate between exercises
 
+##### Notification Banner (`notificationBanner.js`)
+System-wide notification display:
+- Show admin-created notifications
+- Support multiple notification types (info, warning, success, error)
+- Dismissible notifications
+- Persistent and temporary messages
+
+##### Theme Toggle (`themeToggle.js`)
+Dark/light mode switching:
+- Toggle between themes
+- Persist preference
+- Update CodeMirror themes
+- Broadcast theme changes
+
 ##### Test Results (`testResults.js`)
 Display test execution results:
 - Show passed/failed tests
-- Display expected vs actual output
+- Display expected vs actual output (stdout)
+- Display expected vs actual stderr
+- Display expected vs actual exit code
+- Display output file hash verification (SHA-256)
 - Show error messages
 - Format test details
+- Tabbed interface for different result types
 
 ##### Statistics (`statistics.js`)
 Display user and global statistics:
@@ -241,6 +300,78 @@ Wrapper for browser storage:
 - **basePathUtils.js**: Handles deployment subdirectory paths
 - **urlUtils.js**: URL construction helpers
 - **resizeUtils.js**: Responsive layout adjustments
+- **themeUtils.js**: Theme detection and persistence
+- **faviconUtils.js**: Dynamic favicon management
+
+#### Pages
+
+##### Main User Pages
+
+**Languages Page** (`languagesPage.js` / `languages.html`)
+- Display available programming languages
+- Show progress for each language
+- Navigate to exercise list
+
+**Exercises Page** (`exercisesPage.js` / `exercises.html`)
+- List exercises for selected language
+- Show completion status
+- Group by chapters
+- Navigate to workspace
+
+**Workspace Page** (`workspacePage.js` / `workspace.html`)
+- CodeMirror editor for writing code
+- Run tests button
+- Display test results
+- Save/load solutions from localStorage
+- Show exercise description and statistics
+
+**Leaderboard Page** (`leaderboardPage.js` / `leaderboard.html`)
+- Display user rankings
+- Filter by language or global
+- Show completion counts and stats
+
+**Achievements Page** (`achievementsPage.js` / `achievements.html`)
+- Display earned and available achievements
+- Show achievement progress
+- Achievement categories and rarities
+
+##### Admin Pages
+
+The admin interface has been refactored into modular pages:
+
+**Admin Dashboard** (`admin/indexPage.js` / `admin/index.html`)
+- Overview of system statistics
+- Quick links to management pages
+- Recent activity
+
+**Exercise Management** (`admin/exercisesPage.js` / `admin/exercises.html`)
+- Create/edit/delete exercises
+- Manage test cases with fixtures
+- Test solutions and capture expected values
+- Bulk test verification system
+- Reorder exercises
+
+**User Management** (`admin/usersPage.js` / `admin/users.html`)
+- View all users
+- Grant/revoke admin privileges
+- View user progress and statistics
+- Delete users
+
+**File Management** (`admin/filesPage.js` / `admin/files.html`)
+- Upload fixture files
+- View file contents
+- Delete files
+- Manage folder structures
+
+**Notification Management** (`admin/notificationsPage.js` / `admin/notifications.html`)
+- Create system-wide notifications
+- Set notification types and expiry
+- Activate/deactivate notifications
+- Preview notifications
+
+**Legacy Admin Page** (`adminPage.js` / `admin.html`)
+- Original monolithic admin interface
+- Still functional but being phased out
 
 ## Data Flow
 
@@ -259,7 +390,11 @@ Wrapper for browser storage:
 5. Backend creates temporary directory
 6. Script and fixtures copied to temp directory
 7. Docker container created and executed for each test
-8. Results compared against expected output
+8. Results compared against expected values:
+   - stdout vs expected output
+   - stderr vs expected stderr
+   - exit code vs expected exit code
+   - output file hashes (SHA-256) vs expected hashes
 9. Submission saved to database
 10. Results returned to frontend
 11. Frontend displays test results
@@ -289,8 +424,9 @@ Wrapper for browser storage:
 4. Mount temp directory into container
 5. Run script with arguments and stdin
 6. Capture stdout, stderr, exit code
-7. Apply timeout (default 30s)
-8. Remove container and temp directory
+7. Hash specified output files (SHA-256)
+8. Apply timeout (default 30s)
+9. Remove container and temp directory
 
 ### Security
 - Non-root execution

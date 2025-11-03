@@ -11,9 +11,11 @@ BITLab is an educational platform that allows students to practice programming b
 - 🔐 **Google OAuth Authentication** - Secure login via Google accounts
 - 🐳 **Docker-based Execution** - Safe, isolated code execution environment
 - ✅ **Automated Testing** - Instant feedback with detailed test results
+- 📝 **Multi-faceted Verification** - Verify stdout, stderr, exit codes, and output file hashes (SHA-256)
 - 📊 **Progress Tracking** - Monitor student progress and completion rates
 - 🏆 **Leaderboards** - Gamification with rankings and statistics
 - 👨‍💼 **Admin Panel** - Full exercise management and user administration
+- 🔍 **Bulk Test Verification** - Re-verify all exercises after system changes
 - 🌐 **Multi-language Support** - Extensible to multiple programming languages
 - 💾 **Auto-save** - Automatic saving of work in progress
 
@@ -57,6 +59,8 @@ For detailed setup instructions, see [QUICKSTART.md](docs/QUICKSTART.md).
 - **[Service Setup](docs/SERVICE_SETUP.md)** - Run BITLab as a system service
 - **[Development Guide](docs/DEVELOPMENT.md)** - Contribute to the project
 - **[Project Structure](docs/STRUCTURE.md)** - Understand the codebase architecture
+- **[Bulk Test Verification](docs/BULK_TEST_VERIFICATION.md)** - Verify exercises after system changes
+- **[File Output Verification](docs/FILE_OUTPUT_VERIFICATION.md)** - Hash-based file verification for exercises
 
 ## Architecture
 

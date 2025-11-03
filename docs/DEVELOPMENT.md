@@ -269,7 +269,11 @@ await db.createExercise({
             arguments: ['arg1'],
             input: [],
             expectedOutput: 'expected output',
+            expectedStderr: '',
             expectedExitCode: 0,
+            expectedOutputFiles: [
+                { filename: 'output.txt', sha256: 'abc123...' }
+            ],
             fixtures: ['testfile']
         }
     ]
