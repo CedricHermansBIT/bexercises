@@ -915,6 +915,7 @@ body {
     color: var(--text-secondary);
     font-size: 0.9rem;
     line-height: 1.8;
+    padding: 0 0.5rem; /* Add padding to prevent content touching edges */
 }
 
 .section-content h1,
@@ -923,18 +924,74 @@ body {
     color: var(--text-primary);
     margin-top: 1.5rem;
     margin-bottom: 0.75rem;
+    line-height: 1.4;
 }
 
 .section-content h1 {
     font-size: 1.3rem;
+    font-weight: 600;
 }
 
 .section-content h2 {
     font-size: 1.1rem;
+    font-weight: 600;
 }
 
 .section-content h3 {
     font-size: 1rem;
+    font-weight: 500;
+}
+
+.section-content p {
+    margin: 0.75rem 0;
+    line-height: 1.7;
+}
+
+.section-content ul,
+.section-content ol {
+    margin: 0.75rem 0;
+    padding-left: 1.75rem; /* Add proper indentation for list markers */
+    line-height: 1.7;
+}
+
+.section-content ul {
+    list-style-type: disc;
+}
+
+.section-content ol {
+    list-style-type: decimal;
+}
+
+.section-content li {
+    margin: 0.35rem 0;
+    padding-left: 0.25rem;
+}
+
+.section-content ul ul,
+.section-content ol ol,
+.section-content ul ol,
+.section-content ol ul {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.section-content blockquote {
+    border-left: 3px solid var(--accent-blue);
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.section-content a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.section-content a:hover {
+    color: var(--accent-lavender);
+    text-decoration: underline;
 }
 
 .section-content code {
@@ -943,6 +1000,7 @@ body {
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
     font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .section-content pre {
@@ -951,11 +1009,48 @@ body {
     border-radius: 6px;
     overflow-x: auto;
     margin: 1rem 0;
+    border: 1px solid var(--border-color);
 }
 
 .section-content pre code {
     background: none;
     padding: 0;
+    color: var(--text-primary);
+}
+
+.section-content hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1.5rem 0;
+}
+
+.section-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.section-content table th,
+.section-content table td {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.section-content table th {
+    background: var(--surface);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.section-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.section-content em {
+    font-style: italic;
+    color: var(--text-primary);
 }
 
 .editor-container,
