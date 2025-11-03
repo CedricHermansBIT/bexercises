@@ -128,7 +128,8 @@ router.post('/run-test-case', async (req, res) => {
 		console.log('Test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length });
 
 		res.json({
-			output: result.stdout + result.stderr,
+			output: result.stdout,
+			stderr: result.stderr,
 			exitCode: result.exitCode,
 			timedOut: result.timedOut,
 			error: result.error

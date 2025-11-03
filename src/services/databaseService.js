@@ -87,6 +87,7 @@ class DatabaseService {
 				arguments TEXT, -- JSON array
 				input TEXT, -- JSON array
 				expected_output TEXT,
+				expected_stderr TEXT DEFAULT '',
 				expected_exit_code INTEGER DEFAULT 0,
 				order_num INTEGER DEFAULT 0,
 				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
@@ -138,6 +139,13 @@ class DatabaseService {
 		}
 		try {
 			await this.db.exec(`ALTER TABLE user_progress ADD COLUMN last_submission_at DATETIME`);
+		} catch (e) {
+			// Column already exists
+		}
+
+		// Add expected_stderr column to test_cases if it doesn't exist (for existing databases)
+		try {
+			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN expected_stderr TEXT DEFAULT ''`);
 		} catch (e) {
 			// Column already exists
 		}
@@ -430,6 +438,7 @@ class DatabaseService {
 				arguments: tc.arguments ? JSON.parse(tc.arguments) : [],
 				input: tc.input ? JSON.parse(tc.input) : [],
 				expectedOutput: tc.expected_output || '',
+				expectedStderr: tc.expected_stderr || '',
 				expectedExitCode: tc.expected_exit_code != null ? tc.expected_exit_code : 0,
 				fixtures: fixtures.map(f => f.filename),
 				fixturePermissions: {} // TODO: Add permissions column if needed
@@ -453,13 +462,14 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_exit_code, order_num)
-					VALUES (?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
 					JSON.stringify(tc.input || []),
 					tc.expectedOutput || '',
+					tc.expectedStderr || '',
 					tc.expectedExitCode || 0,
 					i
 				]);
@@ -529,13 +539,14 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_exit_code, order_num)
-					VALUES (?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
 					JSON.stringify(tc.input || []),
 					tc.expectedOutput || '',
+					tc.expectedStderr || '',
 					tc.expectedExitCode || 0,
 					i
 				]);

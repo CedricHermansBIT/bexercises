@@ -80,7 +80,7 @@ class TestResults {
 
 		const tabId = `test-${result.testNumber}`;
 		const outputMatch = result.actualOutput === result.expectedOutput ? '✓' : '✗';
-		const stderrMatch = (!result.stderr || result.stderr.trim() === '') ? '✓' : '⚠';
+		const stderrMatch = (result.actualStderr || '') === (result.expectedStderr || '') ? '✓' : '✗';
 		const exitCodeMatch = result.exitCode === result.expectedExitCode ? '✓' : '✗';
 
 		details.innerHTML = `
@@ -106,8 +106,16 @@ class TestResults {
 			</div>
 			
 			<div class="result-tab-content" id="${tabId}-stderr">
-				<strong>Standard Error:</strong>
-				<pre><code>${this.escapeHtml(result.stderr || '(no stderr output)')}</code></pre>
+				<div class="output-comparison">
+					<div class="output-section">
+						<strong>Expected STDERR:</strong>
+						<pre><code>${this.escapeHtml(result.expectedStderr || '')}</code></pre>
+					</div>
+					<div class="output-section">
+						<strong>Actual STDERR:</strong>
+						<pre><code>${this.escapeHtml(result.actualStderr || result.stderr || '')}</code></pre>
+					</div>
+				</div>
 			</div>
 			
 			<div class="result-tab-content" id="${tabId}-exit">

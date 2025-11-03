@@ -63,6 +63,9 @@
                 <button class="action-btn" id="reorder-mode-btn">
                     <span>⇅</span> Reorder
                 </button>
+                <button class="action-btn" id="bulk-verify-btn" title="Verify all test cases">
+                    <span>🔍</span> Verify Tests
+                </button>
             </div>
             <div class="exercises-list" id="exercises-list">
                 <!-- Exercise list will be populated here -->
@@ -146,6 +149,28 @@
                     <h2>Exercise Management</h2>
                     <p>Select an exercise to edit or create a new one</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Verification Modal -->
+    <div id="bulk-verify-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 90%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h2>Test Verification</h2>
+                <button class="modal-close" id="close-verify-modal">&times;</button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto;">
+                <div id="verification-status" style="margin-bottom: 1rem;">
+                    <p>Running tests across all exercises...</p>
+                    <div class="progress-bar">
+                        <div id="verification-progress" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div id="verification-results"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn" id="close-verify-btn">Close</button>
             </div>
         </div>
     </div>

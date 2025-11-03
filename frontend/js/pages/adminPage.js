@@ -611,6 +611,7 @@ class AdminPage {
                 });
 
                 this.testCases[i].expectedOutput = result.output;
+                this.testCases[i].expectedStderr = result.stderr || '';
                 this.testCases[i].expectedExitCode = result.exitCode;
 
                 resultsHtml += `
@@ -620,6 +621,8 @@ class AdminPage {
                         <p><strong>Fixtures Used:</strong> ${fixtures.join(', ') || '(none)'}</p>
                         <p><strong>Output:</strong></p>
                         <pre class="test-output-preview">${this.escapeHtml(result.output)}</pre>
+                        <p><strong>STDERR:</strong></p>
+                        <pre class="test-output-preview">${this.escapeHtml(result.stderr || '')}</pre>
                         <p><strong>Exit Code:</strong> ${result.exitCode}</p>
                     </div>
                 `;
@@ -736,6 +739,7 @@ class AdminPage {
         this.testCases.push({
             arguments: [],
             expectedOutput: '',
+            expectedStderr: '',
             expectedExitCode: 0,
             input: [],
             fixtures: []
@@ -797,6 +801,11 @@ class AdminPage {
                         <label>Expected Output (auto-filled when testing)</label>
                         <textarea class="form-input" data-field="expectedOutput" data-index="${index}" 
                                   rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected STDERR (auto-filled when testing)</label>
+                        <textarea class="form-input" data-field="expectedStderr" data-index="${index}" 
+                                  rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedStderr || ''}</textarea>
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Exit Code (auto-filled when testing)</label>

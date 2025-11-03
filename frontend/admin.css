@@ -1203,3 +1203,212 @@
     font-size: 0.85rem;
 }
 
+/* Bulk Verification Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-secondary);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-blue);
+    transition: width 0.3s ease;
+}
+
+.verification-item {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.verification-item.has-changes {
+    border-left: 4px solid var(--accent-yellow);
+}
+
+.verification-item.no-changes {
+    border-left: 4px solid var(--accent-green);
+    opacity: 0.6;
+}
+
+.verification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.verification-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.verification-status {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.verification-status.changed {
+    background: var(--accent-yellow);
+    color: var(--bg-primary);
+}
+
+.verification-status.unchanged {
+    background: var(--accent-green);
+    color: var(--bg-primary);
+}
+
+.verification-status.error {
+    background: var(--accent-red);
+    color: var(--bg-primary);
+}
+
+.test-case-comparison {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.test-case-comparison-header {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.comparison-diff {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.diff-column {
+    background: var(--bg-primary);
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.diff-column h5 {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.diff-column pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 0.85rem;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.diff-old {
+    border-left: 3px solid var(--accent-red);
+}
+
+.diff-new {
+    border-left: 3px solid var(--accent-green);
+}
+
+.verification-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.approve-btn {
+    background: var(--accent-green);
+    color: var(--bg-primary);
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.approve-btn:hover {
+    opacity: 0.8;
+}
+
+.approve-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.reject-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.reject-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}
+
+.verification-summary {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-blue);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}

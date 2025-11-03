@@ -112,6 +112,18 @@ class ExercisesPage {
             this.cancelReorder();
         });
 
+        document.getElementById('bulk-verify-btn')?.addEventListener('click', () => {
+            this.openBulkVerification();
+        });
+
+        document.getElementById('close-verify-modal')?.addEventListener('click', () => {
+            this.closeBulkVerification();
+        });
+
+        document.getElementById('close-verify-btn')?.addEventListener('click', () => {
+            this.closeBulkVerification();
+        });
+
         // Editor actions
         document.getElementById('save-exercise-btn')?.addEventListener('click', () => {
             this.saveExercise();
@@ -443,6 +455,7 @@ class ExercisesPage {
                 });
 
                 this.testCases[i].expectedOutput = result.output;
+                this.testCases[i].expectedStderr = result.stderr || '';
                 this.testCases[i].expectedExitCode = result.exitCode;
 
                 resultsHtml += `
@@ -452,6 +465,8 @@ class ExercisesPage {
                         <p><strong>Fixtures Used:</strong> ${fixtures.join(', ') || '(none)'}</p>
                         <p><strong>Output:</strong></p>
                         <pre class="test-output-preview">${escapeHtml(result.output)}</pre>
+                        <p><strong>STDERR:</strong></p>
+                        <pre class="test-output-preview">${escapeHtml(result.stderr || '')}</pre>
                         <p><strong>Exit Code:</strong> ${result.exitCode}</p>
                     </div>
                 `;
@@ -535,7 +550,7 @@ class ExercisesPage {
 
         // Check if all test cases have been tested (have expected output and exit code)
         const untestedCases = this.testCases.filter(tc =>
-            tc.expectedOutput === undefined || tc.expectedExitCode === undefined
+            tc.expectedOutput === undefined || tc.expectedStderr === undefined || tc.expectedExitCode === undefined
         );
 
         if (untestedCases.length > 0) {
@@ -596,6 +611,7 @@ class ExercisesPage {
             input: [],
             fixtures: [],
             expectedOutput: '',
+            expectedStderr: '',
             expectedExitCode: 0
         });
         this.renderTestCases();
@@ -655,6 +671,11 @@ class ExercisesPage {
                         <label>Expected Output (auto-filled when testing)</label>
                         <textarea class="form-input" data-field="expectedOutput" data-index="${index}"
                                    rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected STDERR (auto-filled when testing)</label>
+                        <textarea class="form-input" data-field="expectedStderr" data-index="${index}"
+                                   rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedStderr || ''}</textarea>
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Exit Code (auto-filled when testing)</label>
@@ -867,6 +888,291 @@ class ExercisesPage {
     cancelReorder() {
         this.exercises = this.originalOrder;
         this.toggleReorderMode();
+    }
+
+    // Bulk Test Verification
+    openBulkVerification() {
+        const modal = document.getElementById('bulk-verify-modal');
+        modal.style.display = 'flex';
+        this.runBulkVerification();
+    }
+
+    closeBulkVerification() {
+        const modal = document.getElementById('bulk-verify-modal');
+        modal.style.display = 'none';
+    }
+
+    async runBulkVerification() {
+        const statusDiv = document.getElementById('verification-status');
+        const resultsDiv = document.getElementById('verification-results');
+        const progressBar = document.getElementById('verification-progress');
+
+        statusDiv.innerHTML = '<p>Running tests across all exercises...</p><div class="progress-bar"><div id="verification-progress" class="progress-fill" style="width: 0%;"></div></div>';
+        resultsDiv.innerHTML = '';
+
+        const verificationResults = [];
+        let totalTests = 0;
+        let changedTests = 0;
+        let errorTests = 0;
+
+        // Filter exercises with solutions
+        const exercisesWithSolutions = this.exercises.filter(ex => ex.solution && ex.solution.trim());
+
+        for (let i = 0; i < exercisesWithSolutions.length; i++) {
+            const exercise = exercisesWithSolutions[i];
+            const progress = ((i + 1) / exercisesWithSolutions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            statusDiv.innerHTML = `<p>Testing ${exercise.title} (${i + 1}/${exercisesWithSolutions.length})...</p><div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
+
+            try {
+                // Get full exercise data with test cases
+                const fullExercise = await this.apiService.getExercise(exercise.id);
+
+                if (!fullExercise.testCases || fullExercise.testCases.length === 0) {
+                    continue;
+                }
+
+                const testCaseResults = [];
+
+                // Run each test case
+                for (const testCase of fullExercise.testCases) {
+                    totalTests++;
+                    const fixtures = testCase.fixtures || [];
+
+                    try {
+                        const result = await this.apiService.runTestCase(fullExercise.solution, {
+                            arguments: testCase.arguments || [],
+                            input: testCase.input || [],
+                            fixtures: fixtures
+                        });
+
+                        // Check if results differ from database
+                        const outputChanged = (result.output || '') !== (testCase.expectedOutput || '');
+                        const stderrChanged = (result.stderr || '') !== (testCase.expectedStderr || '');
+                        const exitCodeChanged = result.exitCode !== testCase.expectedExitCode;
+
+                        const hasChanges = outputChanged || stderrChanged || exitCodeChanged;
+
+                        if (hasChanges) {
+                            changedTests++;
+                        }
+
+                        testCaseResults.push({
+                            testCase,
+                            newResult: result,
+                            hasChanges,
+                            outputChanged,
+                            stderrChanged,
+                            exitCodeChanged
+                        });
+                    } catch (error) {
+                        errorTests++;
+                        testCaseResults.push({
+                            testCase,
+                            error: error.message,
+                            hasChanges: true
+                        });
+                    }
+                }
+
+                // Only add to results if there are changes or errors
+                const hasAnyChanges = testCaseResults.some(r => r.hasChanges);
+                if (hasAnyChanges) {
+                    verificationResults.push({
+                        exercise: fullExercise,
+                        testCaseResults
+                    });
+                }
+            } catch (error) {
+                console.error(`Error verifying ${exercise.title}:`, error);
+                errorTests++;
+            }
+        }
+
+        // Display results
+        this.displayVerificationResults(verificationResults, totalTests, changedTests, errorTests);
+    }
+
+    displayVerificationResults(results, totalTests, changedTests, errorTests) {
+        const statusDiv = document.getElementById('verification-status');
+        const resultsDiv = document.getElementById('verification-results');
+
+        // Summary
+        const unchangedTests = totalTests - changedTests - errorTests;
+        statusDiv.innerHTML = `
+            <div class="verification-summary">
+                <h3>Verification Complete</h3>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">${totalTests}</div>
+                        <div class="stat-label">Total Tests</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: var(--accent-yellow);">${changedTests}</div>
+                        <div class="stat-label">Changed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: var(--accent-green);">${unchangedTests}</div>
+                        <div class="stat-label">Unchanged</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: var(--accent-red);">${errorTests}</div>
+                        <div class="stat-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (results.length === 0) {
+            resultsDiv.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">All tests match their expected values! ✓</p>';
+            return;
+        }
+
+        // Display each exercise with changes
+        results.forEach(({ exercise, testCaseResults }) => {
+            const changedCases = testCaseResults.filter(r => r.hasChanges);
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'verification-item has-changes';
+            itemDiv.innerHTML = `
+                <div class="verification-header">
+                    <div class="verification-title">${escapeHtml(exercise.title)}</div>
+                    <div class="verification-status changed">${changedCases.length} test(s) changed</div>
+                </div>
+            `;
+
+            testCaseResults.forEach((testResult, idx) => {
+                if (!testResult.hasChanges) return;
+
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-case-comparison';
+
+                if (testResult.error) {
+                    testDiv.innerHTML = `
+                        <div class="test-case-comparison-header">
+                            <span>Test Case ${idx + 1}</span>
+                            <span class="verification-status error">Error</span>
+                        </div>
+                        <p style="color: var(--accent-red); font-size: 0.85rem;">Error: ${escapeHtml(testResult.error)}</p>
+                    `;
+                } else {
+                    const { testCase, newResult, outputChanged, stderrChanged, exitCodeChanged } = testResult;
+
+                    let changesHtml = '';
+
+                    if (outputChanged) {
+                        changesHtml += `
+                            <div class="comparison-diff">
+                                <div class="diff-column diff-old">
+                                    <h5>Old Output</h5>
+                                    <pre>${escapeHtml(testCase.expectedOutput || '')}</pre>
+                                </div>
+                                <div class="diff-column diff-new">
+                                    <h5>New Output</h5>
+                                    <pre>${escapeHtml(newResult.output || '')}</pre>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (stderrChanged) {
+                        changesHtml += `
+                            <div class="comparison-diff">
+                                <div class="diff-column diff-old">
+                                    <h5>Old STDERR</h5>
+                                    <pre>${escapeHtml(testCase.expectedStderr || '')}</pre>
+                                </div>
+                                <div class="diff-column diff-new">
+                                    <h5>New STDERR</h5>
+                                    <pre>${escapeHtml(newResult.stderr || '')}</pre>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (exitCodeChanged) {
+                        changesHtml += `
+                            <div class="comparison-diff">
+                                <div class="diff-column diff-old">
+                                    <h5>Old Exit Code</h5>
+                                    <pre>${testCase.expectedExitCode}</pre>
+                                </div>
+                                <div class="diff-column diff-new">
+                                    <h5>New Exit Code</h5>
+                                    <pre>${newResult.exitCode}</pre>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    testDiv.innerHTML = `
+                        <div class="test-case-comparison-header">
+                            <span>Test Case ${idx + 1}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                ${outputChanged ? 'Output ' : ''}
+                                ${stderrChanged ? 'STDERR ' : ''}
+                                ${exitCodeChanged ? 'Exit Code' : ''}
+                                changed
+                            </span>
+                        </div>
+                        ${changesHtml}
+                        <div class="verification-actions">
+                            <button class="approve-btn" data-exercise-id="${exercise.id}" data-test-index="${idx}">
+                                ✓ Approve Changes
+                            </button>
+                            <button class="reject-btn">✗ Keep Old Values</button>
+                        </div>
+                    `;
+                }
+
+                itemDiv.appendChild(testDiv);
+            });
+
+            resultsDiv.appendChild(itemDiv);
+        });
+
+        // Add event listeners for approve buttons
+        resultsDiv.querySelectorAll('.approve-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const exerciseId = e.target.dataset.exerciseId;
+                const testIndex = parseInt(e.target.dataset.testIndex);
+                await this.approveTestChange(exerciseId, testIndex, results);
+                e.target.disabled = true;
+                e.target.textContent = '✓ Approved';
+            });
+        });
+    }
+
+    async approveTestChange(exerciseId, testIndex, verificationResults) {
+        try {
+            // Find the exercise and test result
+            const exerciseResult = verificationResults.find(r => r.exercise.id === exerciseId);
+            if (!exerciseResult) return;
+
+            const testResult = exerciseResult.testCaseResults[testIndex];
+            if (!testResult || !testResult.newResult) return;
+
+            const exercise = exerciseResult.exercise;
+
+            // Update the test case with new values
+            exercise.testCases[testIndex].expectedOutput = testResult.newResult.output || '';
+            exercise.testCases[testIndex].expectedStderr = testResult.newResult.stderr || '';
+            exercise.testCases[testIndex].expectedExitCode = testResult.newResult.exitCode;
+
+            // Save the updated exercise
+            await this.apiService.updateExercise(exerciseId, {
+                title: exercise.title,
+                description: exercise.description,
+                solution: exercise.solution,
+                chapter_id: exercise.chapter_id,
+                testCases: exercise.testCases
+            });
+
+            console.log(`Approved test change for ${exercise.title}, test ${testIndex + 1}`);
+        } catch (error) {
+            alert(`Failed to approve changes: ${error.message}`);
+        }
     }
 }
 

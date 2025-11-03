@@ -38,19 +38,24 @@ async function runTests(exercise, script) {
 			// Compare output - normalize both expected and actual
 			const expected = normalizeOutput(tc.expectedOutput || '').trim();
 			const actual = normalizeOutput(r.stdout).trim();
+			const expectedStderr = normalizeOutput(tc.expectedStderr || '').trim();
+			const actualStderr = normalizeOutput(r.stderr || '').trim();
 			const expectedExitCode = (tc.expectedExitCode != null) ? tc.expectedExitCode : 0;
 
 			const passed = (!r.timedOut)
 				&& (r.exitCode !== null)
 				&& (String(r.exitCode) === String(expectedExitCode))
-				&& (actual === expected);
+				&& (actual === expected)
+				&& (actualStderr === expectedStderr);
 
 			results.push({
 				testNumber: i + 1,
 				arguments: tc.arguments || [],
 				expectedOutput: expected,
+				expectedStderr: expectedStderr,
 				expectedExitCode: expectedExitCode,
 				actualOutput: actual,
+				actualStderr: actualStderr,
 				stderr: r.stderr,
 				exitCode: r.exitCode,
 				timedOut: r.timedOut,
