@@ -54,10 +54,15 @@ class UsersPage {
         const refreshBtn = document.getElementById('refresh-users-btn');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', async () => {
+                // Store the current user ID if viewing details
+                const currentUserId = this.currentUser?.user?.id;
+
+                // Reload the users list (this will re-sort by latest activity)
                 await this.loadUsers();
-                // If a user detail view is currently open, refresh it
-                if (this.currentUser && this.currentUser.user && this.currentUser.user.id) {
-                    await this.viewUserDetails(this.currentUser.user.id);
+
+                // If a user detail view was open, refresh it
+                if (currentUserId) {
+                    await this.viewUserDetails(currentUserId);
                 }
             });
         }
@@ -83,7 +88,14 @@ class UsersPage {
             return;
         }
 
-        this.users.forEach(user => {
+        // Sort users by most recent activity (descending)
+        const sortedUsers = [...this.users].sort((a, b) => {
+            const aActivity = a.last_activity || a.created_at || '';
+            const bActivity = b.last_activity || b.created_at || '';
+            return bActivity.localeCompare(aActivity); // Most recent first
+        });
+
+        sortedUsers.forEach(user => {
             const item = document.createElement('div');
             item.className = 'user-item';
             item.dataset.userId = user.id;
