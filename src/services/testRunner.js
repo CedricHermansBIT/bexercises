@@ -72,6 +72,41 @@ async function runTests(exercise, script) {
 				config.docker.timeout
 			);
 
+			// Determine expected output
+			let expected = normalizeOutput(tc.expectedOutput || '').trim();
+			let expectedStderr = normalizeOutput(tc.expectedStderr || '').trim();
+			let expectedExitCode = (tc.expectedExitCode != null) ? tc.expectedExitCode : 0;
+
+			// If test case uses dynamic output, run the exercise solution to get expected output
+			if (tc.useDynamicOutput && exercise.solution) {
+				try {
+					const { tmpdir: solutionTmpdir } = await createTempScript(exercise.solution);
+
+					// Copy same fixtures to solution temp dir
+					if (tc.fixtures && Array.isArray(tc.fixtures)) {
+						await copyFixtures(solutionTmpdir, tc.fixtures, tc.fixturePermissions);
+					}
+
+					const solutionResult = await runScriptInContainer(
+						solutionTmpdir,
+						tc.arguments || [],
+						tc.input || [],
+						config.docker.timeout
+					);
+
+					// Use solution's output as expected
+					expected = normalizeOutput(solutionResult.stdout).trim();
+					expectedStderr = normalizeOutput(solutionResult.stderr || '').trim();
+					expectedExitCode = solutionResult.exitCode;
+
+					// Cleanup solution temp dir
+					await removeRecursive(solutionTmpdir);
+				} catch (err) {
+					console.error('Failed to run solution script for dynamic output:', err);
+					// Fall back to stored expected output
+				}
+			}
+
 			// Hash output files if specified
 			let outputFilesResult = [];
 			let outputFilesMatch = true;
@@ -101,11 +136,8 @@ async function runTests(exercise, script) {
 			}
 
 			// Compare output - normalize both expected and actual
-			const expected = normalizeOutput(tc.expectedOutput || '').trim();
 			const actual = normalizeOutput(r.stdout).trim();
-			const expectedStderr = normalizeOutput(tc.expectedStderr || '').trim();
 			const actualStderr = normalizeOutput(r.stderr || '').trim();
-			const expectedExitCode = (tc.expectedExitCode != null) ? tc.expectedExitCode : 0;
 
 			const passed = (!r.timedOut)
 				&& (r.exitCode !== null)

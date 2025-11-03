@@ -647,7 +647,8 @@ class ExercisesPage {
             expectedOutput: '',
             expectedStderr: '',
             expectedOutputFiles: [],
-            expectedExitCode: 0
+            expectedExitCode: 0,
+            useDynamicOutput: false
         });
         this.renderTestCases();
     }
@@ -728,6 +729,18 @@ class ExercisesPage {
                         <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}"
                                 value="${testCase.expectedExitCode || 0}" readonly style="background: #2a2a2a;">
                     </div>
+                    <div class="form-group-inline">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" data-field="useDynamicOutput" data-index="${index}"
+                                   ${testCase.useDynamicOutput ? 'checked' : ''} 
+                                   style="width: auto; cursor: pointer;">
+                            <span>Use Dynamic Output (re-run solution each time)</span>
+                        </label>
+                        <small style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
+                            Enable this for exercises with time-dependent or random output (e.g., date commands). 
+                            The exercise solution will be executed to generate expected output dynamically.
+                        </small>
+                    </div>
                 </div>
             `;
             container.appendChild(testCaseDiv);
@@ -751,6 +764,8 @@ class ExercisesPage {
                     value = value.split('\n').filter(s => s !== '');
                 } else if (field === 'expectedExitCode') {
                     value = parseInt(value) || 0;
+                } else if (field === 'useDynamicOutput') {
+                    value = e.target.checked;
                 }
 
                 this.testCases[index][field] = value;
