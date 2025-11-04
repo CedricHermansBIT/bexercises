@@ -3018,3 +3018,103 @@ body {
     border-radius: 12px;
     backdrop-filter: blur(10px);
 }
+
+/* ===== HIDDEN RICKROLL EASTER EGG ===== */
+.secret-rickroll-trigger {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    width: 5px;
+    height: 5px;
+    background: var(--border-color);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0.02;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.secret-rickroll-trigger:hover {
+    opacity: 0.3;
+    background: var(--accent-blue);
+    cursor: pointer;
+    bottom: 5px;
+    right: 5px;
+    width: 25px;
+    height: 25px;
+    box-shadow: 0 0 10px var(--accent-blue);
+}
+
+/* Rickroll modal */
+.rickroll-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.rickroll-content {
+    text-align: center;
+    color: white;
+    max-width: 90%;
+}
+
+.rickroll-content h1 {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}
+
+.rickroll-content iframe {
+    border-radius: 12px;
+    box-shadow: 0 10px 50px rgba(255, 255, 255, 0.1);
+    max-width: 100%;
+}
+
+.rickroll-close {
+    margin-top: 2rem;
+    padding: 1rem 2rem;
+    background: var(--accent-red);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.rickroll-close:hover {
+    background: var(--accent-pink);
+    transform: scale(1.05);
+}
+

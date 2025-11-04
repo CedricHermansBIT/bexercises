@@ -306,9 +306,17 @@ class DatabaseService {
 			{ id: 'untouchable', name: 'Untouchable', description: 'Complete 10 exercises on first try', icon: '🌟', category: 'skill', points: 100, requirement_type: 'first_try_completions', requirement_value: 10 },
 
 			// Persistence
+            { id: 'comeback-kid', name: 'Comeback Kid', description: 'Complete an exercise after failing 5+ times', icon: '💪', category: 'persistence', points: 10, requirement_type: 'comeback_completion', requirement_value: 1 },
 			{ id: 'persistent', name: 'Persistent', description: 'Complete an exercise after 10+ attempts', icon: '🔥', category: 'persistence', points: 30, requirement_type: 'persistent_completion', requirement_value: 1 },
 			{ id: 'never-give-up', name: 'Never Give Up', description: 'Complete an exercise after 20+ attempts', icon: '💪', category: 'persistence', points: 50, requirement_type: 'persistent_completion_20', requirement_value: 1 },
 
+			// Total Attempts Milestones
+			{ id: 'answer-to-everything', name: 'Answer to Everything', description: 'Reach 42 total test runs', icon: '🤖', category: 'attempts', points: 42, requirement_type: 'total_test_runs', requirement_value: 42 },
+			{ id: 'nice', name: 'Nice', description: 'Reach 69 total test runs', icon: '😏', category: 'attempts', points: 69, requirement_type: 'total_test_runs', requirement_value: 69 },
+            { id: 'centurion', name: 'Centurion', description: 'Reach 100 total test runs', icon: '💯', category: 'attempts', points: 100, requirement_type: 'total_test_runs', requirement_value: 100 },
+            { id: 'snoopdog', name: 'Snoop Dogg', description: 'Reach 420 total test runs', icon: '🌿', category: 'attempts', points: 150, requirement_type: 'total_test_runs', requirement_value: 420 },
+            { id: 'thousandaire', name: 'Thousandaire', description: 'Reach 1000 total test runs', icon: '💵', category: 'attempts', points: 300, requirement_type: 'total_test_runs', requirement_value: 1000 },
+            { id: 'elite', name: '1337 Elite', description: 'Reach 1337 total test runs', icon: '🎮', category: 'attempts', points: 200, requirement_type: 'total_test_runs', requirement_value: 1337 },
 			// Speed
 			{ id: 'speed-demon', name: 'Speed Demon', description: 'Complete 3 exercises in one hour', icon: '⚡', category: 'speed', points: 40, requirement_type: 'exercises_per_hour', requirement_value: 3 },
 			{ id: 'marathon-runner', name: 'Marathon Runner', description: 'Complete 10 exercises in one day', icon: '🏃', category: 'speed', points: 75, requirement_type: 'exercises_per_day', requirement_value: 10 },
@@ -325,6 +333,10 @@ class DatabaseService {
 			// Chapter Completion
 			{ id: 'chapter-complete', name: 'Chapter Master', description: 'Complete all exercises in a chapter', icon: '📖', category: 'mastery', points: 50, requirement_type: 'chapter_complete', requirement_value: 1 },
 			{ id: 'all-chapters', name: 'Complete Mastery', description: 'Complete all chapters', icon: '🎓', category: 'mastery', points: 500, requirement_type: 'all_chapters_complete', requirement_value: 1 },
+
+			// Hidden Easter Eggs
+			{ id: 'rickrolled', name: 'Never Gonna Give You Up', description: 'You found the secret! You\'ve been rickrolled.', icon: '🕺', category: 'secret', points: 100, requirement_type: 'easter_egg', requirement_value: 1, hidden: 1 },
+			{ id: 'hackerman', name: 'Hackerman', description: 'You opened the developer tools. You\'re in!', icon: '👨‍💻', category: 'secret', points: 50, requirement_type: 'easter_egg', requirement_value: 1, hidden: 1 },
 		];
 
 		for (const achievement of defaultAchievements) {
@@ -956,6 +968,12 @@ class DatabaseService {
 		`, [userId]);
 		const firstTryCompletions = firstTryCount.count;
 
+		// Get total test runs across all exercises
+		const totalTestRunsCount = await this.db.get(`
+			SELECT SUM(attempts) as total FROM user_progress WHERE user_id = ?
+		`, [userId]);
+		const totalTestRuns = totalTestRunsCount.total || 0;
+
 		// Check exercises_completed achievements
 		const completionAchievements = await this.db.all(`
 			SELECT * FROM achievements 
@@ -978,6 +996,19 @@ class DatabaseService {
 		`, [firstTryCompletions, userId]);
 
 		for (const achievement of firstTryAchievements) {
+			await this.awardAchievement(userId, achievement.id);
+			newAchievements.push(achievement);
+		}
+
+		// Check total_test_runs achievements (42 tries, 69 tries, etc.)
+		const testRunsAchievements = await this.db.all(`
+			SELECT * FROM achievements 
+			WHERE requirement_type = 'total_test_runs' 
+			AND requirement_value <= ?
+			AND id NOT IN (SELECT achievement_id FROM user_achievements WHERE user_id = ?)
+		`, [totalTestRuns, userId]);
+
+		for (const achievement of testRunsAchievements) {
 			await this.awardAchievement(userId, achievement.id);
 			newAchievements.push(achievement);
 		}

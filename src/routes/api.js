@@ -228,6 +228,48 @@ router.get('/achievements/user', async (req, res) => {
 });
 
 /**
+ * POST /api/achievements/unlock/:achievementId
+ * Manually unlock a specific achievement (for easter eggs)
+ */
+router.post('/achievements/unlock/:achievementId', async (req, res) => {
+	try {
+		if (!req.user || !req.user.id) {
+			return res.status(401).json({ error: 'Not authenticated' });
+		}
+
+		const { achievementId } = req.params;
+
+		// Check if achievement exists and is an easter egg type
+		const achievement = await databaseService.db.get(
+			'SELECT * FROM achievements WHERE id = ? AND requirement_type = ?',
+			[achievementId, 'easter_egg']
+		);
+
+		if (!achievement) {
+			return res.status(404).json({ error: 'Achievement not found or not unlockable' });
+		}
+
+		// Check if user already has this achievement
+		const existing = await databaseService.db.get(
+			'SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?',
+			[req.user.id, achievementId]
+		);
+
+		if (existing) {
+			return res.json({ message: 'Achievement already unlocked', achievement });
+		}
+
+		// Award the achievement
+		await databaseService.awardAchievement(req.user.id, achievementId);
+
+		res.json({ message: 'Achievement unlocked!', achievement });
+	} catch (error) {
+		console.error('Error unlocking achievement:', error);
+		res.status(500).json({ error: 'Failed to unlock achievement' });
+	}
+});
+
+/**
  * GET /api/notifications
  * Get active notifications
  */

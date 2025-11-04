@@ -89,6 +89,12 @@ class WorkspacePage {
             // Redirect back to exercises page if no exercise selected
             navigateTo('exercises.html');
         }
+
+        // Initialize rickroll easter egg
+        this.initRickrollEasterEgg();
+
+        // Initialize hackerman achievement (detect DevTools)
+        this.initHackermanAchievement();
     }
 
     updateTime() {
@@ -435,6 +441,176 @@ class WorkspacePage {
 
     showVPNNotification() {
         alert('VPN Connection Required\n\nAccess to the exercises requires a VPN connection to the organization network.\nPlease connect to your VPN and refresh the page.');
+    }
+
+    /**
+     * Initialize the rickroll easter egg
+     */
+    initRickrollEasterEgg() {
+        // Create hidden button
+        const button = document.createElement('button');
+        button.className = 'secret-rickroll-trigger';
+        button.setAttribute('aria-label', 'Secret');
+        button.title = '';
+        document.body.appendChild(button);
+
+        // Click handler
+        button.addEventListener('click', async () => {
+            // Play notification sound
+            soundEffects.playNotification();
+
+            // Show rickroll modal
+            this.showRickroll();
+
+            // Unlock achievement
+            try {
+                await this.unlockRickrollAchievement();
+            } catch (error) {
+                console.error('Failed to unlock rickroll achievement:', error);
+            }
+        });
+    }
+
+    /**
+     * Show the rickroll modal
+     */
+    showRickroll() {
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'rickroll-modal';
+        modal.innerHTML = `
+            <div class="rickroll-content">
+                <h1>🎵 You've Been Rickrolled! 🎵</h1>
+                <iframe 
+                    width="800" 
+                    height="450" 
+                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
+                    style="border: none;"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+                <br>
+                <button class="rickroll-close">Close (and Never Gonna Give You Up)</button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Close button handler
+        modal.querySelector('.rickroll-close').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
+    /**
+     * Unlock the rickroll achievement
+     */
+    async unlockRickrollAchievement() {
+        try {
+            const response = await fetch(`${this.apiService.baseUrl}/api/achievements/unlock/rickrolled`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                // If already unlocked, that's fine
+                if (error.message && error.message.includes('already unlocked')) {
+                    console.log('Achievement already unlocked');
+                    return;
+                }
+                throw new Error(error.error || 'Failed to unlock achievement');
+            }
+
+            const data = await response.json();
+            console.log('Rickroll achievement unlocked!', data);
+
+            // Show achievement notification
+            if (data.achievement) {
+                showAchievementNotifications([data.achievement]);
+            }
+        } catch (error) {
+            console.error('Error unlocking rickroll achievement:', error);
+        }
+    }
+
+    /**
+     * Initialize the Hackerman achievement (detect DevTools)
+     */
+    initHackermanAchievement() {
+        let devtoolsOpen = false;
+        let consecutiveDetections = 0;
+        const REQUIRED_DETECTIONS = 3; // Need 3 consecutive detections to avoid false positives
+
+        // More reliable detection: Check console.table behavior
+        const detectDevTools = () => {
+            const widthThreshold = window.outerWidth - window.innerWidth > 160;
+            const heightThreshold = window.outerHeight - window.innerHeight > 160;
+
+            // Only trigger if threshold is exceeded multiple times consecutively
+            if (widthThreshold || heightThreshold) {
+                consecutiveDetections++;
+                if (consecutiveDetections >= REQUIRED_DETECTIONS && !devtoolsOpen) {
+                    devtoolsOpen = true;
+                    this.unlockHackermanAchievement();
+                }
+            } else {
+                // Reset count if DevTools appears to be closed
+                consecutiveDetections = 0;
+            }
+        };
+
+        // Check every 2 seconds (less aggressive than before)
+        // Also wait 5 seconds before starting to avoid initial page load issues
+        setTimeout(() => {
+            setInterval(detectDevTools, 2000);
+        }, 5000);
+    }
+
+    /**
+     * Unlock the Hackerman achievement
+     */
+    async unlockHackermanAchievement() {
+        try {
+            const response = await fetch(`${this.apiService.baseUrl}/api/achievements/unlock/hackerman`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                // If already unlocked, that's fine
+                if (error.message && error.message.includes('already unlocked')) {
+                    console.log('%cHackerman achievement already unlocked!', 'color: #00ff00;');
+                    return;
+                }
+                throw new Error(error.error || 'Failed to unlock achievement');
+            }
+
+            const data = await response.json();
+            console.log('%cHackerman achievement unlocked! 🎉', 'font-size: 16px; color: #00ff00; font-weight: bold;');
+
+            // Show achievement notification
+            if (data.achievement) {
+                showAchievementNotifications([data.achievement]);
+                soundEffects.playSuccess();
+            }
+        } catch (error) {
+            console.error('Error unlocking Hackerman achievement:', error);
+        }
     }
 }
 
