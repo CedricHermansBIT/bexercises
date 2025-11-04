@@ -1,0 +1,118 @@
+{
+  "examName": "Bash Exam - Backup Script Question",
+  "description": "Example grading configuration for Question 9: Backup Script",
+  "tasks": [
+    {
+      "name": "Backup Script (8.5 points)",
+      "scriptName": "backup_script.sh",
+      "solutionScriptContent": "#!/bin/bash\n\nif [ -z $1 ]; then\n    echo \"Please provide a directory name\" >&2\n    exit 1\nfi\n\nif [ ! -d $1 ]; then\n    echo \"The provided argument ($1) is not a directory\" >&2\n    exit 1\nfi\n\nmkdir -p ~/Backups\n\nDIRNAME=${1%/}\nDIRNAME=${DIRNAME##*/}\nDATE=$(date +%Y%m%d)\nTARBALL=~/Backups/${DIRNAME}_${DATE}.tar.gz\n\ntar -czf $TARBALL $1 2>/dev/null\n\necho \"Backup created: $1 -> $TARBALL\"",
+      "tests": [
+        {
+          "description": "Test: No argument provided - should show error",
+          "arguments": [],
+          "inputs": [],
+          "points": 0.75
+        },
+        {
+          "description": "Test: Invalid directory - should show error with argument name",
+          "arguments": ["/this/path/does/not/exist"],
+          "inputs": [],
+          "points": 0.75
+        },
+        {
+          "description": "Test: Valid directory - creates backup and shows message",
+          "arguments": ["/tmp"],
+          "inputs": [],
+          "points": 1.5
+        }
+      ],
+      "codeRules": [
+        {
+          "description": "Has shebang line (#!/bin/bash)",
+          "pattern": "^#!/bin/bash",
+          "flags": "m",
+          "points": 0.5
+        },
+        {
+          "description": "Uses $1 for first argument",
+          "pattern": "\\$1",
+          "flags": "",
+          "points": 0.5
+        },
+        {
+          "description": "Tests for missing argument with [ -z $1 ]",
+          "pattern": "\\[\\s+-z\\s+\\$1\\s+\\]",
+          "flags": "m",
+          "points": 0.75
+        },
+        {
+          "description": "Tests if argument is directory with [ ! -d $1 ]",
+          "pattern": "\\[\\s+!\\s+-d\\s+\\$1\\s+\\]",
+          "flags": "m",
+          "points": 0.75
+        },
+        {
+          "description": "Returns error message for missing argument",
+          "pattern": "Please provide a directory name",
+          "flags": "",
+          "points": 0.5
+        },
+        {
+          "description": "Returns error message for invalid directory",
+          "pattern": "is not a directory",
+          "flags": "",
+          "points": 0.5
+        },
+        {
+          "description": "Creates Backups directory with mkdir -p",
+          "pattern": "mkdir\\s+-p\\s+.*Backups",
+          "flags": "m",
+          "points": 1.0
+        },
+        {
+          "description": "Removes trailing slash using parameter expansion ${var%/}",
+          "pattern": "\\$\\{[^}]+%/\\}",
+          "flags": "m",
+          "points": 0.5
+        },
+        {
+          "description": "Removes path prefix using ${var##*/}",
+          "pattern": "\\$\\{[^}]+##\\*/\\}",
+          "flags": "m",
+          "points": 0.5
+        },
+        {
+          "description": "Formats date as YYYYMMDD with $(date +%Y%m%d)",
+          "pattern": "\\$\\(date\\s+\\+%Y%m%d\\)",
+          "flags": "m",
+          "points": 0.5
+        },
+        {
+          "description": "Creates compound filename (DIRNAME_YYYYMMDD.tar.gz)",
+          "pattern": "\\$\\{?\\w+\\}?_\\$\\{?\\w+\\}?\\.tar\\.gz",
+          "flags": "m",
+          "points": 1.0
+        },
+        {
+          "description": "Uses tar command to create archive",
+          "pattern": "tar\\s+.*-[cz].*\\.tar\\.gz",
+          "flags": "m",
+          "points": 1.0
+        },
+        {
+          "description": "Prints informational message about backup creation",
+          "pattern": "echo.*[Bb]ackup",
+          "flags": "m",
+          "points": 0.5
+        }
+      ]
+    }
+  ],
+  "totalPoints": 11.5,
+  "notes": [
+    "Total: 3 output tests (3 points) + 13 code checks (8.5 points) = 11.5 points",
+    "Original question was worth 8.5 points, but this configuration includes all sub-requirements",
+    "You may want to adjust point values to match your grading rubric"
+  ]
+}
+

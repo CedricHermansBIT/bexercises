@@ -621,6 +621,47 @@ class ApiService {
 		}
 		return response.json();
 	}
+
+	/**
+	 * Grade exam submissions (admin only)
+	 * @param {string} zipData - Base64 encoded ZIP file
+	 * @param {Object} gradingConfig - Grading configuration with tasks, tests, and code rules
+	 * @returns {Promise<Object>} Grading results
+	 */
+	async gradeExamSubmissions(zipData, gradingConfig) {
+		const response = await fetch(`${this.baseUrl}/api/admin/exam-grader/grade`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ zipData, gradingConfig })
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || error.detail || `Failed to grade submissions: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Test a single script against a solution (admin only)
+	 * @param {Object} testData - Test data with studentScript, solutionScript, arguments, inputs, codeRules
+	 * @returns {Promise<Object>} Comparison results and code check results
+	 */
+	async testSingleScript(testData) {
+		const response = await fetch(`${this.baseUrl}/api/admin/exam-grader/test-single`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(testData)
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || error.detail || `Failed to test script: ${response.status}`);
+		}
+
+		return response.json();
+	}
 }
 
 export default ApiService;

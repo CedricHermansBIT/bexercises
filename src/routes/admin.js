@@ -1034,5 +1034,105 @@ router.post('/notifications/:id/deactivate', async (req, res) => {
 	}
 });
 
+/**
+ * POST /api/admin/exam-grader/grade
+ * Grade exam submissions from a zip file with custom test configuration
+ */
+router.post('/exam-grader/grade', async (req, res) => {
+	try {
+		const { zipData, gradingConfig } = req.body;
+
+		if (!zipData) {
+			return res.status(400).json({ error: 'Missing zip file data' });
+		}
+
+		if (!gradingConfig || !gradingConfig.tasks) {
+			return res.status(400).json({ error: 'Missing grading configuration' });
+		}
+
+		// Convert base64 to buffer
+		const zipBuffer = Buffer.from(zipData, 'base64');
+
+		// Grade all submissions
+		const examGraderService = require('../services/examGraderService');
+		const results = await examGraderService.gradeExamSubmissions(zipBuffer, gradingConfig);
+
+		res.json(results);
+	} catch (error) {
+		console.error('Error grading exam submissions:', error);
+		res.status(500).json({
+			error: 'Failed to grade submissions',
+			detail: error.message,
+			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+		});
+	}
+});
+
+/**
+ * POST /api/admin/exam-grader/test-single
+ * Test a single script against a solution with custom rules
+ */
+router.post('/exam-grader/test-single', async (req, res) => {
+	try {
+		const { studentScript, solutionScript, arguments: args = [], inputs = [], codeRules = [], fixtures = [], fixturePermissions = {}, expectedOutputFiles = [] } = req.body;
+
+		if (!studentScript) {
+			return res.status(400).json({ error: 'Missing student script' });
+		}
+
+		if (!solutionScript) {
+			return res.status(400).json({ error: 'Missing solution script' });
+		}
+
+		const examGraderService = require('../services/examGraderService');
+		const fs = require('fs').promises;
+		const os = require('os');
+
+		// Create temp files for both scripts
+		const tempDir = await fs.mkdtemp(path.join(config.paths.temp, 'exam-test-'));
+
+		try {
+			const studentPath = path.join(tempDir, 'student.sh');
+			const solutionPath = path.join(tempDir, 'solution.sh');
+
+			await fs.writeFile(studentPath, studentScript, 'utf8');
+			await fs.writeFile(solutionPath, solutionScript, 'utf8');
+
+			// Compare outputs
+			const comparison = await examGraderService.compareScriptOutputs(
+				studentPath,
+				solutionPath,
+				args,
+				inputs,
+				fixtures,
+				fixturePermissions,
+				expectedOutputFiles
+			);
+
+			// Check code rules if provided
+			let codeCheckResults = [];
+			if (codeRules.length > 0) {
+				codeCheckResults = await examGraderService.checkCodeRules(studentPath, codeRules);
+			}
+
+			res.json({
+				comparison,
+				codeChecks: codeCheckResults
+			});
+		} finally {
+			// Clean up temp directory
+			const { removeRecursive } = require('../services/dockerService');
+			await removeRecursive(tempDir);
+		}
+	} catch (error) {
+		console.error('Error testing single script:', error);
+		res.status(500).json({
+			error: 'Failed to test script',
+			detail: error.message,
+			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+		});
+	}
+});
+
 module.exports = router;
 
