@@ -16,6 +16,8 @@ class UsersPage {
 
         this.users = [];
         this.currentUser = null;
+        this.autoRefreshInterval = null;
+        this.isRefreshing = false;
 
         this.init();
     }
@@ -48,24 +50,83 @@ class UsersPage {
 
         // Setup event listeners
         this.setupEventListeners();
+
+        // Clean up auto-refresh on page unload
+        window.addEventListener('beforeunload', () => {
+            this.stopAutoRefresh();
+        });
     }
 
     setupEventListeners() {
         const refreshBtn = document.getElementById('refresh-users-btn');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', async () => {
-                // Store the current user ID if viewing details
-                const currentUserId = this.currentUser?.user?.id;
+                await this.refreshUsers();
+            });
+        }
 
-                // Reload the users list (this will re-sort by latest activity)
-                await this.loadUsers();
-
-                // If a user detail view was open, refresh it
-                if (currentUserId) {
-                    await this.viewUserDetails(currentUserId);
+        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+        if (autoRefreshToggle) {
+            autoRefreshToggle.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.startAutoRefresh();
+                } else {
+                    this.stopAutoRefresh();
                 }
             });
         }
+    }
+
+    async refreshUsers() {
+        if (this.isRefreshing) return; // Prevent multiple simultaneous refreshes
+
+        this.isRefreshing = true;
+        const refreshBtn = document.getElementById('refresh-users-btn');
+
+        // Add visual feedback
+        if (refreshBtn) {
+            refreshBtn.classList.add('refreshing');
+            refreshBtn.disabled = true;
+        }
+
+        try {
+            // Store the current user ID if viewing details
+            const currentUserId = this.currentUser?.user?.id;
+
+            // Reload the users list (this will re-sort by latest activity)
+            await this.loadUsers();
+
+            // If a user detail view was open, refresh it
+            if (currentUserId) {
+                await this.viewUserDetails(currentUserId);
+            }
+        } finally {
+            this.isRefreshing = false;
+            if (refreshBtn) {
+                refreshBtn.classList.remove('refreshing');
+                refreshBtn.disabled = false;
+            }
+        }
+    }
+
+    startAutoRefresh() {
+        // Refresh every 30 seconds
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+        }
+        this.autoRefreshInterval = setInterval(() => {
+            this.refreshUsers();
+        }, 30000); // 30 seconds
+
+        console.log('Auto-refresh enabled (every 30 seconds)');
+    }
+
+    stopAutoRefresh() {
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+            this.autoRefreshInterval = null;
+        }
+        console.log('Auto-refresh disabled');
     }
 
     async loadUsers() {
@@ -75,6 +136,26 @@ class UsersPage {
         } catch (error) {
             console.error('Failed to load users:', error);
         }
+    }
+
+    /**
+     * Get the most recent activity timestamp (either last_login or last_activity)
+     * @param {Object} user - User object
+     * @returns {string|null} Most recent timestamp
+     */
+    getMostRecentActivity(user) {
+        const timestamps = [
+            user.last_activity,  // Test submission activity
+            user.last_login      // Login activity
+        ].filter(t => t); // Remove null/undefined values
+
+        if (timestamps.length === 0) {
+            return user.created_at || null; // Fallback to creation date
+        }
+
+        // Sort timestamps descending and return the most recent
+        timestamps.sort((a, b) => b.localeCompare(a));
+        return timestamps[0];
     }
 
     renderUsersList() {
@@ -88,10 +169,10 @@ class UsersPage {
             return;
         }
 
-        // Sort users by most recent activity (descending)
+        // Sort users by most recent activity (login or test submission, whichever is latest)
         const sortedUsers = [...this.users].sort((a, b) => {
-            const aActivity = a.last_activity || a.created_at || '';
-            const bActivity = b.last_activity || b.created_at || '';
+            const aActivity = this.getMostRecentActivity(a) || '';
+            const bActivity = this.getMostRecentActivity(b) || '';
             return bActivity.localeCompare(aActivity); // Most recent first
         });
 
@@ -102,8 +183,56 @@ class UsersPage {
             item.style.cursor = 'pointer';
 
             const adminBadge = user.is_admin ? '<span class="admin-badge">👑 Admin</span>' : '';
-            const lastLogin = formatDateTime(user.last_login) || 'Never';
-            const lastActivity = formatDateTime(user.last_activity) || 'No activity';
+
+            // Get the most recent activity (login or test submission, whichever is latest)
+            const lastActivityTime = this.getMostRecentActivity(user);
+            let lastActivityText = 'No activity';
+            let activityClass = 'old';
+            let fullActivityDateTime = 'Never';
+
+            if (lastActivityTime) {
+                // Full date and time for tooltip
+                fullActivityDateTime = formatDateTime(lastActivityTime, true);
+
+                // Parse date consistently with formatDateTime logic
+                let activityDate;
+                if (typeof lastActivityTime === 'string') {
+                    const hasTimezone = lastActivityTime.includes('Z') || lastActivityTime.includes('+') || lastActivityTime.match(/-\d{2}:\d{2}$/);
+                    if (!hasTimezone) {
+                        // Add 'Z' to treat as UTC (same as formatDateTime)
+                        const isoString = lastActivityTime.replace(' ', 'T') + 'Z';
+                        activityDate = new Date(isoString);
+                    } else {
+                        activityDate = new Date(lastActivityTime);
+                    }
+                } else {
+                    activityDate = new Date(lastActivityTime);
+                }
+
+                const now = new Date();
+                const diffMs = now - activityDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 5) {
+                    lastActivityText = 'Just now';
+                    activityClass = 'recent';
+                } else if (diffMins < 60) {
+                    lastActivityText = `${diffMins} min ago`;
+                    activityClass = 'recent';
+                } else if (diffHours < 24) {
+                    lastActivityText = `${diffHours}h ago`;
+                    activityClass = diffHours < 6 ? 'recent' : '';
+                } else if (diffDays < 7) {
+                    lastActivityText = `${diffDays}d ago`;
+                    activityClass = '';
+                } else {
+                    // Show full date and time for older activities
+                    lastActivityText = fullActivityDateTime;
+                    activityClass = 'old';
+                }
+            }
 
             item.innerHTML = `
                 <div class="user-info">
@@ -112,11 +241,13 @@ class UsersPage {
                     </div>
                     <div class="user-email">${user.email || ''}</div>
                     <div class="user-stats">
-                        <span class="stat-badge" title="Exercises where user submitted at least one attempt">📚 ${user.exercises_attempted || 0} exercises tried</span>
+                        <span class="stat-badge last-activity ${activityClass}" title="Last activity: ${fullActivityDateTime}">
+                            🕒 ${lastActivityText}
+                        </span>
+                        <span class="stat-badge" title="Exercises where user submitted at least one attempt">📚 ${user.exercises_attempted || 0} tried</span>
                         <span class="stat-badge" title="Exercises successfully completed">✅ ${user.exercises_completed || 0} completed</span>
                         <span class="stat-badge" title="Total test runs across all exercises">🔄 ${user.total_test_runs || 0} test runs</span>
                         <span class="stat-badge" title="Achievements unlocked">🏆 ${user.achievements_unlocked || 0} achievements</span>
-                        <span class="stat-badge">Last activity: ${lastActivity}</span>
                     </div>
                 </div>
             `;
@@ -140,7 +271,6 @@ class UsersPage {
             document.getElementById('user-details').style.display = 'block';
 
             // Update title
-            const isAdmin = data.user.is_admin === 1;
             document.getElementById('user-details-title').textContent =
                 `${data.user.display_name}'s Progress`;
 

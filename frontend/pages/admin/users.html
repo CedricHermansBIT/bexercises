@@ -8,6 +8,68 @@
     <link rel="stylesheet" href="../../admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <style>
+        /* Refresh button animation */
+        .action-btn.refreshing .refresh-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .action-btn.refreshing {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Auto-refresh toggle */
+        .auto-refresh-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            margin-left: 10px;
+        }
+
+        .auto-refresh-label input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        .auto-refresh-label:hover {
+            color: var(--text-primary);
+        }
+
+        /* Sidebar header layout */
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Last activity badge styling */
+        .user-stats .stat-badge.last-activity {
+            font-weight: 500;
+            color: var(--accent-color);
+        }
+
+        .user-stats .stat-badge.last-activity.recent {
+            color: #2ecc71;
+        }
+
+        .user-stats .stat-badge.last-activity.old {
+            color: var(--text-secondary);
+        }
+    </style>
 </head>
 <body>
     <!-- Topbar -->
@@ -46,9 +108,13 @@
         <!-- Sidebar with users list -->
         <div class="admin-sidebar">
             <div class="sidebar-header">
-                <button class="action-btn" id="refresh-users-btn">
-                    <span>🔄</span> Refresh
+                <button class="action-btn" id="refresh-users-btn" title="Refresh user list">
+                    <span class="refresh-icon">🔄</span> Refresh
                 </button>
+                <label class="auto-refresh-label" title="Automatically refresh every 30 seconds">
+                    <input type="checkbox" id="auto-refresh-toggle">
+                    <span>Auto-refresh</span>
+                </label>
             </div>
             <div class="users-list" id="users-list">
                 <!-- Users will be populated here -->
