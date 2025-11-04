@@ -2485,6 +2485,54 @@ body {
 
 /* ===== END OF ENHANCED CODE SUBMISSION PREVIEW ===== */
 
+/* ===== CIRCULAR PROGRESS INDICATOR FOR REFRESH BUTTONS ===== */
+/* Progress ring that animates around refresh buttons during auto-refresh */
+.refresh-btn,
+#refresh-users-btn,
+.action-btn#refresh-users-btn {
+    position: relative;
+    --progress: 0; /* CSS variable for progress (0-100) */
+}
+
+/* Simple approach: Use box-shadow to create a progress indicator */
+.refresh-btn::before,
+#refresh-users-btn::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    /* Create a gradient border effect */
+    background:
+        linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
+        conic-gradient(
+            from -90deg,
+            var(--accent-blue) 0%,
+            var(--accent-blue) calc(var(--progress) * 1%),
+            transparent calc(var(--progress) * 1%),
+            transparent 100%
+        ) border-box;
+    border: 3px solid transparent;
+}
+
+/* Show progress when progress > 0 */
+.refresh-btn[style*="--progress"][style]:not([style*="--progress: 0"])::before,
+#refresh-users-btn[style*="--progress"][style]:not([style*="--progress: 0"])::before {
+    opacity: 0.8;
+}
+
+.refresh-btn,
+#refresh-users-btn {
+    transition: transform 0.2s ease;
+}
+
+.refresh-btn:active,
+#refresh-users-btn:active {
+    transform: scale(0.95);
+}
+
 /* ===== NOTIFICATION BANNER ===== */
 .notification-banner-container {
     position: fixed;

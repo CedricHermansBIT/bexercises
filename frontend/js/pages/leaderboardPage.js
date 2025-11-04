@@ -25,7 +25,7 @@ class LeaderboardPage {
         this.autoRefreshInterval = null;
         this.autoRefreshProgressInterval = null;
         this.lastUpdated = null;
-        this.autoRefreshProgress = 100;
+        this.autoRefreshProgress = 0; // 0-100 representing progress through interval
 
         this.init();
     }
@@ -291,26 +291,27 @@ class LeaderboardPage {
             // Do an immediate refresh
             this.refreshCurrentTab();
 
-            // Reset progress
-            this.autoRefreshProgress = 100;
-            this.updateProgressBar();
+            // Track start time for accurate progress calculation
+            const startTime = Date.now();
+            const duration = 30000; // 30 seconds
+
+            // Reset progress to 0 (start filling)
+            this.autoRefreshProgress = 0;
+            this.updateRefreshButtonProgress();
 
             // Then refresh every 30 seconds
             this.autoRefreshInterval = setInterval(() => {
                 console.log('Auto-refresh triggered');
-                this.autoRefreshProgress = 100;
                 this.refreshCurrentTab();
-            }, 30000);
+            }, duration);
 
-            // Update progress bar every 100ms (smooth animation)
+            // Update progress based on elapsed time for accuracy
             this.autoRefreshProgressInterval = setInterval(() => {
-                this.autoRefreshProgress -= (100 / 30000) * 100; // Decrease over 30 seconds
-                if (this.autoRefreshProgress < 0) this.autoRefreshProgress = 0;
-                this.updateProgressBar();
-            }, 100);
-
-            // Update footer to show auto-refresh is active
-            this.updateFooterWithAutoRefresh();
+                const elapsed = Date.now() - startTime;
+                const cycleElapsed = elapsed % duration; // Handle multiple cycles
+                this.autoRefreshProgress = Math.min((cycleElapsed / duration) * 100, 100);
+                this.updateRefreshButtonProgress();
+            }, 50); // Update more frequently (50ms) for smoother animation
 
             // Show visual indicator
             this.showAutoRefreshStatus('Auto-refresh enabled - refreshing now...');
@@ -325,53 +326,20 @@ class LeaderboardPage {
                 this.autoRefreshProgressInterval = null;
             }
 
-            // Hide progress bar
-            this.hideProgressBar();
-
-            // Update footer
-            this.updateFooterWithAutoRefresh();
+            // Reset progress
+            this.autoRefreshProgress = 0;
+            this.updateRefreshButtonProgress();
 
             this.showAutoRefreshStatus('Auto-refresh disabled');
         }
     }
 
-    updateProgressBar() {
-        let progressBar = document.getElementById('auto-refresh-progress');
+    updateRefreshButtonProgress() {
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (!refreshBtn) return;
 
-        if (!progressBar) {
-            // Create progress bar if it doesn't exist
-            const footer = document.querySelector('.leaderboard-footer');
-            if (footer) {
-                progressBar = document.createElement('div');
-                progressBar.id = 'auto-refresh-progress';
-                progressBar.className = 'auto-refresh-progress-bar';
-                progressBar.innerHTML = '<div class="progress-fill"></div>';
-                footer.insertBefore(progressBar, footer.firstChild);
-            }
-        }
-
-        if (progressBar) {
-            const fill = progressBar.querySelector('.progress-fill');
-            if (fill) {
-                fill.style.width = this.autoRefreshProgress + '%';
-
-                // Change color based on time remaining
-                if (this.autoRefreshProgress > 66) {
-                    fill.style.background = 'var(--accent-green)';
-                } else if (this.autoRefreshProgress > 33) {
-                    fill.style.background = 'var(--accent-yellow)';
-                } else {
-                    fill.style.background = 'var(--accent-blue)';
-                }
-            }
-        }
-    }
-
-    hideProgressBar() {
-        const progressBar = document.getElementById('auto-refresh-progress');
-        if (progressBar) {
-            progressBar.remove();
-        }
+        // Update the CSS variable for the circular progress
+        refreshBtn.style.setProperty('--progress', this.autoRefreshProgress);
     }
 
     updateFooterWithAutoRefresh() {

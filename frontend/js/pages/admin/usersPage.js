@@ -17,7 +17,9 @@ class UsersPage {
         this.users = [];
         this.currentUser = null;
         this.autoRefreshInterval = null;
+        this.autoRefreshProgressInterval = null;
         this.isRefreshing = false;
+        this.autoRefreshProgress = 0; // 0-100 representing progress through interval
 
         this.init();
     }
@@ -114,9 +116,30 @@ class UsersPage {
         if (this.autoRefreshInterval) {
             clearInterval(this.autoRefreshInterval);
         }
+        if (this.autoRefreshProgressInterval) {
+            clearInterval(this.autoRefreshProgressInterval);
+        }
+
+        // Track start time for accurate progress calculation
+        const startTime = Date.now();
+        const duration = 30000; // 30 seconds
+
+        // Start progress from 0
+        this.autoRefreshProgress = 0;
+        this.updateRefreshProgress();
+
+        // Refresh interval
         this.autoRefreshInterval = setInterval(() => {
             this.refreshUsers();
-        }, 30000); // 30 seconds
+        }, duration);
+
+        // Update progress based on elapsed time for accuracy
+        this.autoRefreshProgressInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const cycleElapsed = elapsed % duration; // Handle multiple cycles
+            this.autoRefreshProgress = Math.min((cycleElapsed / duration) * 100, 100);
+            this.updateRefreshProgress();
+        }, 50); // Update more frequently (50ms) for smoother animation
 
         console.log('Auto-refresh enabled (every 30 seconds)');
     }
@@ -126,7 +149,21 @@ class UsersPage {
             clearInterval(this.autoRefreshInterval);
             this.autoRefreshInterval = null;
         }
+        if (this.autoRefreshProgressInterval) {
+            clearInterval(this.autoRefreshProgressInterval);
+            this.autoRefreshProgressInterval = null;
+        }
+        this.autoRefreshProgress = 0;
+        this.updateRefreshProgress();
         console.log('Auto-refresh disabled');
+    }
+
+    updateRefreshProgress() {
+        const refreshBtn = document.getElementById('refresh-users-btn');
+        if (!refreshBtn) return;
+
+        // Update the CSS variable for the circular progress
+        refreshBtn.style.setProperty('--progress', this.autoRefreshProgress);
     }
 
     async loadUsers() {
