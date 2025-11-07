@@ -88,6 +88,18 @@ class ApiService {
 	}
 
 	/**
+	 * Get global statistics for all exercises
+	 * @returns {Promise<Object>} Object with exercise IDs as keys and stats as values
+	 */
+	async getGlobalExerciseStats() {
+		const response = await fetch(`${this.baseUrl}/api/exercises/stats/global`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch global exercise statistics: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
 	 * Get current user info
 	 * @returns {Promise<Object>} User object
 	 */

@@ -849,6 +849,33 @@ class DatabaseService {
 	}
 
 	/**
+	 * Get global statistics for all exercises
+	 * @returns {Promise<Object>} Object with exercise IDs as keys and stats as values
+	 */
+	async getAllExercisesGlobalStats() {
+		const stats = await this.db.all(`
+			SELECT 
+				exercise_id,
+				COUNT(DISTINCT user_id) as users_completed,
+				AVG(CASE WHEN completed = 1 THEN attempts ELSE NULL END) as avg_tries_to_complete
+			FROM user_progress
+			WHERE completed = 1
+			GROUP BY exercise_id
+		`);
+
+		// Convert to object keyed by exercise_id
+		const statsObj = {};
+		stats.forEach(stat => {
+			statsObj[stat.exercise_id] = {
+				usersCompleted: stat.users_completed || 0,
+				avgTries: stat.avg_tries_to_complete ? Math.round(stat.avg_tries_to_complete * 10) / 10 : 0
+			};
+		});
+
+		return statsObj;
+	}
+
+	/**
 	 * Get achievement points leaderboard
 	 * @param {string|null} languageId - Optional language ID (not used for achievement leaderboard, but kept for consistency)
 	 * @returns {Promise<Array>} Leaderboard data ranked by achievement points

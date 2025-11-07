@@ -283,4 +283,18 @@ router.get('/notifications', async (req, res) => {
 	}
 });
 
+/**
+ * GET /api/exercises/stats/global
+ * Get global statistics for all exercises (completion counts, average tries)
+ */
+router.get('/exercises/stats/global', async (req, res) => {
+	try {
+		const stats = await databaseService.getAllExercisesGlobalStats();
+		res.json(stats);
+	} catch (error) {
+		console.error('Error fetching global exercise stats:', error);
+		res.status(500).json({ error: 'Failed to load exercise statistics' });
+	}
+});
+
 module.exports = router;

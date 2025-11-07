@@ -720,13 +720,88 @@ body {
 }
 
 .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.72rem;
+    font-weight: 400;
+    margin-left: auto;
+}
+
+.stat-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    opacity: 0.6;
+}
+
+.stat-text {
+    color: var(--text-muted);
+}
+
+.stat-separator {
+    opacity: 0.4;
+    font-size: 0.7rem;
+}
+
+.difficulty-badge {
+    font-size: 0.62rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    margin-left: 0.2rem;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Difficulty color variants for card-meta */
+.card-meta.difficulty-easy .stat-dot {
+    background: var(--accent-green);
+    opacity: 0.8;
+}
+
+.card-meta.difficulty-easy .difficulty-badge {
+    background: rgba(166, 227, 161, 0.12);
+    color: var(--accent-green);
+}
+
+.card-meta.difficulty-medium .stat-dot {
+    background: var(--accent-yellow);
+    opacity: 0.8;
+}
+
+.card-meta.difficulty-medium .difficulty-badge {
+    background: rgba(249, 226, 175, 0.12);
+    color: var(--accent-yellow);
+}
+
+.card-meta.difficulty-hard .stat-dot {
+    background: #fab387;
+    opacity: 0.8;
+}
+
+.card-meta.difficulty-hard .difficulty-badge {
+    background: rgba(250, 179, 135, 0.12);
+    color: #fab387;
+}
+
+.card-meta.difficulty-very-hard .stat-dot {
+    background: var(--accent-red);
+    opacity: 0.8;
+}
+
+.card-meta.difficulty-very-hard .difficulty-badge {
+    background: rgba(243, 139, 168, 0.12);
+    color: var(--accent-red);
 }
 
 .card-arrow {
     color: var(--accent-blue);
     font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
 }
 
 /* Chapter sections */

@@ -19,6 +19,7 @@ class ExercisesPage {
 
         this.currentLanguage = 'bash';
         this.exercises = [];
+        this.globalStats = {};
         this.currentFilter = 'all';
 
         this.init();
@@ -197,6 +198,8 @@ class ExercisesPage {
     async loadExercises() {
         try {
             this.exercises = await this.apiService.getExercises();
+            // Load global statistics for all exercises
+            this.globalStats = await this.apiService.getGlobalExerciseStats();
         } catch (error) {
             console.error('Failed to load exercises:', error);
         }
@@ -276,6 +279,40 @@ class ExercisesPage {
         tempDiv.innerHTML = exercise.description;
         const firstP = tempDiv.querySelector('p')?.textContent || exercise.description.substring(0, 150);
 
+        // Get global stats for this exercise
+        const stats = this.globalStats[exercise.id] || { usersCompleted: 0, avgTries: 0 };
+
+        // Calculate difficulty rating based on average tries
+        // Only show difficulty if at least 3 users have completed it (to ensure meaningful statistics)
+        let difficulty;
+        let difficultyClass;
+        if (stats.usersCompleted < 3 || stats.avgTries === 0) {
+            difficulty = '';
+            difficultyClass = '';
+        } else if (stats.avgTries <= 3) {
+            difficulty = 'Easy';
+            difficultyClass = 'difficulty-easy';
+        } else if (stats.avgTries <= 5) {
+            difficulty = 'Medium';
+            difficultyClass = 'difficulty-medium';
+        } else if (stats.avgTries <= 10) {
+            difficulty = 'Hard';
+            difficultyClass = 'difficulty-hard';
+        } else {
+            difficulty = 'Very Hard';
+            difficultyClass = 'difficulty-very-hard';
+        }
+
+        const statsHtml = stats.usersCompleted > 0 ? `
+            <div class="card-meta ${difficultyClass}">
+                <span class="stat-dot"></span>
+                <span class="stat-text">${stats.usersCompleted} completed</span>
+                <span class="stat-separator">•</span>
+                <span class="stat-text">${stats.avgTries} tries</span>
+                ${difficulty ? `<span class="difficulty-badge">${difficulty}</span>` : ''}
+            </div>
+        ` : '<div class="card-meta"></div>';
+
         card.innerHTML = `
             <div class="card-header">
                 <div class="card-number">${number}.</div>
@@ -289,6 +326,7 @@ class ExercisesPage {
             <div class="card-description">${firstP.substring(0, 120)}${firstP.length > 120 ? '...' : ''}</div>
             <div class="card-footer">
                 <span class="card-arrow">→</span>
+                ${statsHtml}
             </div>
         `;
 
