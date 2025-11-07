@@ -756,6 +756,11 @@ body {
     letter-spacing: 0.3px;
 }
 
+.new-badge {
+    background: rgba(137, 180, 250, 0.12);
+    color: var(--accent-blue);
+}
+
 /* Difficulty color variants for card-meta */
 .card-meta.difficulty-easy .stat-dot {
     background: var(--accent-green);

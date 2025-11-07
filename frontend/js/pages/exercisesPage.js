@@ -311,7 +311,7 @@ class ExercisesPage {
                 <span class="stat-text">${stats.avgTries} tries</span>
                 ${difficulty ? `<span class="difficulty-badge">${difficulty}</span>` : ''}
             </div>
-        ` : '<div class="card-meta"></div>';
+        ` : '<div class="card-meta"><span class="difficulty-badge new-badge">New</span></div>';
 
         card.innerHTML = `
             <div class="card-header">
