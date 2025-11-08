@@ -1,6 +1,5 @@
 // frontend/js/pages/exercisesPage.js
 import ApiService from '../services/apiService.js';
-import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
 import { navigateTo } from '../utils/navigationUtils.js';
@@ -10,7 +9,6 @@ import { setFavicon } from '../utils/faviconUtils.js';
 class ExercisesPage {
     constructor() {
         this.apiService = new ApiService();
-        this.storageService = new StorageService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
 
@@ -20,6 +18,7 @@ class ExercisesPage {
         this.currentLanguage = 'bash';
         this.exercises = [];
         this.globalStats = {};
+        this.userProgress = {}; // Store user progress from database
         this.currentFilter = 'all';
 
         this.init();
@@ -58,8 +57,9 @@ class ExercisesPage {
         // Setup event listeners
         this.setupEventListeners();
 
-        // Load exercises
+        // Load exercises and user progress
         await this.loadExercises();
+        await this.loadUserProgress();
 
         // Update progress display
         this.updateProgressDisplay();
@@ -205,6 +205,17 @@ class ExercisesPage {
         }
     }
 
+    async loadUserProgress() {
+        try {
+            // Load user progress from database
+            this.userProgress = await this.apiService.getUserProgress();
+        } catch (error) {
+            console.error('Failed to load user progress:', error);
+            // Fall back to empty progress if error
+            this.userProgress = {};
+        }
+    }
+
     populateExerciseSections() {
         const container = document.getElementById('exercises-container');
         if (!container) return;
@@ -255,10 +266,9 @@ class ExercisesPage {
         const grid = document.createElement('div');
         grid.className = 'exercises-grid';
 
-        const progress = this.storageService.loadProgress();
-
         exercises.forEach((exercise, index) => {
-            const isCompleted = progress[exercise.id]?.completed || false;
+            // Use database progress instead of localStorage
+            const isCompleted = this.userProgress[exercise.id]?.completed || false;
             const card = this.createExerciseCard(exercise, isCompleted, index + 1);
             grid.appendChild(card);
         });
@@ -374,9 +384,9 @@ class ExercisesPage {
     }
 
     updateProgressDisplay() {
-        const progress = this.storageService.loadProgress();
         const totalExercises = this.exercises.length;
-        const completedExercises = Object.values(progress).filter(p => p.completed).length;
+        // Use database progress instead of localStorage
+        const completedExercises = Object.values(this.userProgress).filter(p => p.completed).length;
         const percentage = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
         const progressText = document.getElementById('progress-text');

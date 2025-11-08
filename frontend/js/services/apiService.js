@@ -100,6 +100,37 @@ class ApiService {
 	}
 
 	/**
+	 * Get current user's progress for all exercises
+	 * @returns {Promise<Object>} Object with exercise IDs as keys and progress data as values
+	 */
+	async getUserProgress() {
+		const response = await fetch(`${this.baseUrl}/api/progress`);
+		if (!response.ok) {
+			if (response.status === 401) {
+				return {}; // Not authenticated, return empty progress
+			}
+			throw new Error(`Failed to fetch user progress: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Get current user's progress for a specific language
+	 * @param {string} languageId - Language ID
+	 * @returns {Promise<Array>} Array of progress records for the language
+	 */
+	async getUserProgressByLanguage(languageId) {
+		const response = await fetch(`${this.baseUrl}/api/progress/language/${encodeURIComponent(languageId)}`);
+		if (!response.ok) {
+			if (response.status === 401) {
+				return []; // Not authenticated, return empty progress
+			}
+			throw new Error(`Failed to fetch user progress: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
 	 * Get current user info
 	 * @returns {Promise<Object>} User object
 	 */

@@ -297,4 +297,59 @@ router.get('/exercises/stats/global', async (req, res) => {
 	}
 });
 
+/**
+ * GET /api/progress
+ * Get current user's progress for all exercises
+ */
+router.get('/progress', async (req, res) => {
+	try {
+		if (!req.user || !req.user.id) {
+			return res.status(401).json({ error: 'Not authenticated' });
+		}
+
+		// Get all user progress records
+		const progressRecords = await databaseService.db.all(`
+			SELECT exercise_id, completed, last_submission_at, completed_at, attempts
+			FROM user_progress
+			WHERE user_id = ?
+		`, [req.user.id]);
+
+		// Convert to a map for easy lookup
+		const progressMap = {};
+		progressRecords.forEach(record => {
+			progressMap[record.exercise_id] = {
+				completed: record.completed === 1,
+				lastSubmissionAt: record.last_submission_at,
+				completedAt: record.completed_at,
+				attempts: record.attempts
+			};
+		});
+
+		res.json(progressMap);
+	} catch (error) {
+		console.error('Error fetching user progress:', error);
+		res.status(500).json({ error: 'Failed to load user progress' });
+	}
+});
+
+/**
+ * GET /api/progress/language/:languageId
+ * Get current user's progress for a specific language
+ */
+router.get('/progress/language/:languageId', async (req, res) => {
+	try {
+		if (!req.user || !req.user.id) {
+			return res.status(401).json({ error: 'Not authenticated' });
+		}
+
+		const { languageId } = req.params;
+		const progressRecords = await databaseService.getUserProgressByLanguage(req.user.id, languageId);
+
+		res.json(progressRecords);
+	} catch (error) {
+		console.error('Error fetching user progress by language:', error);
+		res.status(500).json({ error: 'Failed to load user progress' });
+	}
+});
+
 module.exports = router;

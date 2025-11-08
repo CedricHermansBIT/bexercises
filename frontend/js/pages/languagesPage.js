@@ -1,6 +1,5 @@
 // frontend/js/pages/languagesPage.js
 import ApiService from '../services/apiService.js';
-import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
 import { navigateTo } from '../utils/navigationUtils.js';
@@ -10,7 +9,6 @@ import { setFavicon } from '../utils/faviconUtils.js';
 class LanguagesPage {
     constructor() {
         this.apiService = new ApiService();
-        this.storageService = new StorageService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
 
@@ -18,6 +16,7 @@ class LanguagesPage {
         window.authComponent = this.authComponent;
 
         this.exercises = [];
+        this.userProgress = {}; // Store user progress from database
 
         this.init();
     }
@@ -40,8 +39,9 @@ class LanguagesPage {
         this.updateTime();
         setInterval(() => this.updateTime(), 1000);
 
-        // Load exercises to get counts
+        // Load exercises and user progress
         await this.loadExercises();
+        await this.loadUserProgress();
 
         // Populate language cards
         this.populateLanguageCards();
@@ -139,11 +139,21 @@ class LanguagesPage {
             console.error('Failed to load exercises:', error);
         }
     }
+    async loadUserProgress() {
+        try {
+            // Load user progress from database
+            this.userProgress = await this.apiService.getUserProgress();
+        } catch (error) {
+            console.error('Failed to load user progress:', error);
+            // Fall back to empty progress if error
+            this.userProgress = {};
+        }
+    }
 
     getExerciseStats() {
-        const progress = this.storageService.loadProgress();
         const total = this.exercises.length;
-        const completed = Object.values(progress).filter(p => p.completed).length;
+        // Use database progress instead of localStorage
+        const completed = Object.values(this.userProgress).filter(p => p.completed).length;
         return { total, completed };
     }
 
