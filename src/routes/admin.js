@@ -1042,6 +1042,10 @@ router.post('/exam-grader/grade', async (req, res) => {
 	try {
 		const { zipData, gradingConfig } = req.body;
 
+		console.log('[ExamGrader API] Received grading request');
+		console.log('[ExamGrader API] zipData length:', zipData ? zipData.length : 'undefined');
+		console.log('[ExamGrader API] Tasks count:', gradingConfig?.tasks?.length);
+
 		if (!zipData) {
 			return res.status(400).json({ error: 'Missing zip file data' });
 		}
@@ -1052,11 +1056,13 @@ router.post('/exam-grader/grade', async (req, res) => {
 
 		// Convert base64 to buffer
 		const zipBuffer = Buffer.from(zipData, 'base64');
+		console.log('[ExamGrader API] Zip buffer size:', zipBuffer.length, 'bytes');
 
 		// Grade all submissions
 		const examGraderService = require('../services/examGraderService');
 		const results = await examGraderService.gradeExamSubmissions(zipBuffer, gradingConfig);
 
+		console.log('[ExamGrader API] Grading complete. Results:', results.submissions?.length, 'submissions');
 		res.json(results);
 	} catch (error) {
 		console.error('Error grading exam submissions:', error);
