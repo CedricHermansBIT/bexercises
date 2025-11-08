@@ -10,11 +10,21 @@ const router = express.Router();
 /**
  * GET /api/exercises
  * Get all exercises (without test cases)
+ * Optional query param: ?language=bash to filter by language
  */
 router.get('/exercises', async (req, res) => {
 	try {
-		const exercises = await exerciseService.getAllExercises();
-		res.json(exercises);
+		const languageId = req.query.language;
+
+		if (languageId) {
+			// Filter by language
+			const exercises = await exerciseService.getExercisesByLanguage(languageId);
+			res.json(exercises);
+		} else {
+			// Get all exercises
+			const exercises = await exerciseService.getAllExercises();
+			res.json(exercises);
+		}
 	} catch (error) {
 		console.error('Error fetching exercises:', error);
 		res.status(500).json({ error: 'Failed to load exercises' });
@@ -24,10 +34,13 @@ router.get('/exercises', async (req, res) => {
 /**
  * GET /api/languages
  * Get all available programming languages
+ * Returns all languages (including disabled) to everyone
+ * Disabled languages will be shown but not clickable for non-admin users (handled in frontend)
  */
 router.get('/languages', async (req, res) => {
 	try {
-		const languages = await databaseService.getLanguages();
+		// Return all languages to everyone
+		const languages = await databaseService.getLanguages(true);
 		res.json(languages);
 	} catch (error) {
 		console.error('Error fetching languages:', error);

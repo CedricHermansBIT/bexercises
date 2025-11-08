@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Languages Management - BITLab Admin</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../../admin.css">
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="back-button" id="back-to-dashboard">
+                <span>󰁍</span> back
+            </button>
+            <span class="workspace-indicator">[admin]</span>
+            <span class="app-title">Languages</span>
+        </div>
+
+        <div class="topbar-center">
+            <span id="system-time">--:--</span>
+        </div>
+
+        <div class="topbar-right">
+            <button class="topbar-btn" id="theme-toggle-btn">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <div class="user-menu" id="user-menu-admin">
+                <span class="user-icon">👤</span>
+                <span id="user-display-name-admin">Admin</span>
+                <div class="user-dropdown">
+                    <button class="dropdown-item" id="logout-btn">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-layout">
+        <div class="resize-handle"></div>
+
+        <!-- Sidebar with languages list -->
+        <div class="admin-sidebar">
+            <div class="sidebar-header">
+                <button class="action-btn primary" id="new-language-btn">
+                    <span>+</span> New Language
+                </button>
+                <button class="action-btn" id="refresh-languages-btn">
+                    <span>🔄</span> Refresh
+                </button>
+            </div>
+            <div class="languages-list" id="languages-sidebar-list">
+                <!-- Languages will be populated here -->
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <div class="admin-main">
+            <!-- Welcome/Empty State -->
+            <div id="admin-welcome" class="admin-welcome">
+                <div class="welcome-content">
+                    <h2>Language Management</h2>
+                    <p>Create and manage programming languages, icons, and visibility settings</p>
+                </div>
+            </div>
+
+            <!-- Language Editor/Details View -->
+            <div id="language-editor" class="language-editor" style="display: none;">
+                <div class="language-details">
+                    <h3 id="language-editor-title">New Language</h3>
+
+                    <form id="language-form">
+                        <div class="form-group">
+                            <label for="language-id">Language ID <span class="required">*</span></label>
+                            <input type="text" id="language-id" class="form-input" required pattern="[a-z0-9-]+" placeholder="e.g., python, javascript">
+                            <small>Lowercase letters, numbers, and hyphens only. Cannot be changed after creation.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language-name">Name <span class="required">*</span></label>
+                            <input type="text" id="language-name" class="form-input" required placeholder="e.g., Python">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language-description">Description</label>
+                            <textarea id="language-description" class="form-textarea" rows="3" placeholder="Brief description of the language"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language-icon">Icon SVG</label>
+                            <textarea id="language-icon" class="form-textarea" rows="5" placeholder="<svg>...</svg>"></textarea>
+                            <small>Paste SVG code for the language icon</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language-order">Display Order</label>
+                            <input type="number" id="language-order" class="form-input" value="0" min="0">
+                            <small>Lower numbers appear first</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="language-enabled" checked>
+                                <span>Enabled (visible to users)</span>
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="action-btn primary" id="save-language-btn">Save Language</button>
+                            <button type="button" class="action-btn danger" id="delete-language-btn" style="display: none;">Delete Language</button>
+                            <button type="button" class="action-btn" id="cancel-language-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../js/pages/admin/languagesPage.js"></script>
+</body>
+</html>
+

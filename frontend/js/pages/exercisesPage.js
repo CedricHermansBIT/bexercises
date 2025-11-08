@@ -20,6 +20,7 @@ class ExercisesPage {
         this.globalStats = {};
         this.userProgress = {}; // Store user progress from database
         this.currentFilter = 'all';
+        this.currentChapterFilter = 'all'; // Track selected chapter
 
         this.init();
     }
@@ -66,6 +67,9 @@ class ExercisesPage {
 
         // Populate exercise cards
         this.populateExerciseSections();
+
+        // Populate chapter filter dropdown
+        this.populateChapterFilter();
 
         // Setup logout
         this.setupLogout();
@@ -193,11 +197,21 @@ class ExercisesPage {
                 this.filterExercises();
             });
         });
+
+        // Chapter filter dropdown
+        const chapterFilter = document.getElementById('chapter-filter');
+        if (chapterFilter) {
+            chapterFilter.addEventListener('change', (e) => {
+                this.currentChapterFilter = e.target.value;
+                this.filterExercises();
+            });
+        }
     }
 
     async loadExercises() {
         try {
-            this.exercises = await this.apiService.getExercises();
+            // Load exercises filtered by current language from the backend
+            this.exercises = await this.apiService.getExercises(this.currentLanguage);
             // Load global statistics for all exercises
             this.globalStats = await this.apiService.getGlobalExerciseStats();
         } catch (error) {
@@ -235,6 +249,7 @@ class ExercisesPage {
     groupExercisesByChapter() {
         const chapters = {};
 
+        // Exercises are already filtered by language from the backend
         this.exercises.forEach(exercise => {
             const chapter = exercise.chapter || 'Uncategorized';
             if (!chapters[chapter]) {
@@ -249,6 +264,26 @@ class ExercisesPage {
         });
 
         return chapters;
+    }
+
+    populateChapterFilter() {
+        const chapterFilter = document.getElementById('chapter-filter');
+        if (!chapterFilter) return;
+
+        // Get unique chapters from exercises
+        const chapters = [...new Set(this.exercises.map(ex => ex.chapter || 'Uncategorized'))];
+        chapters.sort();
+
+        // Clear existing options except "All Chapters"
+        chapterFilter.innerHTML = '<option value="all">All Chapters</option>';
+
+        // Add option for each chapter
+        chapters.forEach(chapter => {
+            const option = document.createElement('option');
+            option.value = chapter;
+            option.textContent = chapter;
+            chapterFilter.appendChild(option);
+        });
     }
 
     createChapterSection(chapterName, exercises) {
@@ -355,38 +390,47 @@ class ExercisesPage {
     }
 
     filterExercises() {
-        const cards = document.querySelectorAll('.exercise-card');
         const sections = document.querySelectorAll('.chapter-section');
 
-        cards.forEach(card => {
-            const isCompleted = card.dataset.completed === 'true';
-
-            if (this.currentFilter === 'all') {
-                card.style.display = 'block';
-            } else if (this.currentFilter === 'completed' && isCompleted) {
-                card.style.display = 'block';
-            } else if (this.currentFilter === 'pending' && !isCompleted) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        // Hide sections with no visible cards
+        // Filter by chapter first
         sections.forEach(section => {
-            const visibleCards = section.querySelectorAll('.exercise-card[style="display: block;"], .exercise-card:not([style*="display: none"])');
-            if (visibleCards.length === 0 && this.currentFilter !== 'all') {
+            const chapterTitle = section.querySelector('.chapter-title')?.textContent;
+            const matchesChapter = this.currentChapterFilter === 'all' || chapterTitle === this.currentChapterFilter;
+
+            if (!matchesChapter) {
                 section.style.display = 'none';
-            } else {
-                section.style.display = 'block';
+                return;
             }
+
+            // Filter cards within visible chapters
+            const sectionCards = section.querySelectorAll('.exercise-card');
+            let visibleCount = 0;
+
+            sectionCards.forEach(card => {
+                const isCompleted = card.dataset.completed === 'true';
+                let shouldShow = false;
+
+                if (this.currentFilter === 'all') {
+                    shouldShow = true;
+                } else if (this.currentFilter === 'completed' && isCompleted) {
+                    shouldShow = true;
+                } else if (this.currentFilter === 'pending' && !isCompleted) {
+                    shouldShow = true;
+                }
+
+                card.style.display = shouldShow ? 'block' : 'none';
+                if (shouldShow) visibleCount++;
+            });
+
+            // Hide section if no visible cards
+            section.style.display = visibleCount > 0 ? 'block' : 'none';
         });
     }
 
     updateProgressDisplay() {
         const totalExercises = this.exercises.length;
-        // Use database progress instead of localStorage
-        const completedExercises = Object.values(this.userProgress).filter(p => p.completed).length;
+        // Count completed exercises only for the current language (exercises are already filtered)
+        const completedExercises = this.exercises.filter(ex => this.userProgress[ex.id]?.completed).length;
         const percentage = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
         const progressText = document.getElementById('progress-text');

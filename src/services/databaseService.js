@@ -363,7 +363,13 @@ class DatabaseService {
 
 	// ============= Language Methods =============
 
-	async getLanguages() {
+	async getLanguages(includeDisabled = false) {
+		if (includeDisabled) {
+			return this.db.all(`
+				SELECT * FROM languages 
+				ORDER BY order_num, name
+			`);
+		}
 		return this.db.all(`
 			SELECT * FROM languages 
 			WHERE enabled = 1 
@@ -375,9 +381,53 @@ class DatabaseService {
 		return this.db.get('SELECT * FROM languages WHERE id = ?', [id]);
 	}
 
+	async updateLanguage(id, data) {
+		const { name, description, icon_svg, order_num, enabled } = data;
+		const updates = [];
+		const values = [];
+
+		if (name !== undefined) {
+			updates.push('name = ?');
+			values.push(name);
+		}
+		if (description !== undefined) {
+			updates.push('description = ?');
+			values.push(description);
+		}
+		if (icon_svg !== undefined) {
+			updates.push('icon_svg = ?');
+			values.push(icon_svg);
+		}
+		if (order_num !== undefined) {
+			updates.push('order_num = ?');
+			values.push(order_num);
+		}
+		if (enabled !== undefined) {
+			updates.push('enabled = ?');
+			values.push(enabled ? 1 : 0);
+		}
+
+		if (updates.length === 0) {
+			return this.getLanguage(id);
+		}
+
+		values.push(id);
+		await this.db.run(`
+			UPDATE languages
+			SET ${updates.join(', ')}
+			WHERE id = ?
+		`, values);
+		return this.getLanguage(id);
+	}
+
+	async deleteLanguage(id) {
+		await this.db.run('DELETE FROM languages WHERE id = ?', [id]);
+	}
+
 	async createLanguage(data) {
 		const { id, name, description, icon_svg, order_num, enabled } = data;
 		await this.db.run(`
+
 			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled)
 			VALUES (?, ?, ?, ?, ?, ?)
 		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0]);

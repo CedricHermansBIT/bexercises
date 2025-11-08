@@ -53,13 +53,15 @@ async function getAllExercises() {
 		for (const lang of languages) {
 			const exercises = await databaseService.getExercisesByLanguage(lang.id);
 
-			// Remove test cases for public API
+			// Remove test cases for public API, but add language info
 			allExercises.push(...exercises.map(ex => ({
 				id: ex.id,
 				title: ex.title,
 				description: ex.description,
 				chapter: ex.chapter_name,
-				order: ex.order_num
+				order: ex.order_num,
+				language_id: lang.id,
+				language: lang.name
 			})));
 		}
 
@@ -72,8 +74,50 @@ async function getAllExercises() {
 			title: ex.title,
 			description: ex.description,
 			chapter: ex.chapter,
-			order: ex.order
+			order: ex.order,
+			language_id: ex.language_id,
+			language: ex.language
 		}));
+	}
+}
+
+/**
+ * Get exercises for a specific language (without test cases)
+ * @param {string} languageId - Language ID
+ * @returns {Promise<Array>} Exercises without test cases for the language
+ */
+async function getExercisesByLanguage(languageId) {
+	try {
+		const exercises = await databaseService.getExercisesByLanguage(languageId);
+
+		// Get language info
+		const language = await databaseService.getLanguage(languageId);
+
+		// Remove test cases for public API, but add language info
+		return exercises.map(ex => ({
+			id: ex.id,
+			title: ex.title,
+			description: ex.description,
+			chapter: ex.chapter_name,
+			order: ex.order_num,
+			language_id: languageId,
+			language: language?.name || languageId
+		}));
+	} catch (error) {
+		console.error('Error loading exercises from database:', error);
+		// Fallback: filter from all exercises
+		const allExercises = await loadExercisesInternal();
+		return allExercises
+			.filter(ex => ex.language_id === languageId || ex.language === languageId)
+			.map(ex => ({
+				id: ex.id,
+				title: ex.title,
+				description: ex.description,
+				chapter: ex.chapter,
+				order: ex.order,
+				language_id: ex.language_id,
+				language: ex.language
+			}));
 	}
 }
 
@@ -278,6 +322,6 @@ module.exports = {
 	createExercise,
 	updateExercise,
 	deleteExercise,
-	reorderExercises
+	reorderExercises,
+	getExercisesByLanguage
 };
-

@@ -2,6 +2,7 @@
 const express = require('express');
 const requireAdmin = require('../middleware/adminAuth');
 const exerciseService = require('../services/exerciseService');
+const databaseService = require('../services/databaseService');
 const dockerService = require('../services/dockerService');
 const fs = require('fs').promises;
 const path = require('path');
@@ -1136,6 +1137,101 @@ router.post('/exam-grader/test-single', async (req, res) => {
 			error: 'Failed to test script',
 			detail: error.message,
 			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+		});
+	}
+});
+
+/**
+ * GET /api/admin/languages
+ * Get all languages (including disabled)
+ */
+router.get('/languages', async (req, res) => {
+	try {
+		const languages = await databaseService.getLanguages(true); // Include disabled
+		res.json(languages);
+	} catch (error) {
+		console.error('Error fetching languages:', error);
+		res.status(500).json({
+			error: 'Failed to load languages',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * POST /api/admin/languages
+ * Create a new language
+ */
+router.post('/languages', async (req, res) => {
+	try {
+		const { id, name, description, icon_svg, order_num, enabled } = req.body;
+
+		if (!id || !name) {
+			return res.status(400).json({ error: 'Language ID and name are required' });
+		}
+
+		const language = await databaseService.createLanguage({
+			id,
+			name,
+			description,
+			icon_svg,
+			order_num,
+			enabled
+		});
+
+		res.json(language);
+	} catch (error) {
+		console.error('Error creating language:', error);
+		res.status(500).json({
+			error: 'Failed to create language',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * PUT /api/admin/languages/:id
+ * Update a language
+ */
+router.put('/languages/:id', async (req, res) => {
+	try {
+		const { name, description, icon_svg, order_num, enabled } = req.body;
+
+		const language = await databaseService.updateLanguage(req.params.id, {
+			name,
+			description,
+			icon_svg,
+			order_num,
+			enabled
+		});
+
+		if (!language) {
+			return res.status(404).json({ error: 'Language not found' });
+		}
+
+		res.json(language);
+	} catch (error) {
+		console.error('Error updating language:', error);
+		res.status(500).json({
+			error: 'Failed to update language',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * DELETE /api/admin/languages/:id
+ * Delete a language (will cascade delete chapters and exercises)
+ */
+router.delete('/languages/:id', async (req, res) => {
+	try {
+		await databaseService.deleteLanguage(req.params.id);
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deleting language:', error);
+		res.status(500).json({
+			error: 'Failed to delete language',
+			detail: error.message
 		});
 	}
 });

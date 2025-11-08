@@ -18,10 +18,15 @@ class ApiService {
 
 	/**
 	 * Fetch all exercises
+	 * @param {string} [language] - Optional language ID to filter exercises
 	 * @returns {Promise<Array>} Array of exercises
 	 */
-	async getExercises() {
-		const response = await fetch(`${this.baseUrl}/api/exercises`);
+	async getExercises(language = null) {
+		const url = language
+			? `${this.baseUrl}/api/exercises?language=${encodeURIComponent(language)}`
+			: `${this.baseUrl}/api/exercises`;
+
+		const response = await fetch(url);
 		if (!response.ok) {
 			throw new Error(`Failed to fetch exercises: ${response.status}`);
 		}
@@ -704,6 +709,75 @@ class ApiService {
 		}
 
 		return response.json();
+	}
+
+	/**
+	 * Get all languages (admin only, includes disabled)
+	 * @returns {Promise<Array>} Array of languages
+	 */
+	async getAdminLanguages() {
+		const response = await fetch(`${this.baseUrl}/api/admin/languages`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch languages: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Create a new language (admin only)
+	 * @param {Object} languageData - Language data
+	 * @returns {Promise<Object>} Created language
+	 */
+	async createLanguage(languageData) {
+		const response = await fetch(`${this.baseUrl}/api/admin/languages`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(languageData)
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || error.detail || `Failed to create language: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Update a language (admin only)
+	 * @param {string} languageId - Language ID
+	 * @param {Object} languageData - Language data
+	 * @returns {Promise<Object>} Updated language
+	 */
+	async updateLanguage(languageId, languageData) {
+		const response = await fetch(`${this.baseUrl}/api/admin/languages/${encodeURIComponent(languageId)}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(languageData)
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || error.detail || `Failed to update language: ${response.status}`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Delete a language (admin only)
+	 * @param {string} languageId - Language ID
+	 * @returns {Promise<void>}
+	 */
+	async deleteLanguage(languageId) {
+		const response = await fetch(`${this.baseUrl}/api/admin/languages/${encodeURIComponent(languageId)}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || error.detail || `Failed to delete language: ${response.status}`);
+		}
 	}
 }
 

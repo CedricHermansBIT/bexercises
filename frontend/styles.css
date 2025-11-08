@@ -591,7 +591,71 @@ body {
     color: var(--text-muted);
 }
 
+.status-badge.disabled {
+    background: rgba(243, 139, 168, 0.2);
+    color: var(--accent-red);
+}
+
+/* Disabled language card styling */
+.language-card.disabled-language {
+    opacity: 0.7;
+    border: 2px dashed var(--border-color);
+}
+
+.language-card.disabled-language::after {
+    content: 'ADMIN ONLY';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--accent-red);
+    color: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+/* Language icon preview in admin table */
+.language-icon-preview {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.language-icon-preview svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Status badges for admin tables */
+.status-badge-success {
+    background: rgba(166, 227, 161, 0.2);
+    color: var(--accent-green);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-badge-warning {
+    background: rgba(249, 226, 175, 0.2);
+    color: var(--accent-peach);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 /* ===== EXERCISE SELECTION SCREEN ===== */
+
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
 
 .filter-buttons {
     display: flex;
@@ -619,6 +683,30 @@ body {
     background: var(--accent-blue);
     color: var(--bg-primary);
     border-color: var(--accent-blue);
+}
+
+.chapter-filter {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    min-width: 200px;
+}
+
+.chapter-filter:hover {
+    background: var(--surface-light);
+    border-color: var(--accent-blue);
+}
+
+.chapter-filter:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.1);
 }
 
 .exercises-grid {
