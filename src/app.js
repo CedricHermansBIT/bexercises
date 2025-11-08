@@ -4,9 +4,11 @@ const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const session = require('express-session');
 const passport = require('passport');
+const path = require('path');
 
 const config = require('./config');
 const { configurePassport } = require('./middleware/auth');
+const SqliteSessionStore = require('./middleware/sessionStore');
 const corsMiddleware = require('./middleware/cors');
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
@@ -24,8 +26,17 @@ function createApp() {
 
 	// Body parsing - increased limit to support large file/folder uploads
 	app.use(bodyParser.json({ limit: '50mb' }));
-	app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+	// Session configuration with SQLite store
+	const sessionStore = new SqliteSessionStore({
+		dbPath: path.join(config.paths.root, 'data', 'sessions.db'),
+		tableName: 'sessions',
+		cleanupInterval: 15 * 60 * 1000 // Clean up expired sessions every 15 minutes
+	});
 
+	app.use(session({
+		...config.session,
+		store: sessionStore
+	}));
 	// Session configuration
 	app.use(session(config.session));
 
