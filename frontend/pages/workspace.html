@@ -57,6 +57,14 @@
             <div class="resize-handle"></div>
             <div class="workspace-sidebar">
                 <div class="sidebar-section">
+                    <div class="exercise-navigation" id="exercise-navigation" style="margin-top: 1rem; display: none;">
+                        <button id="prev-exercise-btn" class="nav-btn" style="display: none;">
+                            <span>←</span> Previous
+                        </button>
+                        <button id="next-exercise-btn" class="nav-btn" style="display: none;">
+                            Next <span>→</span>
+                        </button>
+                    </div>
                     <div class="section-header">description</div>
                     <div class="section-content" id="exercise-description">
                         <!-- Description will be loaded here -->
@@ -74,6 +82,9 @@
                             </button>
                             <button id="reset-code" class="action-btn">
                                 <span>󰑓</span> reset
+                            </button>
+                            <button id="edit-exercise" class="action-btn admin-only" style="display: none;">
+                                <span>✏️</span> edit exercise
                             </button>
                         </div>
                     </div>
@@ -113,7 +124,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/perl/perl.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/go/go.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/rust/rust.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
     <script type="module" src="../js/pages/workspacePage.js"></script>
 </body>

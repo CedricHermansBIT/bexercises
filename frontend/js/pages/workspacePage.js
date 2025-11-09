@@ -26,6 +26,8 @@ class WorkspacePage {
 
         this.currentExercise = null;
         this.codeEditor = null;
+        this.chapterExercises = []; // All exercises in current chapter
+        this.currentExerciseIndex = -1; // Index in chapterExercises array
 
         this.init();
     }
@@ -78,6 +80,14 @@ class WorkspacePage {
                 }
             }
         );
+
+        // Show edit button for admins
+        if (this.authComponent.isAdmin()) {
+            const editBtn = document.getElementById('edit-exercise');
+            if (editBtn) {
+                editBtn.style.display = 'inline-block';
+            }
+        }
 
         // Get exercise ID from URL or session storage
         const urlParams = new URLSearchParams(window.location.search);
@@ -179,6 +189,23 @@ class WorkspacePage {
         const resetCodeBtn = document.getElementById('reset-code');
         if (resetCodeBtn) {
             resetCodeBtn.addEventListener('click', () => this.resetCode());
+        }
+
+        // Edit exercise button (admin only)
+        const editExerciseBtn = document.getElementById('edit-exercise');
+        if (editExerciseBtn) {
+            editExerciseBtn.addEventListener('click', () => this.editExercise());
+        }
+
+        // Navigation buttons
+        const prevExerciseBtn = document.getElementById('prev-exercise-btn');
+        if (prevExerciseBtn) {
+            prevExerciseBtn.addEventListener('click', () => this.navigateToPreviousExercise());
+        }
+
+        const nextExerciseBtn = document.getElementById('next-exercise-btn');
+        if (nextExerciseBtn) {
+            nextExerciseBtn.addEventListener('click', () => this.navigateToNextExercise());
         }
     }
 
@@ -329,6 +356,10 @@ class WorkspacePage {
             this.updateCompletionStatus(exerciseId);
             this.testResults.displayNoResults();
 
+            // Load chapter exercises and update navigation
+            await this.loadChapterExercises(exercise);
+            this.updateNavigationButtons();
+
             // Load statistics
             await this.loadStatistics(exerciseId);
         } catch (error) {
@@ -475,6 +506,111 @@ class WorkspacePage {
 
             this.codeEditor.setValue(defaultCode);
             this.updateProgress(this.currentExercise.id, defaultCode, false);
+        }
+    }
+
+    editExercise() {
+        if (!this.currentExercise) return;
+
+        // Save current exercise ID to sessionStorage so we can return here
+        sessionStorage.setItem('returnToExercise', this.currentExercise.id);
+
+        // Navigate to admin exercises page with the exercise ID
+        navigateTo(`admin/exercises.html?edit=${this.currentExercise.id}`);
+    }
+
+    async loadChapterExercises(currentExercise) {
+        try {
+            // Get all exercises
+            const allExercises = await this.apiService.getExercises();
+
+            console.log('Current exercise:', currentExercise);
+            console.log('Current exercise chapter:', currentExercise.chapter);
+            console.log('All exercises:', allExercises);
+
+            // Filter exercises by chapter (matching chapter name)
+            this.chapterExercises = allExercises
+                .filter(ex => ex.chapter === currentExercise.chapter)
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            console.log('Chapter exercises:', this.chapterExercises);
+
+            // Find current exercise index
+            this.currentExerciseIndex = this.chapterExercises.findIndex(ex => ex.id === currentExercise.id);
+
+            console.log('Current exercise index:', this.currentExerciseIndex);
+        } catch (error) {
+            console.error('Failed to load chapter exercises:', error);
+            this.chapterExercises = [];
+            this.currentExerciseIndex = -1;
+        }
+    }
+
+    updateNavigationButtons() {
+        const navigationDiv = document.getElementById('exercise-navigation');
+        const prevBtn = document.getElementById('prev-exercise-btn');
+        const nextBtn = document.getElementById('next-exercise-btn');
+
+        console.log('Updating navigation buttons...');
+        console.log('Navigation div:', navigationDiv);
+        console.log('Prev btn:', prevBtn);
+        console.log('Next btn:', nextBtn);
+        console.log('Chapter exercises length:', this.chapterExercises.length);
+        console.log('Current index:', this.currentExerciseIndex);
+
+        if (!navigationDiv || !prevBtn || !nextBtn) return;
+
+        // Show navigation container if we have chapter exercises
+        if (this.chapterExercises.length > 1) {
+            navigationDiv.style.display = 'flex';
+
+            // Show/hide previous button
+            if (this.currentExerciseIndex > 0) {
+                prevBtn.style.display = 'flex';
+                const prevExercise = this.chapterExercises[this.currentExerciseIndex - 1];
+                prevBtn.title = prevExercise.title;
+                console.log('Showing previous button for:', prevExercise.title);
+            } else {
+                prevBtn.style.display = 'none';
+                console.log('Hiding previous button (first exercise)');
+            }
+
+            // Show/hide next button
+            if (this.currentExerciseIndex < this.chapterExercises.length - 1) {
+                nextBtn.style.display = 'flex';
+                const nextExercise = this.chapterExercises[this.currentExerciseIndex + 1];
+                nextBtn.title = nextExercise.title;
+                console.log('Showing next button for:', nextExercise.title);
+            } else {
+                nextBtn.style.display = 'none';
+                console.log('Hiding next button (last exercise)');
+            }
+        } else {
+            // Hide navigation if only one exercise in chapter
+            navigationDiv.style.display = 'none';
+            console.log('Hiding navigation (only one or zero exercises in chapter)');
+        }
+    }
+
+    navigateToPreviousExercise() {
+        if (this.currentExerciseIndex > 0) {
+            const prevExercise = this.chapterExercises[this.currentExerciseIndex - 1];
+            this.loadExercise(prevExercise.id);
+
+            // Update URL
+            const newUrl = `./workspace.html?exercise=${prevExercise.id}`;
+            window.history.pushState({}, '', newUrl);
+        }
+    }
+
+    navigateToNextExercise() {
+        if (this.currentExerciseIndex < this.chapterExercises.length - 1) {
+            const nextExercise = this.chapterExercises[this.currentExerciseIndex + 1];
+            this.loadExercise(nextExercise.id);
+
+            // Update URL
+            const newUrl = `./workspace.html?exercise=${nextExercise.id}`;
+            window.history.pushState({}, '', newUrl);
         }
     }
 
