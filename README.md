@@ -54,106 +54,55 @@ For detailed setup instructions, see [QUICKSTART.md](docs/QUICKSTART.md).
 
 ## Documentation
 
-- **[Quickstart Guide](docs/QUICKSTART.md)** - Get up and running quickly
-- **[First Admin Setup](docs/FIRST_ADMIN_SETUP.md)** - Create your first administrator account
-- **[Service Setup](docs/SERVICE_SETUP.md)** - Run BITLab as a system service
-- **[Development Guide](docs/DEVELOPMENT.md)** - Contribute to the project
-- **[Project Structure](docs/STRUCTURE.md)** - Understand the codebase architecture
-- **[Bulk Test Verification](docs/BULK_TEST_VERIFICATION.md)** - Verify exercises after system changes
-- **[File Output Verification](docs/FILE_OUTPUT_VERIFICATION.md)** - Hash-based file verification for exercises
+**Essential Guides:**
+- **[Quickstart Guide](docs/QUICKSTART.md)** - Installation and setup
+- **[First Admin Setup](docs/FIRST_ADMIN_SETUP.md)** - Create your first admin account
+- **[Multi-Language Support](docs/MULTI_LANGUAGE_SUPPORT.md)** - Add new programming languages
+- **[Custom Docker Images](docs/CUSTOM_DOCKER_IMAGE_GUIDE.md)** - Configure custom execution environments
+- **[Code Templates](docs/CODE_TEMPLATES.md)** - Customize starter code per language
 
-## Architecture
+**Advanced:**
+- **[Service Setup](docs/SERVICE_SETUP.md)** - Run BITLab as a system service (production)
 
-### Technology Stack
+## Technology Stack
 
-- **Backend**: Node.js, Express.js
-- **Frontend**: Vanilla JavaScript (ES6 modules)
-- **Database**: SQLite with WAL mode
-- **Authentication**: Passport.js with Google OAuth 2.0
-- **Code Execution**: Docker containers
+**Backend:** Node.js + Express + SQLite  
+**Frontend:** Vanilla JavaScript (ES6 modules)  
+**Authentication:** Google OAuth 2.0  
+**Code Execution:** Docker containers  
 
-### Project Structure
+### Security Features
 
-```
-BITLab/
-├── frontend/          # Client-side application
-│   ├── pages/        # HTML pages
-│   └── js/           # JavaScript modules
-├── src/              # Backend source code
-│   ├── routes/       # API endpoints
-│   ├── services/     # Business logic
-│   └── middleware/   # Express middleware
-├── data/             # SQLite database
-├── fixtures/         # Test fixtures for exercises
-└── docs/             # Documentation
-```
+- Isolated code execution in Docker containers
+- Resource limits (memory, CPU, processes)
+- 30-second timeout per test
+- No network access from containers
+- OAuth 2.0 authentication
+- Session management with secure cookies
 
-For detailed architecture documentation, see [STRUCTURE.md](docs/STRUCTURE.md).
-
-## Usage
+## How It Works
 
 ### For Students
+1. Login with Google
+2. Select a programming language
+3. Choose an exercise
+4. Write and test your code
+5. Get instant feedback
+6. Track progress and earn achievements
 
-1. **Login** with your Google account
-2. **Select a language** (e.g., Bash, Python)
-3. **Choose an exercise** from the list
-4. **Write your solution** in the code editor
-5. **Run tests** to get instant feedback
-6. **View progress** and compete on leaderboards
+### For Admins
+Access the admin panel to:
+- Create exercises with multiple test cases
+- Manage languages and chapters
+- Configure Docker execution environments
+- Track student progress
+- Manage user accounts and permissions
 
-### For Administrators
-
-1. **Access admin panel** after being promoted to admin
-2. **Create exercises** with test cases and fixtures
-3. **Manage languages** and their availability
-4. **View statistics** and user submissions
-5. **Monitor progress** across all students
-
-See [FIRST_ADMIN_SETUP.md](docs/FIRST_ADMIN_SETUP.md) for admin account setup.
-
-## Features in Detail
-
-### Automated Testing
-
-Each exercise includes multiple test cases with:
-- Command-line arguments
-- Standard input
-- Expected output
-- Expected exit code
-- Fixture files (test data)
-
-Code is executed in isolated Docker containers with:
-- Resource limits (memory, CPU, processes)
-- Timeout enforcement (default 30s per test)
-- No network access
-- Non-root execution
-
-### Progress Tracking
-
-- Exercise completion status
-- Best submission tracking
-- Historical submissions
-- Personal statistics
-
-### Leaderboards
-
-- Exercise-specific rankings
-- Global completion statistics
-- Time-based ordering
-- Submission counts
-
-### Admin Capabilities
-
-- Full CRUD operations for exercises
-- Test case management
-- Fixture file handling
-- User management
-- Exercise reordering
-- Statistics and analytics
+See [FIRST_ADMIN_SETUP.md](docs/FIRST_ADMIN_SETUP.md) for admin setup.
 
 ## Configuration
 
-Environment variables (in `.env`):
+Key environment variables in `.env`:
 
 ```env
 # Server
@@ -176,156 +125,43 @@ DOCKER_MEMORY=256m
 DOCKER_PIDS_LIMIT=128
 ```
 
-See [QUICKSTART.md](docs/QUICKSTART.md) for detailed configuration.
-
-## Security
-
-BITLab implements multiple security measures:
-
-- **OAuth 2.0** for authentication
-- **Session management** with secure cookies
-- **Isolated code execution** in Docker containers
-- **Resource limits** to prevent abuse
-- **Non-root container execution**
-- **No network access** from containers
-- **Timeout enforcement** on code execution
-- **Input validation** on all endpoints
-- **SQL injection protection** via parameterized queries
-
-## Development
-
-### Setting Up Development Environment
-
-```bash
-# Install dependencies
-npm install
-
-# Set up environment
-cp .env.example .env
-
-# Build Docker image
-docker build -f Dockerfile.runner -t bitlab-runner:latest .
-
-# Start development server
-npm start
-```
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed development guidelines.
-
-## API Endpoints
-
-### Authentication
-- `GET /auth/google` - Initiate Google OAuth
-- `GET /auth/google/callback` - OAuth callback
-- `POST /auth/logout` - Logout
-
-### Public API
-- `GET /api/user` - Get current user
-- `GET /api/languages` - List available languages
-- `GET /api/exercises` - List exercises for a language
-- `GET /api/exercises/:id` - Get exercise details
-- `POST /api/exercises/:id/submit` - Submit solution
-- `GET /api/leaderboard/:exerciseId` - Get leaderboard
-- `GET /api/submissions/history` - Get submission history
-
-### Admin API (requires admin role)
-- `GET /api/admin/exercises` - Get all exercises with test cases
-- `POST /api/admin/exercises` - Create exercise
-- `PUT /api/admin/exercises/:id` - Update exercise
-- `DELETE /api/admin/exercises/:id` - Delete exercise
-- `GET /api/admin/users` - List all users
-- `PUT /api/admin/users/:id/admin` - Toggle admin status
-- `GET /api/admin/statistics` - Get platform statistics
+See [QUICKSTART.md](docs/QUICKSTART.md) for complete configuration details.
 
 ## Deployment
 
-### Production Checklist
-
-- [ ] Set `NODE_ENV=production`
-- [ ] Use strong `SESSION_SECRET`
-- [ ] Configure HTTPS
-- [ ] Set appropriate `CALLBACK_URL`
-- [ ] Secure database file permissions
-- [ ] Configure Docker resource limits
-- [ ] Set up regular database backups
-- [ ] Configure reverse proxy (nginx/Apache)
-- [ ] Enable firewall rules
-- [ ] Monitor disk space (Docker can accumulate)
-
-### Subdirectory Deployment
-
-To deploy at a subdirectory (e.g., `example.com/bitlab/`):
-
-1. Set `BASE_PATH=/bitlab` in `.env`
-2. Configure reverse proxy to forward requests
-3. Update OAuth callback URL
+For production deployment:
+- Set `NODE_ENV=production`
+- Use a strong `SESSION_SECRET`
+- Configure HTTPS with a reverse proxy
+- Set up regular database backups
+- See [SERVICE_SETUP.md](docs/SERVICE_SETUP.md) for systemd service setup
 
 ## Troubleshooting
 
-### Docker Issues
-
+**Docker not working?**
 ```bash
-# Check Docker is running
-docker ps
-
-# Verify runner image exists
-docker images | grep bitlab-runner
-
-# Rebuild image
-docker build -f Dockerfile.runner -t bitlab-runner:latest .
-
-# Clean up containers
-docker container prune
+docker ps                                           # Check Docker is running
+docker images | grep bitlab-runner                  # Verify image exists
+docker build -f Dockerfile.runner -t bitlab-runner:latest .  # Rebuild if needed
 ```
 
-### Database Issues
-
-```bash
-# Check database file
-ls -lh data/exercises.db
-
-# Access database
-sqlite3 data/exercises.db
-
-# Reset database (WARNING: deletes all data)
-rm data/exercises.db*
-npm start  # Recreates tables
-```
-
-### Authentication Issues
-
+**Authentication issues?**
 - Verify Google OAuth credentials
 - Check callback URL matches exactly
-- Ensure cookies are enabled
-- Clear browser cache and cookies
+- Clear browser cookies
 
-## License
-
-See [LICENSE](LICENSE) file for details.
+**Database issues?**
+```bash
+rm data/exercises.db*    # Reset database (WARNING: deletes all data)
+npm start                # Recreates tables
+```
 
 ## Support
 
-For issues, questions, or contributions:
-
+For issues or questions:
 1. Check the [documentation](docs/)
-2. Search existing issues
-3. Create a new issue with detailed information
-
-## Acknowledgments
-
-Built with:
-- [Express.js](https://expressjs.com/) - Web framework
-- [Passport.js](http://www.passportjs.org/) - Authentication
-- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) - Database
-- [Docker](https://www.docker.com/) - Containerization
+2. Review troubleshooting steps above
+3. Create an issue with detailed information
 
 ---
 

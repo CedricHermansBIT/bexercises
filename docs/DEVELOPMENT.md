@@ -620,9 +620,6 @@ netstat -ano | findstr :3000
 
 Potential areas for improvement:
 
-- [ ] Add more language support (Python, JavaScript, Java)
-- [ ] Implement automated tests
-- [ ] Add code syntax highlighting in workspace
 - [ ] Real-time collaboration features
 - [ ] Export/import exercises
 - [ ] API rate limiting

@@ -1,12 +1,12 @@
 # BITLab Quickstart Guide
 
-This guide will help you get BITLab up and running quickly.
+Get BITLab up and running in minutes.
 
 ## Prerequisites
 
-- **Node.js** (v14 or higher)
-- **Docker** (for running code submissions in isolated containers)
-- **Google OAuth Credentials** (for authentication)
+- **Node.js** (v16 or higher)
+- **Docker** (for isolated code execution)
+- **Google OAuth Credentials** (for user authentication)
 
 ## Installation Steps
 
@@ -89,10 +89,9 @@ See [FIRST_ADMIN_SETUP.md](FIRST_ADMIN_SETUP.md) for detailed instructions on cr
 
 ## Next Steps
 
-- **Production Deployment**: Set up BITLab as a system service - see [SERVICE_SETUP.md](SERVICE_SETUP.md)
-- **Admins**: Learn how to manage exercises, users, and view statistics in the admin panel
-- **Students**: Browse available programming challenges and submit solutions
-- **Developers**: Read [DEVELOPMENT.md](DEVELOPMENT.md) to understand the codebase and contribute
+- **Admin Setup**: Create your first admin account - see [FIRST_ADMIN_SETUP.md](FIRST_ADMIN_SETUP.md)
+- **Production**: Run as a system service - see [SERVICE_SETUP.md](SERVICE_SETUP.md)
+- **Custom Docker**: Use custom execution environments - build or have your own Docker images, provide the name in the language settings
 
 ## Troubleshooting
 
