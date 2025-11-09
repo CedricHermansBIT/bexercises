@@ -23,16 +23,30 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
 	
 	//console.log(`Setting up resize for ${sidebarSelector}`);
 
+	// Function to update handle position based on current sidebar width
+	const updateHandlePosition = () => {
+		const currentWidth = sidebar.offsetWidth;
+		handle.style.left = `calc(${currentWidth}px - 5px)`;
+	};
+
 	// Load saved width from localStorage
 	if (storageKey) {
 		const savedWidth = localStorage.getItem(storageKey);
 		if (savedWidth) {
 			document.documentElement.style.setProperty(cssVarName, savedWidth + 'px');
-			handle.style.left = `calc(${savedWidth}px - 5px)`;
+			// Use setTimeout to ensure CSS has been applied
+			setTimeout(updateHandlePosition, 0);
 			//console.log(`Loaded saved width: ${savedWidth}px for ${cssVarName}`);
 		}
 	}
 	
+	// Update handle position on window resize
+	window.addEventListener('resize', () => {
+		if (!isResizing) {
+			updateHandlePosition();
+		}
+	});
+
 	let isResizing = false;
 	let startX = 0;
 	let startWidth = 0;
