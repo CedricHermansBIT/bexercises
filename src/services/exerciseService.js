@@ -133,16 +133,18 @@ async function getExerciseById(id) {
 		const exercise = await databaseService.getExercise(id);
 		if (!exercise) return null;
 
-		// Get language info for this exercise
+		// Get language info and chapter for this exercise
 		let languageId = null;
 		let languageName = null;
+		let chapterName = null;
 		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
 
 		if (exercise.chapter_id) {
-			// Get chapter to find language
+			// Get chapter to find language and chapter name
 			const chapter = await databaseService.getChapter(exercise.chapter_id);
 			if (chapter) {
 				languageId = chapter.language_id;
+				chapterName = chapter.name;
 				const language = await databaseService.getLanguage(chapter.language_id);
 				if (language) {
 					languageName = language.name;
@@ -156,6 +158,7 @@ async function getExerciseById(id) {
 			id: exercise.id,
 			title: exercise.title,
 			description: exercise.description,
+			chapter: chapterName,
 			language_id: languageId,
 			language: languageName,
 			code_template: codeTemplate
@@ -339,20 +342,35 @@ async function deleteExercise(id) {
  */
 async function reorderExercises(exercises) {
 	try {
-		// Map chapter names to IDs
+		// Fetch existing exercise data to get chapter_id for each exercise
 		const exercisesWithChapterIds = [];
 
 		for (const ex of exercises) {
+			// If chapter_id is already provided, use it
 			let chapterId = ex.chapter_id;
 
-			if (!chapterId && ex.chapter) {
-				const chapters = await databaseService.getChaptersByLanguage('bash');
-				const chapter = chapters.find(c => c.name === ex.chapter);
-				chapterId = chapter ? chapter.id : ex.chapter.toLowerCase().replace(/\s+/g, '-');
+			// If not, fetch the existing exercise to get its chapter_id
+			if (!chapterId) {
+				const existingExercise = await databaseService.getExercise(ex.id);
+				if (existingExercise && existingExercise.chapter_id) {
+					chapterId = existingExercise.chapter_id;
+				} else if (ex.chapter) {
+					// Fallback: try to find chapter by name (for backward compatibility)
+					// This should rarely happen now that we use database
+					const allChapters = await databaseService.db.all('SELECT * FROM chapters');
+					const chapter = allChapters.find(c => c.name === ex.chapter);
+					chapterId = chapter ? chapter.id : null;
+				}
+			}
+
+			if (!chapterId) {
+				console.warn(`No chapter_id found for exercise ${ex.id}, skipping reorder`);
+				continue;
 			}
 
 			exercisesWithChapterIds.push({
-				...ex,
+				id: ex.id,
+				order: ex.order,
 				chapter_id: chapterId
 			});
 		}
