@@ -21,7 +21,7 @@ class ExercisesPage {
         this.testCases = [];
         this.reorderMode = false;
         this.originalOrder = null;
-        this.selectedLanguage = 'all';
+        this.selectedLanguage = null; // Will be set after loading languages
         this.pendingChapterLanguage = null;
         this.pendingChapterName = null;
         this.availableFiles = [];
@@ -150,6 +150,7 @@ class ExercisesPage {
         // Language selector
         document.getElementById('admin-language-select')?.addEventListener('change', (e) => {
             this.selectedLanguage = e.target.value;
+            this.updateNewExerciseButton();
             this.populateExerciseList();
         });
     }
@@ -171,8 +172,27 @@ class ExercisesPage {
             `<option value="${lang.id}">${lang.name}</option>`
         ).join('');
 
-        select.innerHTML = `<option value="all">All Languages</option>${languageOptions}`;
-        select.value = this.selectedLanguage;
+        select.innerHTML = languageOptions;
+
+        // Set default to first language if not already set
+        if (!this.selectedLanguage && this.languages.length > 0) {
+            this.selectedLanguage = this.languages[0].id;
+        }
+
+        select.value = this.selectedLanguage || (this.languages.length > 0 ? this.languages[0].id : '');
+
+        // Update new exercise button text
+        this.updateNewExerciseButton();
+    }
+
+    updateNewExerciseButton() {
+        const btn = document.getElementById('new-exercise-btn');
+        if (!btn || !this.selectedLanguage) return;
+
+        const language = this.languages.find(l => l.id === this.selectedLanguage);
+        const langName = language ? language.name : 'Exercise';
+
+        btn.innerHTML = `<span>+</span> New ${langName} Exercise`;
     }
 
     async loadExercises() {
@@ -197,16 +217,17 @@ class ExercisesPage {
         const list = document.getElementById('exercises-list');
         list.innerHTML = '';
 
-        // Filter exercises by selected language
-        const filteredExercises = this.selectedLanguage === 'all'
-            ? this.exercises
-            : this.exercises.filter(ex => {
+        // Filter exercises by selected language (no 'all' option anymore)
+        const filteredExercises = this.selectedLanguage
+            ? this.exercises.filter(ex => {
                 return ex.language_id === this.selectedLanguage ||
                        (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
-            });
+              })
+            : [];
 
         if (filteredExercises.length === 0) {
-            list.innerHTML = '<p class="no-files">No exercises found for this language</p>';
+            const languageName = this.languages.find(l => l.id === this.selectedLanguage)?.name || 'this language';
+            list.innerHTML = `<p class="no-files">No exercises found for ${languageName}. Click "+ New Exercise" to create one!</p>`;
             return;
         }
 
@@ -231,11 +252,8 @@ class ExercisesPage {
             chapterDiv.className = 'exercise-group';
             chapterDiv.dataset.chapter = chapter;
 
-            const languageTag = this.selectedLanguage === 'all' && chapterData.language
-                ? `<span class="chapter-language-tag">${chapterData.language}</span>`
-                : '';
-
-            chapterDiv.innerHTML = `<div class="group-title">${chapter} ${languageTag}</div>`;
+            // No need for language tag since we're only showing one language at a time
+            chapterDiv.innerHTML = `<div class="group-title">${chapter}</div>`;
 
             chapterData.exercises.sort((a, b) => (a.order || 0) - (b.order || 0)).forEach(ex => {
                 const item = document.createElement('div');
@@ -288,19 +306,39 @@ class ExercisesPage {
     }
 
     createNewExercise() {
+        if (!this.selectedLanguage) {
+            alert('Please select a language first.');
+            return;
+        }
+
         this.currentExercise = null;
         this.testCases = [];
 
-        document.getElementById('editor-title').textContent = 'New Exercise';
+        const languageName = this.languages.find(l => l.id === this.selectedLanguage)?.name || 'Exercise';
+        document.getElementById('editor-title').textContent = `New ${languageName} Exercise`;
         document.getElementById('exercise-id').value = '';
         document.getElementById('exercise-id').disabled = false;
         document.getElementById('exercise-title').value = '';
-        document.getElementById('exercise-chapter').value = 'Shell scripting';
+
+        // Get first available chapter for this language or default
+        this.updateChapterOptions();
+        const chapterSelect = document.getElementById('exercise-chapter');
+        if (chapterSelect.options.length > 0) {
+            chapterSelect.selectedIndex = 0;
+        }
+
         document.getElementById('exercise-description').value = '';
-        this.solutionEditor.setValue('#!/bin/bash\n\n# Write the solution here\n');
+
+        // Set appropriate starter code based on language
+        let starterCode = '#!/bin/bash\n\n# Write the solution here\n';
+        if (this.selectedLanguage === 'python') {
+            starterCode = '#!/usr/bin/env python3\n\n# Write the solution here\n';
+        } else if (this.selectedLanguage === 'javascript') {
+            starterCode = '#!/usr/bin/env node\n\n// Write the solution here\n';
+        }
+        this.solutionEditor.setValue(starterCode);
 
         this.renderTestCases();
-        this.updateChapterOptions();
 
         document.getElementById('admin-welcome').style.display = 'none';
         document.getElementById('exercise-editor').style.display = 'block';
@@ -315,33 +353,16 @@ class ExercisesPage {
     }
 
     createNewChapter() {
-        // Determine language for new chapter
+        // Use the currently selected language
         let languageId = this.selectedLanguage;
 
-        if (languageId === 'all') {
-            if (this.languages.length === 0) {
-                alert('No languages available. Please create a language first.');
-                return;
-            }
-
-            const languageOptions = this.languages.map((lang, idx) =>
-                `${idx + 1}. ${lang.name}`
-            ).join('\n');
-
-            const choice = prompt(`Select a language for the new chapter:\n${languageOptions}\n\nEnter the number:`);
-
-            if (!choice) return;
-
-            const choiceNum = parseInt(choice);
-            if (isNaN(choiceNum) || choiceNum < 1 || choiceNum > this.languages.length) {
-                alert('Invalid selection');
-                return;
-            }
-
-            languageId = this.languages[choiceNum - 1].id;
+        if (!languageId) {
+            alert('Please select a language first.');
+            return;
         }
 
-        const chapterName = prompt('Enter the name for the new chapter:');
+        const languageName = this.languages.find(l => l.id === languageId)?.name || 'this language';
+        const chapterName = prompt(`Enter the name for the new chapter in ${languageName}:`);
 
         if (!chapterName || !chapterName.trim()) {
             return;
@@ -358,7 +379,7 @@ class ExercisesPage {
         });
 
         if (existingChapters.has(trimmedName)) {
-            alert(`Chapter "${trimmedName}" already exists for this language!`);
+            alert(`Chapter "${trimmedName}" already exists for ${languageName}!`);
             return;
         }
 
@@ -376,7 +397,7 @@ class ExercisesPage {
         option.value = trimmedName;
         option.textContent = trimmedName;
         option.dataset.languageId = languageId;
-        select.insertBefore(option, select.querySelector('[value="__new__"]'));
+        select.insertBefore(option, select.querySelector('[value="__new_chapter__"]') || null);
         select.value = trimmedName;
     }
 
@@ -794,76 +815,50 @@ class ExercisesPage {
 
     updateChapterOptions() {
         const select = document.getElementById('exercise-chapter');
-        const chaptersData = new Map();
+        const currentValue = select.value;
 
-        this.exercises.forEach(ex => {
-            if (ex.chapter) {
-                const key = `${ex.language_id || 'unknown'}_${ex.chapter}`;
-                if (!chaptersData.has(key)) {
-                    chaptersData.set(key, {
-                        name: ex.chapter,
-                        order: ex.chapter_order || 0,
-                        language_id: ex.language_id || 'unknown',
-                        language_name: ex.language || 'Unknown'
-                    });
-                }
+        // Only show chapters for the currently selected language
+        const languageExercises = this.selectedLanguage
+            ? this.exercises.filter(ex => ex.language_id === this.selectedLanguage)
+            : this.exercises;
+
+        const chaptersSet = new Set();
+        const chaptersData = [];
+
+        languageExercises.forEach(ex => {
+            if (ex.chapter && !chaptersSet.has(ex.chapter)) {
+                chaptersSet.add(ex.chapter);
+                chaptersData.push({
+                    name: ex.chapter,
+                    order: ex.chapter_order || 0
+                });
             }
         });
 
-        const currentValue = select.value;
+        // Sort chapters by order
+        chaptersData.sort((a, b) => a.order - b.order);
+
         select.innerHTML = '';
 
-        const byLanguage = new Map();
-        chaptersData.forEach((data, key) => {
-            if (!byLanguage.has(data.language_id)) {
-                byLanguage.set(data.language_id, []);
-            }
-            byLanguage.get(data.language_id).push(data);
+        // Add chapters as options
+        chaptersData.forEach(chapter => {
+            const option = document.createElement('option');
+            option.value = chapter.name;
+            option.textContent = chapter.name;
+            select.appendChild(option);
         });
 
-        const sortedLanguages = Array.from(byLanguage.entries())
-            .sort((a, b) => {
-                const langA = this.languages.find(l => l.id === a[0]);
-                const langB = this.languages.find(l => l.id === b[0]);
-                const orderA = langA ? langA.order_num || 0 : 999;
-                const orderB = langB ? langB.order_num || 0 : 999;
-                return orderA - orderB;
-            });
+        // Add "Create New Chapter" option
+        const newChapterOption = document.createElement('option');
+        newChapterOption.value = '__new_chapter__';
+        newChapterOption.textContent = '+ Create New Chapter...';
+        select.appendChild(newChapterOption);
 
-        sortedLanguages.forEach(([languageId, chapters]) => {
-            const sortedChapters = chapters.sort((a, b) => a.order - b.order);
-
-            if (this.languages.length > 1) {
-                const optgroup = document.createElement('optgroup');
-                optgroup.label = sortedChapters[0].language_name;
-
-                sortedChapters.forEach(chapter => {
-                    const option = document.createElement('option');
-                    option.value = chapter.name;
-                    option.textContent = chapter.name;
-                    option.dataset.languageId = chapter.language_id;
-                    optgroup.appendChild(option);
-                });
-
-                select.appendChild(optgroup);
-            } else {
-                sortedChapters.forEach(chapter => {
-                    const option = document.createElement('option');
-                    option.value = chapter.name;
-                    option.textContent = chapter.name;
-                    option.dataset.languageId = chapter.language_id;
-                    select.appendChild(option);
-                });
-            }
-        });
-
-        const newOption = document.createElement('option');
-        newOption.value = '__new__';
-        newOption.textContent = '+ Create New Chapter';
-        select.appendChild(newOption);
-
-        if (currentValue && currentValue !== '__new__') {
+        // Restore selection if it still exists
+        if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
             select.value = currentValue;
+        } else if (chaptersData.length > 0) {
+            select.value = chaptersData[0].name;
         }
     }
 
