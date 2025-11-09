@@ -353,7 +353,33 @@ class UsersPage {
                     <span>${formatDateTime(data.user.last_login, true)}</span>
                 </div>
             </div>
+
+            <div class="user-detail-actions" style="margin-top: 2rem; display: flex; gap: 1rem;">
+                <button class="action-btn ${data.user.is_admin ? '' : 'primary'}" id="toggle-admin-detail" title="${data.user.is_admin ? 'Remove Admin Status' : 'Grant Admin Status'}">
+                    <span>${data.user.is_admin ? '👤' : '👑'}</span> ${data.user.is_admin ? 'Remove Admin' : 'Make Admin'}
+                </button>
+                <button class="action-btn danger" id="delete-user-detail" title="Delete User">
+                    <span>🗑</span> Delete User
+                </button>
+            </div>
         `;
+
+        // Add event listeners for action buttons
+        const toggleAdminBtn = document.getElementById('toggle-admin-detail');
+        if (toggleAdminBtn) {
+            toggleAdminBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleUserAdmin(data.user.id);
+            });
+        }
+
+        const deleteUserBtn = document.getElementById('delete-user-detail');
+        if (deleteUserBtn) {
+            deleteUserBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteUser(data.user.id);
+            });
+        }
     }
 
     renderUserStats(data) {
@@ -550,6 +576,86 @@ class UsersPage {
 
         // Start trying to initialize after a short delay
         setTimeout(tryInitialize, 200);
+    }
+
+    async toggleUserAdmin(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) {
+            alert('User not found');
+            return;
+        }
+
+        const action = user.is_admin ? 'remove admin rights from' : 'grant admin rights to';
+        const confirmMessage = `Are you sure you want to ${action} ${user.display_name}?`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            // Call API to toggle admin status
+            await this.apiService.updateUser(userId, {
+                is_admin: !user.is_admin
+            });
+
+            alert(`Successfully ${user.is_admin ? 'removed admin rights from' : 'granted admin rights to'} ${user.display_name}`);
+
+            // Reload users list
+            await this.loadUsers();
+
+            // If user details are shown, reload them
+            if (this.currentUser === userId) {
+                await this.showUserDetails(userId);
+            }
+        } catch (error) {
+            console.error('Error toggling admin status:', error);
+            alert('Failed to update user admin status: ' + error.message);
+        }
+    }
+
+    async deleteUser(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) {
+            alert('User not found');
+            return;
+        }
+
+        const confirmMessage = `Are you sure you want to DELETE user "${user.display_name}"?\n\nThis will permanently remove:\n- User account\n- All progress data\n- All achievements\n\nThis action CANNOT be undone!`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // Double confirmation for safety
+        const finalConfirm = prompt(`Type the username "${user.username}" to confirm deletion:`);
+        if (finalConfirm !== user.username) {
+            alert('Deletion cancelled - username did not match');
+            return;
+        }
+
+        try {
+            await this.apiService.deleteUser(userId);
+            alert(`User "${user.display_name}" has been deleted`);
+
+            // Hide details panel if this user was selected
+            if (this.currentUser === userId) {
+                this.hideUserDetails();
+            }
+
+            // Reload users list
+            await this.loadUsers();
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Failed to delete user: ' + error.message);
+        }
+    }
+
+    hideUserDetails() {
+        const detailsPanel = document.querySelector('.user-details-panel');
+        if (detailsPanel) {
+            detailsPanel.style.display = 'none';
+        }
+        this.currentUser = null;
     }
 }
 
