@@ -65,6 +65,34 @@ class ExercisesPage {
         this.setupEventListeners();
     }
 
+    /**
+     * Get CodeMirror mode for a language
+     * @param {string} languageId - Language identifier
+     * @returns {string} CodeMirror mode name
+     */
+    getCodeMirrorMode(languageId) {
+        const modeMap = {
+            'bash': 'shell',
+            'python': 'python',
+            'javascript': 'javascript',
+            'js': 'javascript',
+            'sql': 'sql',
+            'r': 'r',
+            'php': 'php',
+            'ruby': 'ruby',
+            'perl': 'perl',
+            'c': 'clike',
+            'cpp': 'clike',
+            'c++': 'clike',
+            'java': 'clike',
+            'go': 'go',
+            'rust': 'rust',
+            'mongodb': 'javascript' // MongoDB queries are JavaScript-like
+        };
+
+        return modeMap[languageId] || 'shell';
+    }
+
     setupCodeEditor() {
         const textarea = document.getElementById('exercise-solution');
         if (textarea && window.CodeMirror) {
@@ -153,6 +181,13 @@ class ExercisesPage {
             this.selectedLanguage = e.target.value;
             // Save to localStorage to remember selection
             localStorage.setItem('admin-selected-language', this.selectedLanguage);
+
+            // Update CodeMirror syntax highlighting
+            if (this.solutionEditor) {
+                const mode = this.getCodeMirrorMode(this.selectedLanguage);
+                this.solutionEditor.setOption('mode', mode);
+            }
+
             this.updateNewExerciseButton();
             this.populateExerciseList();
         });
@@ -338,6 +373,12 @@ class ExercisesPage {
 
         document.getElementById('exercise-description').value = '';
 
+        // Set CodeMirror mode for the selected language
+        if (this.solutionEditor) {
+            const mode = this.getCodeMirrorMode(this.selectedLanguage);
+            this.solutionEditor.setOption('mode', mode);
+        }
+
         // Get code template from selected language
         const selectedLanguage = this.languages.find(l => l.id === this.selectedLanguage);
         const starterCode = selectedLanguage?.code_template || '#!/bin/bash\n\n# Write your solution here\n';
@@ -418,6 +459,13 @@ class ExercisesPage {
             document.getElementById('exercise-title').value = exercise.title;
             document.getElementById('exercise-chapter').value = exercise.chapter || 'Shell scripting';
             document.getElementById('exercise-description').value = exercise.description;
+
+            // Set CodeMirror mode based on exercise language
+            if (this.solutionEditor && exercise.language_id) {
+                const mode = this.getCodeMirrorMode(exercise.language_id);
+                this.solutionEditor.setOption('mode', mode);
+            }
+
             this.solutionEditor.setValue(exercise.solution);
 
             this.renderTestCases();

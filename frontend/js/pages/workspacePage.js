@@ -355,9 +355,11 @@ class WorkspacePage {
             'perl': 'perl',
             'c': 'clike',
             'cpp': 'clike',
+            'c++': 'clike',
             'java': 'clike',
             'go': 'go',
-            'rust': 'rust'
+            'rust': 'rust',
+            'mongodb': 'javascript' // MongoDB queries are JavaScript-like
         };
 
         return modeMap[languageId] || 'shell';

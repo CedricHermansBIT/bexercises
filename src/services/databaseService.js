@@ -372,6 +372,31 @@ class DatabaseService {
 	}
 
 	/**
+	 * Get icon for language achievement based on language ID
+	 * @param {string} languageId - Language identifier
+	 * @returns {string} Emoji icon
+	 */
+	getLanguageAchievementIcon(languageId) {
+		const iconMap = {
+			'python': '🐍',
+			'javascript': '📜',
+			'bash': '💻',
+			'java': '☕',
+			'cpp': '⚙️',
+			'c++': '⚙️',
+			'ruby': '💎',
+			'go': '🐹',
+			'rust': '🦀',
+			'php': '🐘',
+			'sql': '🗄️',
+			'r': '📊',
+			'mongodb': '🍃'
+		};
+
+		return iconMap[languageId] || '🏆';
+	}
+
+	/**
 	 * Seed default achievements
 	 */
 	async seedDefaultAchievements() {
@@ -441,6 +466,38 @@ class DatabaseService {
 			} catch (e) {
 				// Achievement already exists
 			}
+		}
+
+		// Create dynamic language-specific achievements
+		try {
+			const languages = await this.db.all('SELECT * FROM languages ORDER BY order_num');
+
+			for (const language of languages) {
+				const languageAchievementId = `language-master-${language.id}`;
+				const languageName = language.name;
+				const icon = this.getLanguageAchievementIcon(language.id);
+
+				try {
+					await this.db.run(`
+						INSERT OR IGNORE INTO achievements (id, name, description, icon, category, points, requirement_type, requirement_value, hidden)
+						VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+					`, [
+						languageAchievementId,
+						`${languageName} Master`,
+						`Complete all ${languageName} chapters`,
+						icon,
+						'language-mastery',
+						150,
+						'language_complete',
+						language.id,
+						0
+					]);
+				} catch (e) {
+					// Achievement already exists or error
+				}
+			}
+		} catch (err) {
+			console.error('Error creating language-specific achievements:', err);
 		}
 	}
 
@@ -521,6 +578,14 @@ class DatabaseService {
 
 	async deleteLanguage(id) {
 		await this.db.run('DELETE FROM languages WHERE id = ?', [id]);
+
+		// Also delete the corresponding achievement
+		const languageAchievementId = `language-master-${id}`;
+		try {
+			await this.db.run('DELETE FROM achievements WHERE id = ?', [languageAchievementId]);
+		} catch (err) {
+			console.error(`Error deleting achievement for language ${id}:`, err);
+		}
 	}
 
 	async createLanguage(data) {
@@ -540,6 +605,30 @@ class DatabaseService {
 			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0, ext, interp, image, template]);
+
+		// Create corresponding language mastery achievement
+		const languageAchievementId = `language-master-${id}`;
+		const icon = this.getLanguageAchievementIcon(id);
+
+		try {
+			await this.db.run(`
+				INSERT OR IGNORE INTO achievements (id, name, description, icon, category, points, requirement_type, requirement_value, hidden)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			`, [
+				languageAchievementId,
+				`${name} Master`,
+				`Complete all ${name} chapters`,
+				icon,
+				'language-mastery',
+				150,
+				'language_complete',
+				id,
+				0
+			]);
+		} catch (err) {
+			console.error(`Error creating achievement for language ${id}:`, err);
+		}
+
 		return this.getLanguage(id);
 	}
 
@@ -1430,6 +1519,44 @@ class DatabaseService {
 				await this.awardAchievement(userId, 'chapter-complete');
 				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'chapter-complete'`);
 				newAchievements.push(achievement);
+			}
+
+			// Check if all chapters for THIS LANGUAGE are complete
+			const languageChaptersProgress = await this.db.get(`
+				SELECT 
+					COUNT(DISTINCT c.id) as total_chapters,
+					COUNT(DISTINCT CASE 
+						WHEN chapter_stats.total = chapter_stats.completed THEN c.id 
+					END) as completed_chapters
+				FROM chapters c
+				JOIN exercises e ON c.id = e.chapter_id
+				LEFT JOIN (
+					SELECT 
+						e2.chapter_id,
+						COUNT(*) as total,
+						SUM(CASE WHEN up2.completed = 1 THEN 1 ELSE 0 END) as completed
+					FROM exercises e2
+					LEFT JOIN user_progress up2 ON e2.id = up2.exercise_id AND up2.user_id = ?
+					GROUP BY e2.chapter_id
+				) as chapter_stats ON c.id = chapter_stats.chapter_id
+				WHERE c.language_id = ?
+			`, [userId, exercise.language_id]);
+
+			if (languageChaptersProgress.total_chapters > 0 &&
+			    languageChaptersProgress.total_chapters === languageChaptersProgress.completed_chapters) {
+				// All chapters for this language completed!
+				const languageAchievementId = `language-master-${exercise.language_id}`;
+				const hasLanguageAchievement = await this.db.get(`
+					SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?
+				`, [userId, languageAchievementId]);
+
+				if (!hasLanguageAchievement) {
+					await this.awardAchievement(userId, languageAchievementId);
+					const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = ?`, [languageAchievementId]);
+					if (achievement) {
+						newAchievements.push(achievement);
+					}
+				}
 			}
 
 			// Check if ALL chapters across ALL languages are now complete
