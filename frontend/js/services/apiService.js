@@ -217,6 +217,7 @@ class ApiService {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
 				solution,
+				languageId: testCase.languageId || 'bash',
 				arguments: testCase.arguments || [],
 				input: testCase.input || [],
 				fixtures: testCase.fixtures || [],

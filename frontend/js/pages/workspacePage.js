@@ -306,9 +306,18 @@ class WorkspacePage {
             const descriptionDiv = document.getElementById('exercise-description');
             descriptionDiv.innerHTML = marked.parse(exercise.description);
 
-            // Load saved code or default
+            // Set CodeMirror mode based on exercise language
+            if (this.codeEditor) {
+                const languageMode = this.getCodeMirrorMode(exercise.language_id || 'bash');
+                this.codeEditor.setOption('mode', languageMode);
+            }
+
+            // Get code template - now included in exercise object
+            const defaultTemplate = exercise.code_template || '#!/bin/bash\n\n# Write your solution here\n';
+
+            // Load saved code or default template
             const savedCode = this.storageService.getExerciseProgress(exerciseId)?.code;
-            const startingCode = savedCode || '#!/bin/bash\n\n# Write your solution here\n';
+            const startingCode = savedCode || defaultTemplate;
             this.codeEditor.setValue(startingCode);
 
             // Refresh CodeMirror
@@ -326,6 +335,32 @@ class WorkspacePage {
             console.error('Failed to load exercise:', error);
             this.testResults.displayError('Failed to load exercise');
         }
+    }
+
+    /**
+     * Get CodeMirror mode for a language
+     * @param {string} languageId - Language identifier
+     * @returns {string} CodeMirror mode name
+     */
+    getCodeMirrorMode(languageId) {
+        const modeMap = {
+            'bash': 'shell',
+            'python': 'python',
+            'javascript': 'javascript',
+            'js': 'javascript',
+            'sql': 'sql',
+            'r': 'r',
+            'php': 'php',
+            'ruby': 'ruby',
+            'perl': 'perl',
+            'c': 'clike',
+            'cpp': 'clike',
+            'java': 'clike',
+            'go': 'go',
+            'rust': 'rust'
+        };
+
+        return modeMap[languageId] || 'shell';
     }
 
     updateCompletionStatus(exerciseId) {
@@ -429,11 +464,13 @@ class WorkspacePage {
         this.storageService.updateExerciseProgress(this.currentExercise.id, code, completed);
     }
 
-    resetCode() {
+    async resetCode() {
         if (!this.currentExercise) return;
 
         if (confirm('Reset your code? This will remove all your changes.')) {
-            const defaultCode = '#!/bin/bash\n\n# Write your solution here\n';
+            // Use code template from exercise (already includes language template)
+            const defaultCode = this.currentExercise.code_template || '#!/bin/bash\n\n# Write your solution here\n';
+
             this.codeEditor.setValue(defaultCode);
             this.updateProgress(this.currentExercise.id, defaultCode, false);
         }

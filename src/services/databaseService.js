@@ -47,6 +47,10 @@ class DatabaseService {
 				icon_svg TEXT,
 				order_num INTEGER DEFAULT 0,
 				enabled BOOLEAN DEFAULT 1,
+				file_extension TEXT DEFAULT '.sh',
+				interpreter TEXT DEFAULT 'bash',
+				docker_image TEXT DEFAULT 'alpine:latest',
+				code_template TEXT DEFAULT '#!/bin/bash\n\n# Write your solution here\n',
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);
@@ -216,6 +220,85 @@ class DatabaseService {
 			}
 		}
 
+		// Add execution configuration columns to languages table (migration for existing databases)
+		try {
+			await this.db.exec(`ALTER TABLE languages ADD COLUMN file_extension TEXT DEFAULT '.sh'`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding file_extension column to languages:', err.message);
+			}
+		}
+
+		try {
+			await this.db.exec(`ALTER TABLE languages ADD COLUMN interpreter TEXT DEFAULT 'bash'`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding interpreter column to languages:', err.message);
+			}
+		}
+
+		try {
+			await this.db.exec(`ALTER TABLE languages ADD COLUMN docker_image TEXT DEFAULT 'alpine:latest'`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding docker_image column to languages:', err.message);
+			}
+		}
+
+		try {
+			await this.db.exec(`ALTER TABLE languages ADD COLUMN code_template TEXT DEFAULT '#!/bin/bash\n\n# Write your solution here\n'`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding code_template column to languages:', err.message);
+			}
+		}
+
+		// Migrate existing languages to have proper execution config based on their ID
+		await this.db.exec(`
+			UPDATE languages 
+			SET file_extension = CASE 
+				WHEN id = 'python' THEN '.py'
+				WHEN id = 'bash' THEN '.sh'
+			    when id = 'sql' THEN '.sql'
+                WHEN id = 'r' THEN '.r'
+			    when id = 'php' THEN '.php'
+			    when id = 'mongodb' THEN '.js'
+				ELSE file_extension
+			END,
+			interpreter = CASE 
+				WHEN id = 'python' THEN 'python3'
+				WHEN id = 'bash' THEN 'bash'
+			    WHEN id = 'sql' THEN 'mariadb'
+                WHEN id = 'r' THEN 'Rscript'
+			    WHEN id = 'php' THEN 'php'
+			    WHEN id = 'mongodb' THEN 'mongosh'
+				ELSE interpreter
+			END,
+			docker_image = CASE 
+				WHEN id = 'python' THEN 'python:3.11-alpine'
+				WHEN id = 'bash' THEN 'alpine:latest'
+			    WHEN id = 'sql' THEN 'mariadb:latest'
+                WHEN id = 'r' THEN 'r-base:latest'
+			    WHEN id = 'php' THEN 'php:latest'
+            WHEN id = 'mongodb' THEN 'mongo:latest'
+				ELSE docker_image
+			END,
+			code_template = CASE 
+				WHEN id = 'python' THEN '#!/usr/bin/env python3\n\n# Write your solution here\n'
+				WHEN id = 'bash' THEN '#!/bin/bash\n\n# Write your solution here\n'
+			    WHEN id = 'sql' THEN '-- Write your SQL query here\n'
+                WHEN id = 'r' THEN '#!/usr/bin/env Rscript\n\n# Write your R script here\n'
+			    WHEN id = 'php' THEN '<?php\n\n// Write your PHP code here\n'
+			    WHEN id = 'mongodb' THEN '// Write your MongoDB query here\n'
+				ELSE code_template
+			END
+			WHERE file_extension = '.sh' AND interpreter = 'bash' AND docker_image = 'alpine:latest'
+		`);
+
 		// Test case fixtures junction table
 		await this.db.exec(`
 			CREATE TABLE IF NOT EXISTS test_case_fixtures (
@@ -382,7 +465,7 @@ class DatabaseService {
 	}
 
 	async updateLanguage(id, data) {
-		const { name, description, icon_svg, order_num, enabled } = data;
+		const { name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = data;
 		const updates = [];
 		const values = [];
 
@@ -406,6 +489,22 @@ class DatabaseService {
 			updates.push('enabled = ?');
 			values.push(enabled ? 1 : 0);
 		}
+		if (file_extension !== undefined) {
+			updates.push('file_extension = ?');
+			values.push(file_extension);
+		}
+		if (interpreter !== undefined) {
+			updates.push('interpreter = ?');
+			values.push(interpreter);
+		}
+		if (docker_image !== undefined) {
+			updates.push('docker_image = ?');
+			values.push(docker_image);
+		}
+		if (code_template !== undefined) {
+			updates.push('code_template = ?');
+			values.push(code_template);
+		}
 
 		if (updates.length === 0) {
 			return this.getLanguage(id);
@@ -425,12 +524,22 @@ class DatabaseService {
 	}
 
 	async createLanguage(data) {
-		const { id, name, description, icon_svg, order_num, enabled } = data;
-		await this.db.run(`
+		const { id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = data;
 
-			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled)
-			VALUES (?, ?, ?, ?, ?, ?)
-		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0]);
+		// Set defaults based on language ID if not provided
+		const ext = file_extension || (id === 'python' ? '.py' : id === 'javascript' ? '.js' : '.sh');
+		const interp = interpreter || (id === 'python' ? 'python3' : id === 'javascript' ? 'node' : 'bash');
+		const image = docker_image || (id === 'python' ? 'python:3.11-alpine' : id === 'javascript' ? 'node:18-alpine' : 'alpine:latest');
+		const template = code_template || (
+			id === 'python' ? '#!/usr/bin/env python3\n\n# Write your solution here\n' :
+			id === 'javascript' ? '#!/usr/bin/env node\n\n// Write your solution here\n' :
+			'#!/bin/bash\n\n# Write your solution here\n'
+		);
+
+		await this.db.run(`
+			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0, ext, interp, image, template]);
 		return this.getLanguage(id);
 	}
 
@@ -1323,7 +1432,7 @@ class DatabaseService {
 				newAchievements.push(achievement);
 			}
 
-			// Check if ALL chapters are now complete
+			// Check if ALL chapters across ALL languages are now complete
 			const allChaptersProgress = await this.db.get(`
 				SELECT 
 					COUNT(DISTINCT c.id) as total_chapters,
@@ -1341,8 +1450,7 @@ class DatabaseService {
 					LEFT JOIN user_progress up2 ON e2.id = up2.exercise_id AND up2.user_id = ?
 					GROUP BY e2.chapter_id
 				) as chapter_stats ON c.id = chapter_stats.chapter_id
-				WHERE c.language_id = ?
-			`, [userId, exercise.language_id]);
+			`, [userId]);
 
 			if (allChaptersProgress.total_chapters === allChaptersProgress.completed_chapters) {
 				const hasAllChaptersAchievement = await this.db.get(`

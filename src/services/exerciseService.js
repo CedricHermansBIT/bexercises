@@ -133,10 +133,32 @@ async function getExerciseById(id) {
 		const exercise = await databaseService.getExercise(id);
 		if (!exercise) return null;
 
+		// Get language info for this exercise
+		let languageId = null;
+		let languageName = null;
+		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
+
+		if (exercise.chapter_id) {
+			// Get chapter to find language
+			const chapter = await databaseService.getChapter(exercise.chapter_id);
+			if (chapter) {
+				languageId = chapter.language_id;
+				const language = await databaseService.getLanguage(chapter.language_id);
+				if (language) {
+					languageName = language.name;
+					// Include code template so workspace doesn't need extra API call
+					codeTemplate = language.code_template || codeTemplate;
+				}
+			}
+		}
+
 		return {
 			id: exercise.id,
 			title: exercise.title,
-			description: exercise.description
+			description: exercise.description,
+			language_id: languageId,
+			language: languageName,
+			code_template: codeTemplate
 		};
 	} catch (error) {
 		console.error('Error getting exercise from database:', error);
@@ -162,12 +184,27 @@ async function getExerciseWithTests(id) {
 		const exercise = await databaseService.getExerciseWithTests(id);
 		if (!exercise) return null;
 
-		// Get chapter info
+		// Get chapter and language info
 		const chapter = await databaseService.getChapter(exercise.chapter_id);
+		let languageId = null;
+		let languageName = null;
+		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
+
+		if (chapter) {
+			languageId = chapter.language_id;
+			const language = await databaseService.getLanguage(chapter.language_id);
+			if (language) {
+				languageName = language.name;
+				codeTemplate = language.code_template || codeTemplate;
+			}
+		}
 
 		return {
 			...exercise,
-			chapter: chapter ? chapter.name : 'Unknown'
+			chapter: chapter ? chapter.name : 'Unknown',
+			language_id: languageId,
+			language: languageName,
+			code_template: codeTemplate
 		};
 	} catch (error) {
 		console.error('Error getting exercise with tests from database:', error);

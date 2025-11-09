@@ -7,6 +7,77 @@ const crypto = require('crypto');
 const config = require('../config');
 
 /**
+ * Language configuration for execution
+ * Maps language IDs to their runtime properties
+ * FALLBACK CONFIG - Database is the primary source
+ */
+const LANGUAGE_CONFIG = {
+	bash: {
+		extension: '.sh',
+		interpreter: 'bash',
+		dockerImage: 'alpine:latest',
+		shebang: '#!/bin/bash'
+	},
+	python: {
+		extension: '.py',
+		interpreter: 'python3',
+		dockerImage: 'python:3.11-alpine',
+		shebang: '#!/usr/bin/env python3'
+	},
+	javascript: {
+		extension: '.js',
+		interpreter: 'node',
+		dockerImage: 'node:18-alpine',
+		shebang: '#!/usr/bin/env node'
+	},
+};
+
+/**
+ * Get language configuration from database or fallback
+ * @param {string} languageId - Language identifier
+ * @returns {Promise<Object>} Language configuration
+ */
+async function getLanguageConfig(languageId) {
+	try {
+		const databaseService = require('./databaseService');
+		const language = await databaseService.getLanguage(languageId);
+
+		if (language) {
+			return {
+				extension: language.file_extension || '.sh',
+				interpreter: language.interpreter || 'bash',
+				dockerImage: language.docker_image || 'alpine:latest',
+				shebang: `#!/usr/bin/env ${language.interpreter || 'bash'}`
+			};
+		}
+	} catch (error) {
+		console.warn(`Failed to load language config from database for ${languageId}:`, error.message);
+	}
+
+	// Fallback to hardcoded config
+	const config = LANGUAGE_CONFIG[languageId];
+	if (!config) {
+		console.warn(`Unknown language: ${languageId}, defaulting to bash`);
+		return LANGUAGE_CONFIG.bash;
+	}
+	return config;
+}
+
+/**
+ * Get language configuration synchronously (for compatibility)
+ * @param {string} languageId - Language identifier
+ * @returns {Object} Language configuration (fallback only)
+ */
+function getLanguageConfigSync(languageId) {
+	const config = LANGUAGE_CONFIG[languageId];
+	if (!config) {
+		console.warn(`Unknown language: ${languageId}, defaulting to bash`);
+		return LANGUAGE_CONFIG.bash;
+	}
+	return config;
+}
+
+/**
  * Normalize output by converting CRLF to LF
  * @param {string} s - String to normalize
  * @returns {string} Normalized string
@@ -59,15 +130,18 @@ async function removeRecursive(targetPath) {
 /**
  * Create a temporary script file
  * @param {string} scriptContents - Script content
- * @returns {Promise<Object>} Object with tmpdir and scriptPath
+ * @param {string} languageId - Language identifier (e.g., 'bash', 'python')
+ * @returns {Promise<Object>} Object with tmpdir, scriptPath, languageConfig, and scriptFilename
  */
-async function createTempScript(scriptContents) {
+async function createTempScript(scriptContents, languageId = 'bash') {
+	const langConfig = await getLanguageConfig(languageId);
 	const normalized = String(scriptContents).replace(/\r\n/g, '\n');
 	const tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-'));
 
 	await fs.chmod(tmpdir, 0o777);
 
-	const scriptPath = path.join(tmpdir, 'script.sh');
+	const scriptFilename = `script${langConfig.extension}`;
+	const scriptPath = path.join(tmpdir, scriptFilename);
 
 	// Defensive: if something exists at scriptPath remove it
 	try {
@@ -94,7 +168,7 @@ async function createTempScript(scriptContents) {
 		throw new Error(`Failed to create script file at ${scriptPath} (not a regular file)`);
 	}
 
-	return { tmpdir, scriptPath };
+	return { tmpdir, scriptPath, languageConfig: langConfig, scriptFilename };
 }
 
 /**
@@ -197,23 +271,26 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 /**
  * Run a script in a Docker container
  * @param {string} tmpdir - Temporary directory with script
+ * @param {string} scriptFilename - Name of the script file (e.g., 'script.sh', 'script.py')
+ * @param {Object} languageConfig - Language configuration object
  * @param {Array} args - Command line arguments
  * @param {Array} inputs - Input lines for stdin
  * @param {number} timeoutMs - Timeout in milliseconds
  * @returns {Promise<Object>} Result object with stdout, stderr, exitCode, etc.
  */
-async function runScriptInContainer(tmpdir, args = [], inputs = [], timeoutMs = config.docker.timeout) {
+async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args = [], inputs = [], timeoutMs = config.docker.timeout) {
 	return new Promise((resolve) => {
 		const containerWorkdir = '/home/runner';
-		const containerScript = 'script.sh';
+		const interpreter = languageConfig.interpreter;
+		const dockerImage = languageConfig.dockerImage;
 
 		let shellCommand;
 		if (inputs && Array.isArray(inputs) && inputs.length > 0) {
 			const escapedInputs = inputs.map(line => line.replace(/'/g, "'\\''"));
 			const inputString = escapedInputs.join('\\n') + '\\n';
-			shellCommand = `printf '%b' '${inputString}' | bash ./${containerScript} "$@"`;
+			shellCommand = `printf '%b' '${inputString}' | ${interpreter} ./${scriptFilename} "$@"`;
 		} else {
-			shellCommand = `bash ./${containerScript} "$@" < /dev/null`;
+			shellCommand = `${interpreter} ./${scriptFilename} "$@" < /dev/null`;
 		}
 
 		const dockerArgs = [
@@ -223,8 +300,8 @@ async function runScriptInContainer(tmpdir, args = [], inputs = [], timeoutMs = 
 			'--pids-limit', config.docker.pidsLimit.toString(),
 			'-v', `${tmpdir}:${containerWorkdir}:rw`,
 			'-w', containerWorkdir,
-			'--entrypoint', '/bin/bash',
-			config.docker.image,
+			'--entrypoint', '/bin/sh',
+			dockerImage,
 			'-c',
 			shellCommand,
 			'--',
@@ -314,14 +391,15 @@ async function runScriptInContainer(tmpdir, args = [], inputs = [], timeoutMs = 
 /**
  * Run a script with arguments (simplified for testing)
  * @param {string} script - Script content
+ * @param {string} languageId - Language identifier (e.g., 'bash', 'python')
  * @param {Array<string>} args - Command line arguments
  * @returns {Promise<Object>} Execution result
  */
-async function runScript(script, args = []) {
-	const { tmpdir, scriptPath } = await createTempScript(script);
+async function runScript(script, languageId = 'bash', args = []) {
+	const { tmpdir, scriptFilename, languageConfig } = await createTempScript(script, languageId);
 
 	try {
-		const result = await runScriptInContainer(tmpdir, args, [], config.docker.timeout);
+		const result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, [], config.docker.timeout);
 		return result;
 	} finally {
 		await removeRecursive(tmpdir);
@@ -331,13 +409,14 @@ async function runScript(script, args = []) {
 /**
  * Run a script with test case (arguments, input, fixtures)
  * @param {string} script - Script content
+ * @param {string} languageId - Language identifier (e.g., 'bash', 'python')
  * @param {Array<string>} args - Command line arguments
  * @param {Array<string>} inputs - STDIN inputs
  * @param {Array<string>} fixtureNames - Fixture filenames to copy
  * @returns {Promise<Object>} Execution result
  */
-async function runScriptWithTestCase(script, args = [], inputs = [], fixtureNames = []) {
-	const { tmpdir, scriptPath } = await createTempScript(script);
+async function runScriptWithTestCase(script, languageId = 'bash', args = [], inputs = [], fixtureNames = []) {
+	const { tmpdir, scriptFilename, languageConfig } = await createTempScript(script, languageId);
 
 	try {
 		// Copy fixture files if specified
@@ -345,7 +424,7 @@ async function runScriptWithTestCase(script, args = [], inputs = [], fixtureName
 			await copyFixtures(tmpdir, fixtureNames);
 		}
 
-		const result = await runScriptInContainer(tmpdir, args, inputs, config.docker.timeout);
+		const result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, inputs, config.docker.timeout);
 		return result;
 	} finally {
 		await removeRecursive(tmpdir);
@@ -431,5 +510,8 @@ module.exports = {
 	runScript,
 	runScriptWithTestCase,
 	hashFile,
-	hashOutputFiles
+	hashOutputFiles,
+	getLanguageConfig,
+	getLanguageConfigSync,
+	LANGUAGE_CONFIG
 };

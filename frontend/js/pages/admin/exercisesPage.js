@@ -21,7 +21,8 @@ class ExercisesPage {
         this.testCases = [];
         this.reorderMode = false;
         this.originalOrder = null;
-        this.selectedLanguage = null; // Will be set after loading languages
+        // Load last selected language from localStorage
+        this.selectedLanguage = localStorage.getItem('admin-selected-language') || null;
         this.pendingChapterLanguage = null;
         this.pendingChapterName = null;
         this.availableFiles = [];
@@ -150,6 +151,8 @@ class ExercisesPage {
         // Language selector
         document.getElementById('admin-language-select')?.addEventListener('change', (e) => {
             this.selectedLanguage = e.target.value;
+            // Save to localStorage to remember selection
+            localStorage.setItem('admin-selected-language', this.selectedLanguage);
             this.updateNewExerciseButton();
             this.populateExerciseList();
         });
@@ -174,9 +177,15 @@ class ExercisesPage {
 
         select.innerHTML = languageOptions;
 
-        // Set default to first language if not already set
-        if (!this.selectedLanguage && this.languages.length > 0) {
+        // Validate saved language still exists in the list
+        const savedLanguageExists = this.selectedLanguage &&
+            this.languages.some(l => l.id === this.selectedLanguage);
+
+        // Set default to first language if not already set or saved language doesn't exist
+        if (!savedLanguageExists && this.languages.length > 0) {
             this.selectedLanguage = this.languages[0].id;
+            // Save the default selection
+            localStorage.setItem('admin-selected-language', this.selectedLanguage);
         }
 
         select.value = this.selectedLanguage || (this.languages.length > 0 ? this.languages[0].id : '');
@@ -329,13 +338,9 @@ class ExercisesPage {
 
         document.getElementById('exercise-description').value = '';
 
-        // Set appropriate starter code based on language
-        let starterCode = '#!/bin/bash\n\n# Write the solution here\n';
-        if (this.selectedLanguage === 'python') {
-            starterCode = '#!/usr/bin/env python3\n\n# Write the solution here\n';
-        } else if (this.selectedLanguage === 'javascript') {
-            starterCode = '#!/usr/bin/env node\n\n// Write the solution here\n';
-        }
+        // Get code template from selected language
+        const selectedLanguage = this.languages.find(l => l.id === this.selectedLanguage);
+        const starterCode = selectedLanguage?.code_template || '#!/bin/bash\n\n# Write your solution here\n';
         this.solutionEditor.setValue(starterCode);
 
         this.renderTestCases();
@@ -470,6 +475,7 @@ class ExercisesPage {
                 resultsHtml += `<div class="test-case-result"><h4>Test Case ${i + 1}</h4>`;
 
                 const result = await this.apiService.runTestCase(solution, {
+                    languageId: this.selectedLanguage,
                     arguments: testCase.arguments || [],
                     input: testCase.input || [],
                     fixtures: fixtures,
@@ -964,9 +970,9 @@ class ExercisesPage {
     async runBulkVerification() {
         const statusDiv = document.getElementById('verification-status');
         const resultsDiv = document.getElementById('verification-results');
-        const progressBar = document.getElementById('verification-progress');
 
-        statusDiv.innerHTML = '<p>Running tests across all exercises...</p><div class="progress-bar"><div id="verification-progress" class="progress-fill" style="width: 0%;"></div></div>';
+        const languageName = this.languages.find(l => l.id === this.selectedLanguage)?.name || 'selected language';
+        statusDiv.innerHTML = `<p>Running tests for ${languageName} exercises...</p><div class="progress-bar"><div id="verification-progress" class="progress-fill" style="width: 0%;"></div></div>`;
         resultsDiv.innerHTML = '';
 
         const verificationResults = [];
@@ -974,14 +980,18 @@ class ExercisesPage {
         let changedTests = 0;
         let errorTests = 0;
 
-        // Filter exercises with solutions
-        const exercisesWithSolutions = this.exercises.filter(ex => ex.solution && ex.solution.trim());
+        // Filter exercises for selected language only, with solutions
+        const exercisesWithSolutions = this.exercises.filter(ex => {
+            const matchesLanguage = ex.language_id === this.selectedLanguage ||
+                                   (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
+            return matchesLanguage && ex.solution && ex.solution.trim();
+        });
 
         for (let i = 0; i < exercisesWithSolutions.length; i++) {
             const exercise = exercisesWithSolutions[i];
             const progress = ((i + 1) / exercisesWithSolutions.length) * 100;
-            progressBar.style.width = `${progress}%`;
 
+            // Update status with progress - this creates new progress bar element
             statusDiv.innerHTML = `<p>Testing ${exercise.title} (${i + 1}/${exercisesWithSolutions.length})...</p><div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
 
             try {
@@ -1001,6 +1011,7 @@ class ExercisesPage {
 
                     try {
                         const result = await this.apiService.runTestCase(fullExercise.solution, {
+                            languageId: fullExercise.language_id || fullExercise.language || 'bash',
                             arguments: testCase.arguments || [],
                             input: testCase.input || [],
                             fixtures: fixtures
@@ -1057,11 +1068,13 @@ class ExercisesPage {
         const statusDiv = document.getElementById('verification-status');
         const resultsDiv = document.getElementById('verification-results');
 
+        const languageName = this.languages.find(l => l.id === this.selectedLanguage)?.name || 'selected language';
+
         // Summary
         const unchangedTests = totalTests - changedTests - errorTests;
         statusDiv.innerHTML = `
             <div class="verification-summary">
-                <h3>Verification Complete</h3>
+                <h3>Verification Complete - ${languageName}</h3>
                 <div class="summary-stats">
                     <div class="stat-item">
                         <div class="stat-value">${totalTests}</div>

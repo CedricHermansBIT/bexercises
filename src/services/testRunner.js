@@ -18,11 +18,13 @@ const config = require('../config');
  * @returns {Promise<Array>} Array of test results
  */
 async function runTests(exercise, script) {
-	const { tmpdir } = await createTempScript(script);
+	// Get language from exercise, default to 'bash' for backwards compatibility
+	const languageId = exercise.language_id || exercise.language || 'bash';
+	const { tmpdir, scriptFilename, languageConfig } = await createTempScript(script, languageId);
 	const results = [];
 
 	// Keep track of fixture files and script to avoid deleting them
-	const protectedFiles = new Set(['script.sh']);
+	const protectedFiles = new Set([scriptFilename]);
 
 	try {
 		for (let i = 0; i < exercise.testCases.length; i++) {
@@ -67,6 +69,8 @@ async function runTests(exercise, script) {
 			// Run script with arguments and inputs
 			const r = await runScriptInContainer(
 				tmpdir,
+				scriptFilename,
+				languageConfig,
 				tc.arguments || [],
 				tc.input || [],
 				config.docker.timeout
@@ -80,7 +84,7 @@ async function runTests(exercise, script) {
 			// If test case uses dynamic output, run the exercise solution to get expected output
 			if (tc.useDynamicOutput && exercise.solution) {
 				try {
-					const { tmpdir: solutionTmpdir } = await createTempScript(exercise.solution);
+					const { tmpdir: solutionTmpdir, scriptFilename: solutionScriptFilename, languageConfig: solutionLangConfig } = await createTempScript(exercise.solution, languageId);
 
 					// Copy same fixtures to solution temp dir
 					if (tc.fixtures && Array.isArray(tc.fixtures)) {
@@ -89,6 +93,8 @@ async function runTests(exercise, script) {
 
 					const solutionResult = await runScriptInContainer(
 						solutionTmpdir,
+						solutionScriptFilename,
+						solutionLangConfig,
 						tc.arguments || [],
 						tc.input || [],
 						config.docker.timeout

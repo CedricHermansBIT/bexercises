@@ -82,16 +82,16 @@ router.get('/exercises/:id/full', async (req, res) => {
  */
 router.post('/test-solution', async (req, res) => {
 	try {
-		const { solution } = req.body;
+		const { solution, languageId = 'bash' } = req.body;
 
 		if (!solution || typeof solution !== 'string') {
 			return res.status(400).json({ error: 'Missing solution script' });
 		}
 
-		console.log('Testing solution, script length:', solution.length);
+		console.log('Testing solution:', { languageId, scriptLength: solution.length });
 
-		// Run the script using Docker
-		const result = await dockerService.runScript(solution, []);
+		// Run the script using Docker with language support
+		const result = await dockerService.runScript(solution, languageId, []);
 
 		console.log('Test result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length });
 
@@ -115,22 +115,22 @@ router.post('/test-solution', async (req, res) => {
  */
 router.post('/run-test-case', async (req, res) => {
 	try {
-		const { solution, arguments: args = [], input = [], fixtures = [], outputFiles = [] } = req.body;
+		const { solution, languageId = 'bash', arguments: args = [], input = [], fixtures = [], outputFiles = [] } = req.body;
 
 		if (!solution || typeof solution !== 'string') {
 			return res.status(400).json({ error: 'Missing solution script' });
 		}
 
-		console.log('Running test case:', { argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length });
+		console.log('Running test case:', { languageId, argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length });
 
-		// Run the script using Docker with test case parameters
-		const result = await dockerService.runScriptWithTestCase(solution, args, input, fixtures);
+		// Run the script using Docker with test case parameters and language
+		const result = await dockerService.runScriptWithTestCase(solution, languageId, args, input, fixtures);
 
 		// Hash output files if specified
 		let fileHashes = [];
 		if (outputFiles && outputFiles.length > 0) {
 			const { createTempScript, hashOutputFiles, removeRecursive } = require('../services/dockerService');
-			const { tmpdir } = await createTempScript(solution);
+			const { tmpdir } = await createTempScript(solution, languageId);
 
 			try {
 				// Copy fixtures if needed
@@ -140,8 +140,10 @@ router.post('/run-test-case', async (req, res) => {
 				}
 
 				// Run script to generate output files
-				const { runScriptInContainer } = require('../services/dockerService');
-				await runScriptInContainer(tmpdir, args, input, require('../config').docker.timeout);
+				const { runScriptInContainer, getLanguageConfigSync } = require('../services/dockerService');
+				const langConfig = getLanguageConfigSync(languageId);
+				const scriptFilename = `script${langConfig.extension}`;
+				await runScriptInContainer(tmpdir, scriptFilename, langConfig, args, input, require('../config').docker.timeout);
 
 				// Hash the specified output files
 				fileHashes = await hashOutputFiles(tmpdir, outputFiles);
@@ -1164,7 +1166,7 @@ router.get('/languages', async (req, res) => {
  */
 router.post('/languages', async (req, res) => {
 	try {
-		const { id, name, description, icon_svg, order_num, enabled } = req.body;
+		const { id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = req.body;
 
 		if (!id || !name) {
 			return res.status(400).json({ error: 'Language ID and name are required' });
@@ -1176,7 +1178,11 @@ router.post('/languages', async (req, res) => {
 			description,
 			icon_svg,
 			order_num,
-			enabled
+			enabled,
+			file_extension,
+			interpreter,
+			docker_image,
+			code_template
 		});
 
 		res.json(language);
@@ -1195,14 +1201,18 @@ router.post('/languages', async (req, res) => {
  */
 router.put('/languages/:id', async (req, res) => {
 	try {
-		const { name, description, icon_svg, order_num, enabled } = req.body;
+		const { name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = req.body;
 
 		const language = await databaseService.updateLanguage(req.params.id, {
 			name,
 			description,
 			icon_svg,
 			order_num,
-			enabled
+			enabled,
+			file_extension,
+			interpreter,
+			docker_image,
+			code_template
 		});
 
 		if (!language) {

@@ -107,6 +107,32 @@
                             </label>
                         </div>
 
+                        <h3 style="color: var(--accent-lavender); margin: 2rem 0 1rem 0; padding-top: 2rem; border-top: 2px solid var(--border-color);">Execution Configuration</h3>
+
+                        <div class="form-group">
+                            <label for="language-file-extension">File Extension <span class="required">*</span></label>
+                            <input type="text" id="language-file-extension" class="form-input" required pattern="\.[a-z0-9]+" placeholder="e.g., .py, .js, .sh">
+                            <small>File extension including the dot (e.g., .py for Python)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language-interpreter">Interpreter Command <span class="required">*</span></label>
+                            <input type="text" id="language-interpreter" class="form-input" required placeholder="e.g., python3, node, bash">
+                            <small>Command used to execute scripts (e.g., python3, node, bash)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language-docker-image">Docker Image <span class="required">*</span></label>
+                            <input type="text" id="language-docker-image" class="form-input" required placeholder="e.g., python:3.11-alpine, node:18-alpine">
+                            <small>Docker image to use for execution. Can be Docker Hub image or custom image name (e.g., 'bitlab-runner' for Dockerfile.runner)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="language-code-template">Code Template</label>
+                            <textarea id="language-code-template" class="form-textarea" rows="6" placeholder="#!/bin/bash&#10;&#10;# Write your solution here"></textarea>
+                            <small>Default code shown to users when starting an exercise. Use \n for newlines.</small>
+                        </div>
+
                         <div class="form-actions">
                             <button type="submit" class="action-btn primary" id="save-language-btn">Save Language</button>
                             <button type="button" class="action-btn danger" id="delete-language-btn" style="display: none;">Delete Language</button>

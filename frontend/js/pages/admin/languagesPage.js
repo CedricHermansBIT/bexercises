@@ -163,6 +163,12 @@ class LanguagesPage {
         document.getElementById('language-order').value = '0';
         document.getElementById('language-enabled').checked = true;
 
+        // Reset execution config with defaults
+        document.getElementById('language-file-extension').value = '.sh';
+        document.getElementById('language-interpreter').value = 'bash';
+        document.getElementById('language-docker-image').value = 'alpine:latest';
+        document.getElementById('language-code-template').value = '#!/bin/bash\n\n# Write your solution here\n';
+
         // Show/hide buttons
         document.getElementById('delete-language-btn').style.display = 'none';
 
@@ -187,6 +193,12 @@ class LanguagesPage {
         document.getElementById('language-order').value = language.order_num || 0;
         document.getElementById('language-enabled').checked = language.enabled;
 
+        // Fill execution config with defaults if not set
+        document.getElementById('language-file-extension').value = language.file_extension || '.sh';
+        document.getElementById('language-interpreter').value = language.interpreter || 'bash';
+        document.getElementById('language-docker-image').value = language.docker_image || 'alpine:latest';
+        document.getElementById('language-code-template').value = language.code_template || '#!/bin/bash\n\n# Write your solution here\n';
+
         // Show delete button for existing languages
         document.getElementById('delete-language-btn').style.display = 'block';
 
@@ -202,8 +214,19 @@ class LanguagesPage {
         const order_num = parseInt(document.getElementById('language-order').value) || 0;
         const enabled = document.getElementById('language-enabled').checked;
 
+        // Get execution config
+        const file_extension = document.getElementById('language-file-extension').value.trim();
+        const interpreter = document.getElementById('language-interpreter').value.trim();
+        const docker_image = document.getElementById('language-docker-image').value.trim();
+        const code_template = document.getElementById('language-code-template').value; // Don't trim - preserve whitespace
+
         if (!id || !name) {
             alert('Language ID and Name are required');
+            return;
+        }
+
+        if (!file_extension || !interpreter || !docker_image) {
+            alert('File extension, interpreter, and Docker image are required');
             return;
         }
 
@@ -213,13 +236,23 @@ class LanguagesPage {
             return;
         }
 
+        // Validate file extension format
+        if (!/^\.[a-z0-9]+$/.test(file_extension)) {
+            alert('File extension must start with a dot and contain only lowercase letters and numbers (e.g., .py, .js)');
+            return;
+        }
+
         const languageData = {
             id,
             name,
             description,
             icon_svg,
             order_num,
-            enabled
+            enabled,
+            file_extension,
+            interpreter,
+            docker_image,
+            code_template
         };
 
         try {
