@@ -206,8 +206,5 @@ No hot reload - manual restart required for backend changes.
 
 - [QUICKSTART.md](QUICKSTART.md) - Installation and setup
 - [FIRST_ADMIN_SETUP.md](FIRST_ADMIN_SETUP.md) - Admin account creation
-- [MULTI_LANGUAGE_SUPPORT.md](MULTI_LANGUAGE_SUPPORT.md) - Adding languages
-- [CUSTOM_DOCKER_IMAGE_GUIDE.md](CUSTOM_DOCKER_IMAGE_GUIDE.md) - Custom Docker images
-- [CODE_TEMPLATES.md](CODE_TEMPLATES.md) - Starter code templates
 - [SERVICE_SETUP.md](SERVICE_SETUP.md) - Production deployment
 
