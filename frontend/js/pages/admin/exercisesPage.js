@@ -63,6 +63,16 @@ class ExercisesPage {
 
         // Setup event listeners
         this.setupEventListeners();
+
+        // Check if we should auto-edit an exercise (from workspace)
+        const urlParams = new URLSearchParams(window.location.search);
+        const editExerciseId = urlParams.get('edit');
+        if (editExerciseId) {
+            // Wait a bit for everything to load, then edit the exercise
+            setTimeout(() => {
+                this.editExercise(editExerciseId);
+            }, 100);
+        }
     }
 
     /**
@@ -164,6 +174,11 @@ class ExercisesPage {
 
         document.getElementById('discard-btn')?.addEventListener('click', () => {
             this.discardChanges();
+        });
+
+        // Back to workspace button
+        document.getElementById('back-to-workspace-btn')?.addEventListener('click', () => {
+            this.returnToWorkspace();
         });
 
         // Test cases
@@ -475,6 +490,13 @@ class ExercisesPage {
             document.getElementById('exercise-editor').style.display = 'block';
             document.getElementById('test-preview').style.display = 'none';
 
+            // Show back to workspace button if we came from workspace
+            const returnToExercise = sessionStorage.getItem('returnToExercise');
+            const backToWorkspaceBtn = document.getElementById('back-to-workspace-btn');
+            if (backToWorkspaceBtn) {
+                backToWorkspaceBtn.style.display = returnToExercise ? 'inline-block' : 'none';
+            }
+
             setTimeout(() => {
                 this.solutionEditor.refresh();
             }, 100);
@@ -491,6 +513,16 @@ class ExercisesPage {
             await this.loadExercises();
         } catch (error) {
             alert('Failed to delete exercise: ' + error.message);
+        }
+    }
+
+    returnToWorkspace() {
+        const returnToExercise = sessionStorage.getItem('returnToExercise');
+        if (returnToExercise) {
+            // Clear the return marker
+            sessionStorage.removeItem('returnToExercise');
+            // Navigate back to workspace with the exercise
+            navigateTo(`workspace.html?exercise=${returnToExercise}`);
         }
     }
 
@@ -989,7 +1021,7 @@ class ExercisesPage {
         });
 
         try {
-            await this.apiService.updateExerciseOrder(newOrder);
+            await this.apiService.reorderExercises(newOrder);
             alert('Exercise order saved!');
             await this.loadExercises();
             this.toggleReorderMode();
