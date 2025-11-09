@@ -10,8 +10,8 @@ const databaseService = require('./databaseService');
  */
 async function loadExercisesInternal() {
 	try {
-		// Try to get from database first
-		const languages = await databaseService.getLanguages();
+		// Get all languages including disabled ones (this is used by admin endpoints)
+		const languages = await databaseService.getLanguages(true);
 		const allExercises = [];
 
 		for (const lang of languages) {
@@ -47,7 +47,9 @@ async function loadExercisesInternal() {
  */
 async function getAllExercises() {
 	try {
-		const languages = await databaseService.getLanguages();
+		// Get all languages including disabled ones, so exercises are available
+		// Frontend handles showing/hiding disabled languages appropriately
+		const languages = await databaseService.getLanguages(true);
 		const allExercises = [];
 
 		for (const lang of languages) {
@@ -185,16 +187,19 @@ async function createExercise(exerciseData) {
 		let chapterId = exerciseData.chapter_id;
 
 		if (!chapterId && exerciseData.chapter) {
-			// Try to find existing chapter by name
-			const chapters = await databaseService.getChaptersByLanguage('bash');
+			// Get the language_id from exerciseData or default to 'bash'
+			const languageId = exerciseData.language_id || 'bash';
+
+			// Try to find existing chapter by name for this language
+			const chapters = await databaseService.getChaptersByLanguage(languageId);
 			let chapter = chapters.find(c => c.name === exerciseData.chapter);
 
 			if (!chapter) {
-				// Create new chapter
-				chapterId = exerciseData.chapter.toLowerCase().replace(/\s+/g, '-');
+				// Create new chapter for the correct language
+				chapterId = `${languageId}-${exerciseData.chapter.toLowerCase().replace(/\s+/g, '-')}`;
 				chapter = await databaseService.createChapter({
 					id: chapterId,
-					language_id: 'bash',
+					language_id: languageId,
 					name: exerciseData.chapter,
 					order_num: chapters.length + 1
 				});
@@ -237,15 +242,23 @@ async function updateExercise(id, exerciseData) {
 
 		if (exerciseData.chapter && exerciseData.chapter !== currentExercise.chapter) {
 			// Chapter is changing - find or create the new chapter
-			const chapters = await databaseService.getChaptersByLanguage('bash');
+			// Get language_id from exerciseData, or get it from current exercise's chapter
+			let languageId = exerciseData.language_id;
+			if (!languageId && currentExercise.chapter_id) {
+				const currentChapter = await databaseService.getChapter(currentExercise.chapter_id);
+				languageId = currentChapter?.language_id || 'bash';
+			}
+			languageId = languageId || 'bash';
+
+			const chapters = await databaseService.getChaptersByLanguage(languageId);
 			let chapter = chapters.find(c => c.name === exerciseData.chapter);
 
 			if (!chapter) {
-				// Create new chapter
-				chapterId = exerciseData.chapter.toLowerCase().replace(/\s+/g, '-');
+				// Create new chapter for the correct language
+				chapterId = `${languageId}-${exerciseData.chapter.toLowerCase().replace(/\s+/g, '-')}`;
 				chapter = await databaseService.createChapter({
 					id: chapterId,
-					language_id: 'bash',
+					language_id: languageId,
 					name: exerciseData.chapter,
 					order_num: chapters.length + 1
 				});

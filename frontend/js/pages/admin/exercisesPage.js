@@ -579,7 +579,8 @@ class ExercisesPage {
             order,
             description,
             solution,
-            testCases: this.testCases
+            testCases: this.testCases,
+            language_id: this.selectedLanguage // Include the currently selected language
         };
 
         if (!id || !title || !description || !solution) {
