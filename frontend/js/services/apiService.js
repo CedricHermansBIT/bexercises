@@ -65,10 +65,13 @@ class ApiService {
 	 * @returns {Promise<Object>} Test results and statistics
 	 */
 	async runTests(exerciseId, script) {
+		// Get user's timezone
+		const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 		const response = await fetch(`${this.baseUrl}/api/exercises/${encodeURIComponent(exerciseId)}/run`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ script })
+			body: JSON.stringify({ script, timezone })
 		});
 
 		if (!response.ok) {

@@ -1294,8 +1294,30 @@ class DatabaseService {
 	/**
 	 * Check time-based achievements (night owl, early bird)
 	 */
-	async checkTimeBasedAchievements(userId) {
-		const hour = new Date().getHours();
+	async checkTimeBasedAchievements(userId, userTimezone = null) {
+		// Get current hour in user's timezone
+		let hour;
+		if (userTimezone) {
+			try {
+				const userTime = new Date().toLocaleString('en-US', {
+					timeZone: userTimezone,
+					hour: 'numeric',
+					hour12: false
+				});
+				hour = parseInt(userTime);
+
+				// Handle 24-hour format: 24 should be 0 (midnight)
+				if (hour === 24) {
+					hour = 0;
+				}
+			} catch (error) {
+				console.warn('Invalid timezone provided, falling back to server time:', error);
+				hour = new Date().getHours();
+			}
+		} else {
+			hour = new Date().getHours();
+		}
+
 		const newAchievements = [];
 
 		// Night Owl (midnight to 5 AM)
