@@ -6,12 +6,43 @@ const databaseService = require('../services/databaseService');
 const dockerService = require('../services/dockerService');
 const fs = require('fs').promises;
 const path = require('path');
+const { execSync } = require('child_process');
 const config = require('../config');
 
 const router = express.Router();
 
 // All routes require admin authentication
 router.use(requireAdmin);
+
+/**
+ * Expand command substitutions in a string (e.g., $(date +%Y%m%d))
+ * @param {string} str - String with potential command substitutions
+ * @returns {string} String with substitutions expanded
+ */
+function expandCommandSubstitution(str) {
+	if (!str || typeof str !== 'string') {
+		return str;
+	}
+
+	const pattern = /\$\(([^)]+)\)/g;
+
+	return str.replace(pattern, (match, command) => {
+		try {
+			const isWindows = process.platform === 'win32';
+			const shell = isWindows ? process.env.ComSpec || 'cmd.exe' : '/bin/bash';
+
+			const result = execSync(command, {
+				encoding: 'utf8',
+				timeout: 5000,
+				shell: shell
+			});
+			return result.trim();
+		} catch (error) {
+			console.warn(`Failed to expand command substitution: ${command}`, error.message);
+			return match;
+		}
+	});
+}
 
 /**
  * GET /api/admin/exercises
@@ -143,8 +174,13 @@ router.post('/run-test-case', async (req, res) => {
 				// Run script to generate output
 				result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, input, config.docker.timeout);
 
+				// Expand command substitutions in output filenames (e.g., $(date +%Y%m%d))
+				const expandedOutputFiles = outputFiles.map(filename =>
+					expandCommandSubstitution(filename)
+				);
+
 				// Hash the specified output files from the SAME tmpdir
-				fileHashes = await hashOutputFiles(tmpdir, outputFiles);
+				fileHashes = await hashOutputFiles(tmpdir, expandedOutputFiles);
 			} finally {
 				// Clean up tmpdir
 				try {
