@@ -414,9 +414,9 @@ class DatabaseService {
 			{ id: 'untouchable', name: 'Untouchable', description: 'Complete 10 exercises on first try', icon: '🌟', category: 'skill', points: 100, requirement_type: 'first_try_completions', requirement_value: 10 },
 
 			// Persistence
-            { id: 'comeback-kid', name: 'Comeback Kid', description: 'Complete an exercise after failing 5+ times', icon: '💪', category: 'persistence', points: 10, requirement_type: 'comeback_completion', requirement_value: 1 },
-			{ id: 'persistent', name: 'Persistent', description: 'Complete an exercise after 10+ attempts', icon: '🔥', category: 'persistence', points: 30, requirement_type: 'persistent_completion', requirement_value: 1 },
-			{ id: 'never-give-up', name: 'Never Give Up', description: 'Complete an exercise after 20+ attempts', icon: '💪', category: 'persistence', points: 50, requirement_type: 'persistent_completion_20', requirement_value: 1 },
+            { id: 'comeback-kid', name: 'Comeback Kid', description: 'Complete an exercise after failing 5+ times', icon: '💪', category: 'persistence', points: 10, requirement_type: 'persistent_completion', requirement_value: 5 },
+			{ id: 'persistent', name: 'Persistent', description: 'Complete an exercise after 10+ attempts', icon: '🔥', category: 'persistence', points: 30, requirement_type: 'persistent_completion', requirement_value: 10 },
+			{ id: 'never-give-up', name: 'Never Give Up', description: 'Complete an exercise after 20+ attempts', icon: '💪', category: 'persistence', points: 50, requirement_type: 'persistent_completion', requirement_value: 20 },
 
 			// Total Attempts Milestones
 			{ id: 'answer-to-everything', name: 'Answer to Everything', description: 'Reach 42 total test runs', icon: '🤖', category: 'attempts', points: 42, requirement_type: 'total_test_runs', requirement_value: 42 },

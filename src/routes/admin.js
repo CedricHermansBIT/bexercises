@@ -242,7 +242,8 @@ router.post('/exercises', async (req, res) => {
 			solution: exerciseData.solution,
 			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order // Frontend calculates the correct order
+			order: exerciseData.order, // Frontend calculates the correct order
+			language_id: exerciseData.language_id // Include language_id for proper chapter creation
 		};
 
 		await exerciseService.createExercise(exercise);
@@ -289,7 +290,8 @@ router.put('/exercises/:id', async (req, res) => {
 			solution: exerciseData.solution,
 			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order // Don't default to 0, let service layer handle it
+			order: exerciseData.order, // Don't default to 0, let service layer handle it
+			language_id: exerciseData.language_id // Include language_id for proper chapter management
 		};
 
 		await exerciseService.updateExercise(exerciseId, exercise);
