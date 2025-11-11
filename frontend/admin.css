@@ -1493,3 +1493,32 @@
     color: var(--accent-red);
     margin-left: 2px;
 }
+
+/* Required field validation styling */
+input:required:invalid,
+textarea:required:invalid,
+select:required:invalid {
+    border-color: var(--border-color);
+}
+
+input:required:invalid:focus,
+textarea:required:invalid:focus,
+select:required:invalid:focus {
+    border-color: var(--accent-blue);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.1);
+}
+
+/* Show red border only after user interaction */
+input:required:invalid:not(:placeholder-shown),
+textarea:required:invalid:not(:placeholder-shown) {
+    border-color: var(--accent-red);
+}
+
+input:required:valid,
+textarea:required:valid,
+select:required:valid {
+    border-color: var(--border-color);
+}
+
+

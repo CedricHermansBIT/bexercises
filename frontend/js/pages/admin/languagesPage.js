@@ -416,9 +416,9 @@ class LanguagesPage {
         chapterItem.innerHTML = `
             <div class="chapter-edit-form">
                 <label for="edit-chapter-name-${chapterId}" style="display: block; margin-bottom: 0.5rem; color: var(--text-primary); font-weight: 600;">
-                    Chapter Name:
+                    Chapter Name: <span style="color: var(--accent-red);">*</span>
                 </label>
-                <input type="text" id="edit-chapter-name-${chapterId}" value="${this.escapeHtml(chapter.name)}" placeholder="Enter chapter name">
+                <input type="text" id="edit-chapter-name-${chapterId}" value="${this.escapeHtml(chapter.name)}" placeholder="Enter chapter name" required>
                 <div class="form-actions">
                     <button class="action-btn primary" onclick="languagesPage.saveChapter('${chapterId}')">
                         <span>💾</span> Save
