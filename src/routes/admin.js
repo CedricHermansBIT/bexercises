@@ -123,33 +123,39 @@ router.post('/run-test-case', async (req, res) => {
 
 		console.log('Running test case:', { languageId, argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length });
 
-		// Run the script using Docker with test case parameters and language
-		const result = await dockerService.runScriptWithTestCase(solution, languageId, args, input, fixtures);
-
-		// Hash output files if specified
+		// If we need to check output files, we need to manage tmpdir manually
+		// Otherwise use the simple runScriptWithTestCase which handles cleanup
+		let result;
 		let fileHashes = [];
+
 		if (outputFiles && outputFiles.length > 0) {
-			const { createTempScript, hashOutputFiles, removeRecursive } = require('../services/dockerService');
-			const { tmpdir } = await createTempScript(solution, languageId);
+			// Manual tmpdir management for output file verification
+			const { createTempScript, copyFixtures, runScriptInContainer, hashOutputFiles, removeRecursive } = require('../services/dockerService');
+			const config = require('../config');
+			const { tmpdir, scriptFilename, languageConfig } = await createTempScript(solution, languageId);
 
 			try {
 				// Copy fixtures if needed
 				if (fixtures && fixtures.length > 0) {
-					const { copyFixtures } = require('../services/dockerService');
 					await copyFixtures(tmpdir, fixtures);
 				}
 
-				// Run script to generate output files
-				const { runScriptInContainer, getLanguageConfigSync } = require('../services/dockerService');
-				const langConfig = getLanguageConfigSync(languageId);
-				const scriptFilename = `script${langConfig.extension}`;
-				await runScriptInContainer(tmpdir, scriptFilename, langConfig, args, input, require('../config').docker.timeout);
+				// Run script to generate output
+				result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, input, config.docker.timeout);
 
-				// Hash the specified output files
+				// Hash the specified output files from the SAME tmpdir
 				fileHashes = await hashOutputFiles(tmpdir, outputFiles);
 			} finally {
-				await removeRecursive(tmpdir);
+				// Clean up tmpdir
+				try {
+					await removeRecursive(tmpdir);
+				} catch (cleanupErr) {
+					console.error('Failed to cleanup tmpdir:', cleanupErr.message);
+				}
 			}
+		} else {
+			// No output files to check, use the simpler method
+			result = await dockerService.runScriptWithTestCase(solution, languageId, args, input, fixtures);
 		}
 
 		console.log('Test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length, fileHashesLen: fileHashes.length });

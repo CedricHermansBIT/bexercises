@@ -29,7 +29,8 @@ async function runTests(exercise, script) {
 	try {
 		for (let i = 0; i < exercise.testCases.length; i++) {
 			const tc = exercise.testCases[i];
-            console.log(tc.fixtures);
+			console.log(`\n=== Test Case ${i + 1}/${exercise.testCases.length} ===`);
+			console.log(`Fixtures:`, tc.fixtures);
 
 			// Clean up output files from previous test case (but keep fixtures and script)
 			if (i > 0) {
@@ -169,11 +170,19 @@ async function runTests(exercise, script) {
 			});
 		}
 	} finally {
-		// Cleanup
+		// Cleanup - don't let cleanup errors affect the test results
 		try {
 			await removeRecursive(tmpdir);
 		} catch (e) {
-			console.error('Cleanup failed:', e);
+			console.error('Cleanup failed for tmpdir:', tmpdir, '-', e.message);
+			// Try one more time with a delay
+			setTimeout(async () => {
+				try {
+					await removeRecursive(tmpdir);
+				} catch (retryErr) {
+					console.error('Retry cleanup also failed:', retryErr.message);
+				}
+			}, 1000);
 		}
 	}
 
