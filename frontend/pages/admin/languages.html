@@ -139,6 +139,19 @@
                             <button type="button" class="action-btn" id="cancel-language-btn">Cancel</button>
                         </div>
                     </form>
+
+                    <!-- Chapters Management Section (only shown when editing existing language) -->
+                    <div id="chapters-section" style="display: none; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="color: var(--accent-lavender); margin: 0;">Chapters</h3>
+                            <button type="button" class="action-btn primary" id="add-chapter-btn">
+                                <span>+</span> Add Chapter
+                            </button>
+                        </div>
+                        <div id="chapters-list" class="chapters-list">
+                            <!-- Chapters will be loaded here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

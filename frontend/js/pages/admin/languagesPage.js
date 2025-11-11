@@ -79,6 +79,13 @@ class LanguagesPage {
             e.preventDefault();
             this.saveLanguage();
         });
+
+        // Add chapter button
+        document.getElementById('add-chapter-btn')?.addEventListener('click', () => {
+            if (this.currentLanguage) {
+                this.addChapter();
+            }
+        });
     }
 
     async loadLanguages() {
@@ -171,6 +178,7 @@ class LanguagesPage {
 
         // Show/hide buttons
         document.getElementById('delete-language-btn').style.display = 'none';
+        document.getElementById('chapters-section').style.display = 'none';
 
         // Show editor
         this.showEditor();
@@ -204,6 +212,9 @@ class LanguagesPage {
 
         // Show editor
         this.showEditor();
+
+        // Load chapters for this language
+        await this.loadChapters(languageId);
     }
 
     async saveLanguage() {
@@ -312,14 +323,244 @@ class LanguagesPage {
     showWelcome() {
         document.getElementById('admin-welcome').style.display = 'flex';
         document.getElementById('language-editor').style.display = 'none';
+        document.getElementById('chapters-section').style.display = 'none';
 
         // Remove active class from sidebar items
         document.querySelectorAll('.notification-item').forEach(i => i.classList.remove('active'));
     }
+
+    // ============= Chapter Management =============
+
+    async loadChapters(languageId) {
+        try {
+            const chapters = await this.apiService.getChaptersByLanguage(languageId);
+            this.renderChapters(chapters);
+
+            // Show chapters section
+            document.getElementById('chapters-section').style.display = 'block';
+        } catch (error) {
+            console.error('Failed to load chapters:', error);
+            alert('Failed to load chapters: ' + error.message);
+        }
+    }
+
+    renderChapters(chapters) {
+        const container = document.getElementById('chapters-list');
+        if (!container) return;
+
+        if (chapters.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No chapters yet. Click "Add Chapter" to create one.</p>';
+            return;
+        }
+
+        container.innerHTML = chapters
+            .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
+            .map(chapter => `
+                <div class="chapter-item" data-chapter-id="${chapter.id}" draggable="true">
+                    <div class="drag-handle" style="cursor: grab; margin-right: 0.5rem; color: var(--text-muted);">⋮⋮</div>
+                    <div class="chapter-info">
+                        <div class="chapter-name">${this.escapeHtml(chapter.name)}</div>
+                        <div class="chapter-meta">
+                            ID: ${chapter.id} | 
+                            ${chapter.exercise_count || 0} exercise${chapter.exercise_count !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                    <div class="chapter-actions">
+                        <button class="action-btn" onclick="languagesPage.editChapter('${chapter.id}')">
+                            <span>✏️</span> Edit
+                        </button>
+                        <button class="action-btn danger" onclick="languagesPage.deleteChapter('${chapter.id}')">
+                            <span>🗑</span> Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+        // Setup drag and drop
+        this.setupChapterDragAndDrop();
+    }
+
+    async addChapter() {
+        const name = prompt('Enter chapter name:');
+        if (!name || !name.trim()) return;
+
+        try {
+            // Get the next order number (max + 1)
+            const chapters = await this.apiService.getChaptersByLanguage(this.currentLanguage.id);
+            const maxOrder = chapters.length > 0 ? Math.max(...chapters.map(c => c.order_num || 0)) : 0;
+
+            const chapterData = {
+                name: name.trim(),
+                language_id: this.currentLanguage.id,
+                order_num: maxOrder + 1
+            };
+
+            await this.apiService.createChapter(chapterData);
+            await this.loadChapters(this.currentLanguage.id);
+        } catch (error) {
+            console.error('Failed to create chapter:', error);
+            alert('Failed to create chapter: ' + error.message);
+        }
+    }
+
+    async editChapter(chapterId) {
+        const chapterItem = document.querySelector(`[data-chapter-id="${chapterId}"]`);
+        if (!chapterItem) return;
+
+        const chapters = await this.apiService.getChaptersByLanguage(this.currentLanguage.id);
+        const chapter = chapters.find(c => c.id === chapterId);
+        if (!chapter) return;
+
+        // Replace chapter item with edit form
+        chapterItem.classList.add('editing');
+        chapterItem.innerHTML = `
+            <div class="chapter-edit-form">
+                <label for="edit-chapter-name-${chapterId}" style="display: block; margin-bottom: 0.5rem; color: var(--text-primary); font-weight: 600;">
+                    Chapter Name:
+                </label>
+                <input type="text" id="edit-chapter-name-${chapterId}" value="${this.escapeHtml(chapter.name)}" placeholder="Enter chapter name">
+                <div class="form-actions">
+                    <button class="action-btn primary" onclick="languagesPage.saveChapter('${chapterId}')">
+                        <span>💾</span> Save
+                    </button>
+                    <button class="action-btn" onclick="languagesPage.loadChapters('${this.currentLanguage.id}')">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    async saveChapter(chapterId) {
+        const nameInput = document.getElementById(`edit-chapter-name-${chapterId}`);
+
+        if (!nameInput) return;
+
+        const name = nameInput.value.trim();
+
+        if (!name) {
+            alert('Chapter name is required');
+            return;
+        }
+
+        try {
+            await this.apiService.updateChapter(chapterId, { name });
+            await this.loadChapters(this.currentLanguage.id);
+        } catch (error) {
+            console.error('Failed to update chapter:', error);
+            alert('Failed to update chapter: ' + error.message);
+        }
+    }
+
+    async deleteChapter(chapterId) {
+        const chapters = await this.apiService.getChaptersByLanguage(this.currentLanguage.id);
+        const chapter = chapters.find(c => c.id === chapterId);
+        if (!chapter) return;
+
+        if (chapter.exercise_count > 0) {
+            alert(`Cannot delete chapter "${chapter.name}" because it contains ${chapter.exercise_count} exercise(s).\n\nPlease delete or move the exercises first.`);
+            return;
+        }
+
+        const confirmed = confirm(`Delete chapter "${chapter.name}"?\n\nThis action cannot be undone.`);
+        if (!confirmed) return;
+
+        try {
+            await this.apiService.deleteChapter(chapterId);
+            await this.loadChapters(this.currentLanguage.id);
+        } catch (error) {
+            console.error('Failed to delete chapter:', error);
+            alert('Failed to delete chapter: ' + error.message);
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    setupChapterDragAndDrop() {
+        const items = document.querySelectorAll('.chapter-item[draggable="true"]');
+
+        items.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', item.innerHTML);
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                // Save the new order
+                this.saveChapterOrder();
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const dragging = document.querySelector('.chapter-item.dragging');
+                if (!dragging) return;
+
+                const container = document.getElementById('chapters-list');
+                const afterElement = this.getDragAfterElement(container, e.clientY);
+
+                if (afterElement == null) {
+                    container.appendChild(dragging);
+                } else {
+                    container.insertBefore(dragging, afterElement);
+                }
+            });
+        });
+    }
+
+    getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.chapter-item:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    async saveChapterOrder() {
+        const items = document.querySelectorAll('.chapter-item');
+        const updates = [];
+
+        items.forEach((item, index) => {
+            const chapterId = item.dataset.chapterId;
+            if (chapterId) {
+                updates.push({
+                    id: chapterId,
+                    order_num: index + 1
+                });
+            }
+        });
+
+        // Update all chapters with new order
+        try {
+            for (const update of updates) {
+                await this.apiService.updateChapter(update.id, { order_num: update.order_num });
+            }
+            console.log('Chapter order saved successfully');
+        } catch (error) {
+            console.error('Failed to save chapter order:', error);
+            alert('Failed to save chapter order: ' + error.message);
+            // Reload to show correct order
+            await this.loadChapters(this.currentLanguage.id);
+        }
+    }
 }
 
 // Initialize the page when DOM is loaded
+let languagesPage;
 document.addEventListener('DOMContentLoaded', () => {
-    new LanguagesPage();
+    languagesPage = new LanguagesPage();
+    window.languagesPage = languagesPage; // Make globally accessible for onclick handlers
 });
 

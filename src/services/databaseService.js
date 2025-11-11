@@ -656,13 +656,40 @@ class DatabaseService {
 	}
 
 	async updateChapter(id, data) {
-		const { name, description, order_num } = data;
+		// Build dynamic UPDATE query with only provided fields
+		const updates = [];
+		const values = [];
+
+		if (data.name !== undefined) {
+			updates.push('name = ?');
+			values.push(data.name);
+		}
+		if (data.description !== undefined) {
+			updates.push('description = ?');
+			values.push(data.description);
+		}
+		if (data.order_num !== undefined) {
+			updates.push('order_num = ?');
+			values.push(data.order_num);
+		}
+
+		if (updates.length === 0) {
+			throw new Error('No fields to update');
+		}
+
+		values.push(id); // Add id for WHERE clause
+
 		await this.db.run(`
 			UPDATE chapters 
-			SET name = ?, description = ?, order_num = ?
+			SET ${updates.join(', ')}
 			WHERE id = ?
-		`, [name, description, order_num, id]);
+		`, values);
+
 		return this.getChapter(id);
+	}
+
+	async deleteChapter(id) {
+		await this.db.run(`DELETE FROM chapters WHERE id = ?`, [id]);
 	}
 
 	// ============= Exercise Methods =============

@@ -1290,5 +1290,124 @@ router.delete('/languages/:id', async (req, res) => {
 	}
 });
 
+/**
+ * POST /api/admin/chapters
+ * Create a new chapter
+ */
+router.post('/chapters', async (req, res) => {
+	try {
+		const { name, language_id, order_num, description } = req.body;
+
+		if (!name || !language_id) {
+			return res.status(400).json({ error: 'Name and language_id are required' });
+		}
+
+		// Generate chapter ID
+		const chapterId = `${language_id}-${name.toLowerCase().replace(/\s+/g, '-')}`;
+
+		// Check if chapter already exists
+		const existing = await databaseService.getChapter(chapterId);
+		if (existing) {
+			return res.status(400).json({ error: 'Chapter with this name already exists for this language' });
+		}
+
+		const chapterData = {
+			id: chapterId,
+			language_id,
+			name,
+			description: description || '',
+			order_num: order_num || 0
+		};
+
+		await databaseService.createChapter(chapterData);
+
+		res.json({ success: true, chapter: chapterData });
+	} catch (error) {
+		console.error('Error creating chapter:', error);
+		res.status(500).json({
+			error: 'Failed to create chapter',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * GET /api/admin/chapters/:languageId
+ * Get all chapters for a specific language
+ */
+router.get('/chapters/:languageId', async (req, res) => {
+	try {
+		const chapters = await databaseService.getChaptersByLanguage(req.params.languageId);
+
+		// Get exercise count for each chapter
+		const chaptersWithCount = await Promise.all(chapters.map(async (chapter) => {
+			const exercises = await databaseService.getExercisesByChapter(chapter.id);
+			return {
+				...chapter,
+				exercise_count: exercises.length
+			};
+		}));
+
+		res.json(chaptersWithCount);
+	} catch (error) {
+		console.error('Error fetching chapters:', error);
+		res.status(500).json({
+			error: 'Failed to fetch chapters',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * PUT /api/admin/chapters/:chapterId
+ * Update a chapter
+ */
+router.put('/chapters/:chapterId', async (req, res) => {
+	try {
+		const { name, description, order_num } = req.body;
+
+		await databaseService.updateChapter(req.params.chapterId, {
+			name,
+			description,
+			order_num
+		});
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error updating chapter:', error);
+		res.status(500).json({
+			error: 'Failed to update chapter',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * DELETE /api/admin/chapters/:chapterId
+ * Delete a chapter (only if it has no exercises)
+ */
+router.delete('/chapters/:chapterId', async (req, res) => {
+	try {
+		// Check if chapter has exercises
+		const exercises = await databaseService.getExercisesByChapter(req.params.chapterId);
+
+		if (exercises.length > 0) {
+			return res.status(400).json({
+				error: 'Cannot delete chapter with exercises',
+				detail: `This chapter has ${exercises.length} exercise(s). Delete or move them first.`
+			});
+		}
+
+		await databaseService.deleteChapter(req.params.chapterId);
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deleting chapter:', error);
+		res.status(500).json({
+			error: 'Failed to delete chapter',
+			detail: error.message
+		});
+	}
+});
+
 module.exports = router;
 
