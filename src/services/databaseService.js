@@ -1355,29 +1355,25 @@ class DatabaseService {
 	async checkPersistenceAchievements(userId, attempts) {
 		const newAchievements = [];
 
-		// Persistent (10+ attempts)
-		if (attempts >= 10) {
-			const hasAchievement = await this.db.get(`
-				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'persistent'
-			`, [userId]);
+		// Get all persistence achievements from database
+		const persistenceAchievements = await this.db.all(`
+			SELECT * FROM achievements 
+			WHERE requirement_type = 'persistent_completion'
+			ORDER BY requirement_value ASC
+		`);
 
-			if (!hasAchievement) {
-				await this.awardAchievement(userId, 'persistent');
-				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'persistent'`);
-				newAchievements.push(achievement);
-			}
-		}
+		// Check each persistence achievement based on its requirement_value
+		for (const achievement of persistenceAchievements) {
+			if (attempts >= achievement.requirement_value) {
+				// Check if user already has this achievement
+				const hasAchievement = await this.db.get(`
+					SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?
+				`, [userId, achievement.id]);
 
-		// Never Give Up (20+ attempts)
-		if (attempts >= 20) {
-			const hasAchievement = await this.db.get(`
-				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'never-give-up'
-			`, [userId]);
-
-			if (!hasAchievement) {
-				await this.awardAchievement(userId, 'never-give-up');
-				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'never-give-up'`);
-				newAchievements.push(achievement);
+				if (!hasAchievement) {
+					await this.awardAchievement(userId, achievement.id);
+					newAchievements.push(achievement);
+				}
 			}
 		}
 
