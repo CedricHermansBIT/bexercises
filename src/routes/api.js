@@ -73,7 +73,7 @@ router.get('/exercises/:id', async (req, res) => {
  */
 router.post('/exercises/:id/run', async (req, res) => {
 	try {
-		const { script } = req.body;
+		const { script, timezone } = req.body;
 
 		if (!script || typeof script !== 'string') {
 			return res.status(400).json({ error: 'Missing script in request body' });
@@ -113,7 +113,7 @@ router.post('/exercises/:id/run', async (req, res) => {
 				newAchievements.push(...generalAchievements);
 
 				// Check time-based achievements
-				const timeAchievements = await databaseService.checkTimeBasedAchievements(req.user.id);
+				const timeAchievements = await databaseService.checkTimeBasedAchievements(req.user.id, timezone);
 				newAchievements.push(...timeAchievements);
 
 				// Check persistence achievements
