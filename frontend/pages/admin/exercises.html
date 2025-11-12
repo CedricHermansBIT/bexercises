@@ -88,32 +88,32 @@
                     <h2 class="section-title" id="editor-title">New Exercise</h2>
 
                     <div class="form-group">
-                        <label for="exercise-id">Exercise ID</label>
-                        <input type="text" id="exercise-id" class="form-input" placeholder="e.g., command-line-args">
+                        <label for="exercise-id">Exercise ID <span class="required">*</span></label>
+                        <input type="text" id="exercise-id" class="form-input" required placeholder="e.g., command-line-args">
                         <span class="form-hint">Unique identifier (lowercase, hyphens only)</span>
                     </div>
 
                     <div class="form-group">
-                        <label for="exercise-title">Title</label>
-                        <input type="text" id="exercise-title" class="form-input" placeholder="e.g., Command Line Arguments">
+                        <label for="exercise-title">Title <span class="required">*</span></label>
+                        <input type="text" id="exercise-title" class="form-input" required placeholder="e.g., Command Line Arguments">
                     </div>
 
                     <div class="form-group">
-                        <label for="exercise-chapter">Chapter</label>
-                        <select id="exercise-chapter" class="form-input">
+                        <label for="exercise-chapter">Chapter <span class="required">*</span></label>
+                        <select id="exercise-chapter" class="form-input" required>
                             <option value="Shell scripting">Shell scripting</option>
                         </select>
                         <input type="text" id="new-chapter-input" class="form-input" placeholder="Enter new chapter name" style="display: none; margin-top: 0.5rem;">
                     </div>
 
                     <div class="form-group">
-                        <label for="exercise-description">Description</label>
-                        <textarea id="exercise-description" class="form-textarea" placeholder="Exercise description (supports Markdown)"></textarea>
+                        <label for="exercise-description">Description <span class="required">*</span></label>
+                        <textarea id="exercise-description" class="form-textarea" required placeholder="Exercise description (supports Markdown)"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label for="exercise-solution">Solution Code</label>
-                        <textarea id="exercise-solution" class="form-code"></textarea>
+                        <label for="exercise-solution">Solution Code <span class="required">*</span></label>
+                        <textarea id="exercise-solution" class="form-code" required></textarea>
                     </div>
                 </div>
 

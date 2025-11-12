@@ -1,6 +1,7 @@
 // src/services/testRunner.js
 const fs = require('fs').promises;
 const path = require('path');
+const { execSync } = require('child_process');
 const {
 	createTempScript,
 	copyFixtures,
@@ -10,6 +11,83 @@ const {
 	hashOutputFiles
 } = require('./dockerService');
 const config = require('../config');
+
+/**
+ * Whitelist of allowed commands for command substitution
+ * Only these commands can be executed for security
+ */
+const ALLOWED_COMMANDS = [
+	'date',
+	'whoami',
+	'hostname',
+	'pwd',
+	'echo'
+];
+
+/**
+ * Validate and sanitize command for substitution
+ * @param {string} command - Command to validate
+ * @returns {boolean} Whether command is allowed
+ */
+function isCommandAllowed(command) {
+	const trimmed = command.trim();
+
+	// Check if command starts with one of the allowed commands
+	for (const allowed of ALLOWED_COMMANDS) {
+		if (trimmed === allowed || trimmed.startsWith(`${allowed} `)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Expand command substitutions in a string
+ * Supports $(command) syntax for dynamic values
+ * SECURITY: Only whitelisted commands are allowed
+ * @param {string} str - String with potential command substitutions
+ * @returns {string} String with substitutions expanded
+ */
+function expandCommandSubstitution(str) {
+	if (!str || typeof str !== 'string') {
+		return str;
+	}
+
+	// Match $(command) patterns
+	const pattern = /\$\(([^)]+)\)/g;
+
+	return str.replace(pattern, (match, command) => {
+		try {
+			// SECURITY: Check if command is whitelisted
+			if (!isCommandAllowed(command)) {
+				console.warn(`[SECURITY] Blocked non-whitelisted command substitution: ${command}`);
+				console.warn(`[SECURITY] Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
+				// Return placeholder instead of executing
+				return '[BLOCKED_COMMAND]';
+			}
+
+			// Execute the command and get output
+			// On Windows, use cmd.exe if bash is not available
+			const isWindows = process.platform === 'win32';
+			const shell = isWindows ? process.env.ComSpec || 'cmd.exe' : '/bin/bash';
+
+			// Log command execution for audit trail
+			console.log(`[AUDIT] Executing whitelisted command substitution: ${command}`);
+
+			const result = execSync(command, {
+				encoding: 'utf8',
+				timeout: 5000, // 5 second timeout for safety
+				shell: shell
+			});
+			return result.trim();
+		} catch (error) {
+			console.warn(`Failed to expand command substitution: ${command}`, error.message);
+			// Return the original match if execution fails
+			return match;
+		}
+	});
+}
 
 /**
  * Run all tests for an exercise
@@ -118,12 +196,18 @@ async function runTests(exercise, script) {
 			let outputFilesResult = [];
 			let outputFilesMatch = true;
 			if (tc.expectedOutputFiles && tc.expectedOutputFiles.length > 0) {
-				const filenames = tc.expectedOutputFiles.map(f => f.filename);
+				// Expand command substitutions in filenames (e.g., $(date +%Y%m%d))
+				const expandedFiles = tc.expectedOutputFiles.map(f => ({
+					...f,
+					filename: expandCommandSubstitution(f.filename)
+				}));
+
+				const filenames = expandedFiles.map(f => f.filename);
 				const actualFileHashes = await hashOutputFiles(tmpdir, filenames);
 
 				// Compare each file's hash
 				outputFilesResult = actualFileHashes.map((actual) => {
-					const expected = tc.expectedOutputFiles.find(e => e.filename === actual.filename);
+					const expected = expandedFiles.find(e => e.filename === actual.filename);
 					const hashMatches = expected && actual.sha256 === expected.sha256;
 
 					if (!hashMatches) {

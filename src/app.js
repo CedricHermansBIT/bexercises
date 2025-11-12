@@ -10,6 +10,7 @@ const config = require('./config');
 const { configurePassport } = require('./middleware/auth');
 const SqliteSessionStore = require('./middleware/sessionStore');
 const corsMiddleware = require('./middleware/cors');
+const trackUserActivity = require('./middleware/activityTracker');
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
 const adminRoutes = require('./routes/admin');
@@ -69,6 +70,12 @@ function createApp() {
 	if (basePath) {
 		app.use('/api', corsMiddleware);
 		app.use('/auth', corsMiddleware);
+	}
+
+	// Activity tracking - update last_activity for authenticated users
+	app.use(`${basePath}/api`, trackUserActivity);
+	if (basePath) {
+		app.use('/api', trackUserActivity);
 	}
 
 	// Routes - mount with basePath

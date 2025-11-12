@@ -230,6 +230,14 @@ async function createExercise(exerciseData) {
 			// Get the language_id from exerciseData or default to 'bash'
 			const languageId = exerciseData.language_id || 'bash';
 
+			if (!exerciseData.language_id) {
+				console.warn('⚠️ No language_id provided for exercise, defaulting to "bash". Exercise data:', {
+					id: exerciseData.id,
+					chapter: exerciseData.chapter,
+					hasLanguageId: !!exerciseData.language_id
+				});
+			}
+
 			// Try to find existing chapter by name for this language
 			const chapters = await databaseService.getChaptersByLanguage(languageId);
 			let chapter = chapters.find(c => c.name === exerciseData.chapter);

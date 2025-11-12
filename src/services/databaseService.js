@@ -109,9 +109,17 @@ class DatabaseService {
 				display_name TEXT,
 				is_admin BOOLEAN DEFAULT 0,
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				last_login DATETIME
+				last_login DATETIME,
+				last_activity DATETIME
 			)
 		`);
+
+		// Add last_activity column if it doesn't exist (for existing databases)
+		try {
+			await this.db.exec(`ALTER TABLE users ADD COLUMN last_activity DATETIME`);
+		} catch (e) {
+			// Column already exists
+		}
 
 		// User progress table
 		await this.db.exec(`
@@ -414,9 +422,9 @@ class DatabaseService {
 			{ id: 'untouchable', name: 'Untouchable', description: 'Complete 10 exercises on first try', icon: '🌟', category: 'skill', points: 100, requirement_type: 'first_try_completions', requirement_value: 10 },
 
 			// Persistence
-            { id: 'comeback-kid', name: 'Comeback Kid', description: 'Complete an exercise after failing 5+ times', icon: '💪', category: 'persistence', points: 10, requirement_type: 'comeback_completion', requirement_value: 1 },
-			{ id: 'persistent', name: 'Persistent', description: 'Complete an exercise after 10+ attempts', icon: '🔥', category: 'persistence', points: 30, requirement_type: 'persistent_completion', requirement_value: 1 },
-			{ id: 'never-give-up', name: 'Never Give Up', description: 'Complete an exercise after 20+ attempts', icon: '💪', category: 'persistence', points: 50, requirement_type: 'persistent_completion_20', requirement_value: 1 },
+            { id: 'comeback-kid', name: 'Comeback Kid', description: 'Complete an exercise after failing 5+ times', icon: '💪', category: 'persistence', points: 10, requirement_type: 'persistent_completion', requirement_value: 5 },
+			{ id: 'persistent', name: 'Persistent', description: 'Complete an exercise after 10+ attempts', icon: '🔥', category: 'persistence', points: 30, requirement_type: 'persistent_completion', requirement_value: 10 },
+			{ id: 'never-give-up', name: 'Never Give Up', description: 'Complete an exercise after 20+ attempts', icon: '💪', category: 'persistence', points: 50, requirement_type: 'persistent_completion', requirement_value: 20 },
 
 			// Total Attempts Milestones
 			{ id: 'answer-to-everything', name: 'Answer to Everything', description: 'Reach 42 total test runs', icon: '🤖', category: 'attempts', points: 42, requirement_type: 'total_test_runs', requirement_value: 42 },
@@ -656,13 +664,40 @@ class DatabaseService {
 	}
 
 	async updateChapter(id, data) {
-		const { name, description, order_num } = data;
+		// Build dynamic UPDATE query with only provided fields
+		const updates = [];
+		const values = [];
+
+		if (data.name !== undefined) {
+			updates.push('name = ?');
+			values.push(data.name);
+		}
+		if (data.description !== undefined) {
+			updates.push('description = ?');
+			values.push(data.description);
+		}
+		if (data.order_num !== undefined) {
+			updates.push('order_num = ?');
+			values.push(data.order_num);
+		}
+
+		if (updates.length === 0) {
+			throw new Error('No fields to update');
+		}
+
+		values.push(id); // Add id for WHERE clause
+
 		await this.db.run(`
 			UPDATE chapters 
-			SET name = ?, description = ?, order_num = ?
+			SET ${updates.join(', ')}
 			WHERE id = ?
-		`, [name, description, order_num, id]);
+		`, values);
+
 		return this.getChapter(id);
+	}
+
+	async deleteChapter(id) {
+		await this.db.run(`DELETE FROM chapters WHERE id = ?`, [id]);
 	}
 
 	// ============= Exercise Methods =============
@@ -886,8 +921,24 @@ class DatabaseService {
 
 	async updateUserLogin(userId) {
 		await this.db.run(`
-			UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?
+			UPDATE users SET last_login = CURRENT_TIMESTAMP, last_activity = CURRENT_TIMESTAMP WHERE id = ?
 		`, [userId]);
+	}
+
+	async updateUserActivity(userId) {
+		await this.db.run(`
+			UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE id = ?
+		`, [userId]);
+	}
+
+	async getOnlineUsers(minutesThreshold = 60) {
+		const thresholdTime = new Date(Date.now() - minutesThreshold * 60 * 1000).toISOString().split('.')[0].replace('T', ' ');
+		return this.db.all(`
+			SELECT id, display_name, is_admin, last_activity
+			FROM users
+			WHERE last_activity >= ?
+			ORDER BY last_activity DESC
+		`, [thresholdTime]);
 	}
 
 	// ============= User Progress Methods =============
@@ -1355,29 +1406,25 @@ class DatabaseService {
 	async checkPersistenceAchievements(userId, attempts) {
 		const newAchievements = [];
 
-		// Persistent (10+ attempts)
-		if (attempts >= 10) {
-			const hasAchievement = await this.db.get(`
-				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'persistent'
-			`, [userId]);
+		// Get all persistence achievements from database
+		const persistenceAchievements = await this.db.all(`
+			SELECT * FROM achievements 
+			WHERE requirement_type = 'persistent_completion'
+			ORDER BY requirement_value ASC
+		`);
 
-			if (!hasAchievement) {
-				await this.awardAchievement(userId, 'persistent');
-				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'persistent'`);
-				newAchievements.push(achievement);
-			}
-		}
+		// Check each persistence achievement based on its requirement_value
+		for (const achievement of persistenceAchievements) {
+			if (attempts >= achievement.requirement_value) {
+				// Check if user already has this achievement
+				const hasAchievement = await this.db.get(`
+					SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = ?
+				`, [userId, achievement.id]);
 
-		// Never Give Up (20+ attempts)
-		if (attempts >= 20) {
-			const hasAchievement = await this.db.get(`
-				SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'never-give-up'
-			`, [userId]);
-
-			if (!hasAchievement) {
-				await this.awardAchievement(userId, 'never-give-up');
-				const achievement = await this.db.get(`SELECT * FROM achievements WHERE id = 'never-give-up'`);
-				newAchievements.push(achievement);
+				if (!hasAchievement) {
+					await this.awardAchievement(userId, achievement.id);
+					newAchievements.push(achievement);
+				}
 			}
 		}
 

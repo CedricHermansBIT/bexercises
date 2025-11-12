@@ -2,6 +2,8 @@
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
+import OnlineUsers from '../components/onlineUsers.js';
+import Navbar from '../components/navbar.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 import themeManager from '../utils/themeUtils.js';
 import { setFavicon } from '../utils/faviconUtils.js';
@@ -11,8 +13,12 @@ class AchievementsPage {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.onlineUsers = new OnlineUsers();
+        this.navbar = new Navbar(this.apiService);
         this.achievements = [];
         this.currentFilter = 'all';
+
+        window.themeManager = themeManager;
 
         this.init();
     }
@@ -30,6 +36,9 @@ class AchievementsPage {
 
         // Initialize notification banner
         await this.notificationBanner.init();
+
+        // Initialize online users navbar dropdown
+        await this.onlineUsers.init('online-users-dropdown', true);
 
         // Setup admin access
         this.setupAdminAccess();
@@ -298,4 +307,3 @@ if (document.readyState === 'loading') {
 } else {
     new AchievementsPage();
 }
-

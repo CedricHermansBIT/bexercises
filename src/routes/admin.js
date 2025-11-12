@@ -6,12 +6,43 @@ const databaseService = require('../services/databaseService');
 const dockerService = require('../services/dockerService');
 const fs = require('fs').promises;
 const path = require('path');
+const { execSync } = require('child_process');
 const config = require('../config');
 
 const router = express.Router();
 
 // All routes require admin authentication
 router.use(requireAdmin);
+
+/**
+ * Expand command substitutions in a string (e.g., $(date +%Y%m%d))
+ * @param {string} str - String with potential command substitutions
+ * @returns {string} String with substitutions expanded
+ */
+function expandCommandSubstitution(str) {
+	if (!str || typeof str !== 'string') {
+		return str;
+	}
+
+	const pattern = /\$\(([^)]+)\)/g;
+
+	return str.replace(pattern, (match, command) => {
+		try {
+			const isWindows = process.platform === 'win32';
+			const shell = isWindows ? process.env.ComSpec || 'cmd.exe' : '/bin/bash';
+
+			const result = execSync(command, {
+				encoding: 'utf8',
+				timeout: 5000,
+				shell: shell
+			});
+			return result.trim();
+		} catch (error) {
+			console.warn(`Failed to expand command substitution: ${command}`, error.message);
+			return match;
+		}
+	});
+}
 
 /**
  * GET /api/admin/exercises
@@ -143,8 +174,13 @@ router.post('/run-test-case', async (req, res) => {
 				// Run script to generate output
 				result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, input, config.docker.timeout);
 
+				// Expand command substitutions in output filenames (e.g., $(date +%Y%m%d))
+				const expandedOutputFiles = outputFiles.map(filename =>
+					expandCommandSubstitution(filename)
+				);
+
 				// Hash the specified output files from the SAME tmpdir
-				fileHashes = await hashOutputFiles(tmpdir, outputFiles);
+				fileHashes = await hashOutputFiles(tmpdir, expandedOutputFiles);
 			} finally {
 				// Clean up tmpdir
 				try {
@@ -206,7 +242,8 @@ router.post('/exercises', async (req, res) => {
 			solution: exerciseData.solution,
 			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order // Frontend calculates the correct order
+			order: exerciseData.order, // Frontend calculates the correct order
+			language_id: exerciseData.language_id // Include language_id for proper chapter creation
 		};
 
 		await exerciseService.createExercise(exercise);
@@ -253,7 +290,8 @@ router.put('/exercises/:id', async (req, res) => {
 			solution: exerciseData.solution,
 			testCases: exerciseData.testCases || [],
 			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order // Don't default to 0, let service layer handle it
+			order: exerciseData.order, // Don't default to 0, let service layer handle it
+			language_id: exerciseData.language_id // Include language_id for proper chapter management
 		};
 
 		await exerciseService.updateExercise(exerciseId, exercise);
@@ -763,10 +801,10 @@ router.get('/users', async (req, res) => {
 				u.is_admin,
 				u.created_at,
 				u.last_login,
+				u.last_activity,
 				COALESCE(p.exercises_attempted, 0) as exercises_attempted,
 				COALESCE(p.exercises_completed, 0) as exercises_completed,
 				COALESCE(p.total_test_runs, 0) as total_test_runs,
-				p.last_activity,
 				COALESCE(a.achievements_unlocked, 0) as achievements_unlocked
 			FROM users u
 			LEFT JOIN (
@@ -774,8 +812,7 @@ router.get('/users', async (req, res) => {
 					user_id,
 					COUNT(DISTINCT exercise_id) as exercises_attempted,
 					SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
-					SUM(attempts) as total_test_runs,
-					MAX(last_submission_at) as last_activity
+					SUM(attempts) as total_test_runs
 				FROM user_progress
 				GROUP BY user_id
 			) p ON u.id = p.user_id
@@ -786,7 +823,7 @@ router.get('/users', async (req, res) => {
 				FROM user_achievements
 				GROUP BY user_id
 			) a ON u.id = a.user_id
-			ORDER BY u.last_login DESC
+			ORDER BY u.last_activity DESC NULLS LAST, u.last_login DESC
 		`);
 
 		res.json(users);
@@ -1247,6 +1284,125 @@ router.delete('/languages/:id', async (req, res) => {
 		console.error('Error deleting language:', error);
 		res.status(500).json({
 			error: 'Failed to delete language',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * POST /api/admin/chapters
+ * Create a new chapter
+ */
+router.post('/chapters', async (req, res) => {
+	try {
+		const { name, language_id, order_num, description } = req.body;
+
+		if (!name || !language_id) {
+			return res.status(400).json({ error: 'Name and language_id are required' });
+		}
+
+		// Generate chapter ID
+		const chapterId = `${language_id}-${name.toLowerCase().replace(/\s+/g, '-')}`;
+
+		// Check if chapter already exists
+		const existing = await databaseService.getChapter(chapterId);
+		if (existing) {
+			return res.status(400).json({ error: 'Chapter with this name already exists for this language' });
+		}
+
+		const chapterData = {
+			id: chapterId,
+			language_id,
+			name,
+			description: description || '',
+			order_num: order_num || 0
+		};
+
+		await databaseService.createChapter(chapterData);
+
+		res.json({ success: true, chapter: chapterData });
+	} catch (error) {
+		console.error('Error creating chapter:', error);
+		res.status(500).json({
+			error: 'Failed to create chapter',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * GET /api/admin/chapters/:languageId
+ * Get all chapters for a specific language
+ */
+router.get('/chapters/:languageId', async (req, res) => {
+	try {
+		const chapters = await databaseService.getChaptersByLanguage(req.params.languageId);
+
+		// Get exercise count for each chapter
+		const chaptersWithCount = await Promise.all(chapters.map(async (chapter) => {
+			const exercises = await databaseService.getExercisesByChapter(chapter.id);
+			return {
+				...chapter,
+				exercise_count: exercises.length
+			};
+		}));
+
+		res.json(chaptersWithCount);
+	} catch (error) {
+		console.error('Error fetching chapters:', error);
+		res.status(500).json({
+			error: 'Failed to fetch chapters',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * PUT /api/admin/chapters/:chapterId
+ * Update a chapter
+ */
+router.put('/chapters/:chapterId', async (req, res) => {
+	try {
+		const { name, description, order_num } = req.body;
+
+		await databaseService.updateChapter(req.params.chapterId, {
+			name,
+			description,
+			order_num
+		});
+
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error updating chapter:', error);
+		res.status(500).json({
+			error: 'Failed to update chapter',
+			detail: error.message
+		});
+	}
+});
+
+/**
+ * DELETE /api/admin/chapters/:chapterId
+ * Delete a chapter (only if it has no exercises)
+ */
+router.delete('/chapters/:chapterId', async (req, res) => {
+	try {
+		// Check if chapter has exercises
+		const exercises = await databaseService.getExercisesByChapter(req.params.chapterId);
+
+		if (exercises.length > 0) {
+			return res.status(400).json({
+				error: 'Cannot delete chapter with exercises',
+				detail: `This chapter has ${exercises.length} exercise(s). Delete or move them first.`
+			});
+		}
+
+		await databaseService.deleteChapter(req.params.chapterId);
+		res.json({ success: true });
+	} catch (error) {
+		console.error('Error deleting chapter:', error);
+		res.status(500).json({
+			error: 'Failed to delete chapter',
 			detail: error.message
 		});
 	}

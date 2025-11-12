@@ -624,7 +624,7 @@ class ApiService {
 	/**
 	 * Get leaderboard data, optionally filtered by language
 	 * @param {string|null} languageId - Optional language ID to filter by
-	 * @returns {Promise<Array>} Leaderboard rankings
+	 * @returns {Promise<Array} Leaderboard rankings
 	 */
 	async getLeaderboard(languageId = null) {
 		const endpoint = languageId
@@ -673,6 +673,90 @@ class ApiService {
 		}
 		return response.json();
 	}
+
+	// ============= Chapter Management (Admin) =============
+
+	/**
+	 * Create chapter (admin only)
+	 * @param {Object} chapterData - Chapter data (name, language_id, description, order_num)
+	 * @returns {Promise<Object>} Created chapter
+	 */
+	async createChapter(chapterData) {
+		const response = await fetch(`${this.baseUrl}/api/admin/chapters`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(chapterData)
+		});
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to create chapter: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Get chapters for a language (admin only)
+	 * @param {string} languageId - Language ID
+	 * @returns {Promise<Array>} Array of chapters with exercise counts
+	 */
+	async getChaptersByLanguage(languageId) {
+		const response = await fetch(`${this.baseUrl}/api/admin/chapters/${encodeURIComponent(languageId)}`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch chapters: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Update chapter (admin only)
+	 * @param {string} chapterId - Chapter ID
+	 * @param {Object} chapterData - Chapter data (name, description, order_num)
+	 * @returns {Promise<Object>} Update result
+	 */
+	async updateChapter(chapterId, chapterData) {
+		const response = await fetch(`${this.baseUrl}/api/admin/chapters/${encodeURIComponent(chapterId)}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(chapterData)
+		});
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to update chapter: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Delete chapter (admin only)
+	 * @param {string} chapterId - Chapter ID
+	 * @returns {Promise<Object>} Delete result
+	 */
+	async deleteChapter(chapterId) {
+		const response = await fetch(`${this.baseUrl}/api/admin/chapters/${encodeURIComponent(chapterId)}`, {
+			method: 'DELETE'
+		});
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+			throw new Error(error.error || `Failed to delete chapter: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	// ============= Online Users =============
+
+	/**
+	 * Get online users (active in last hour)
+	 * @returns {Promise<Object>} Object with count and users array
+	 */
+	async getOnlineUsers() {
+		const response = await fetch(`${this.baseUrl}/api/online-users`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch online users: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	// ============= Exam Grader (Admin) =============
 
 	/**
 	 * Grade exam submissions (admin only)

@@ -1000,6 +1000,98 @@
     max-height: 500px !important;
 }
 
+/* ============================================================
+   Chapters Management Styles
+   ============================================================ */
+
+.chapters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chapter-item {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+    cursor: move;
+}
+
+.chapter-item:hover {
+    border-color: var(--accent-blue);
+    background: var(--surface);
+}
+
+.chapter-item.dragging {
+    opacity: 0.5;
+    border-color: var(--accent-lavender);
+}
+
+.chapter-item.editing {
+    border-color: var(--accent-lavender);
+    background: var(--surface);
+    cursor: default;
+}
+
+.drag-handle {
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+.chapter-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.chapter-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.chapter-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.chapter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chapter-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.chapter-edit-form input {
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+}
+
+.chapter-edit-form .form-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
 /* ===== FILE VIEWER MODAL ===== */
 .file-viewer-modal {
     position: fixed;
@@ -1400,4 +1492,156 @@
 .required {
     color: var(--accent-red);
     margin-left: 2px;
+}
+
+/* Required field validation styling */
+input:required:invalid,
+textarea:required:invalid,
+select:required:invalid {
+    border-color: var(--border-color);
+}
+
+input:required:invalid:focus,
+textarea:required:invalid:focus,
+select:required:invalid:focus {
+    border-color: var(--accent-blue);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.1);
+}
+
+/* Show red border only after user interaction */
+input:required:invalid:not(:placeholder-shown),
+textarea:required:invalid:not(:placeholder-shown) {
+    border-color: var(--accent-red);
+}
+
+input:required:valid,
+textarea:required:valid,
+select:required:valid {
+    border-color: var(--border-color);
+}
+
+/* ============================================================
+   Online Users Widget Styles
+   ============================================================ */
+
+.online-users-widget {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.online-users-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.online-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    box-shadow: none;
+    flex-shrink: 0;
+}
+
+.online-indicator.online-active {
+    background: #2ecc71;
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.6);
+    animation: pulse 2s infinite;
+}
+
+.online-indicator.online-idle {
+    background: #f39c12;
+    box-shadow: 0 0 8px rgba(243, 156, 18, 0.6);
+    animation: pulse 3s infinite;
+}
+
+.online-indicator.offline {
+    background: var(--text-muted);
+    box-shadow: none;
+    animation: none;
+}
+
+.online-indicator.admin.online-active {
+    background: var(--accent-lavender);
+    box-shadow: 0 0 8px rgba(203, 166, 247, 0.8);
+}
+
+.online-indicator.admin.online-idle {
+    background: #cba6f7;
+    box-shadow: 0 0 8px rgba(203, 166, 247, 0.4);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.online-count {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.online-users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.online-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.online-user:hover {
+    background: var(--surface);
+}
+
+.user-name {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    flex: 1;
+}
+
+.time-ago {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.online-more {
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.online-users-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
 }

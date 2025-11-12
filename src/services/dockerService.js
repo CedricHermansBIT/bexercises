@@ -524,6 +524,38 @@ async function runScriptWithTestCase(script, languageId = 'bash', args = [], inp
  * @returns {Promise<string>} Hex string of SHA-256 hash
  */
 async function hashFile(filePath) {
+	// Check if file is a tar.gz archive
+	const isTarGz = filePath.endsWith('.tar.gz') || filePath.endsWith('.tgz');
+
+	if (isTarGz) {
+		// For tar.gz files, hash the file list instead of the archive itself
+		// This avoids timestamp issues in the tar metadata
+		return new Promise((resolve, reject) => {
+			const tarProcess = spawn('tar', ['tf', filePath]);
+			const hash = crypto.createHash('sha256');
+			let fileList = '';
+
+			tarProcess.stdout.on('data', (data) => {
+				fileList += data.toString();
+			});
+
+			tarProcess.on('close', (code) => {
+				if (code !== 0) {
+					reject(new Error(`Failed to list tar contents: exit code ${code}`));
+					return;
+				}
+
+				// Sort the file list to ensure consistent ordering
+				const sortedFiles = fileList.trim().split('\n').sort().join('\n');
+				hash.update(sortedFiles);
+				resolve(hash.digest('hex'));
+			});
+
+			tarProcess.on('error', reject);
+		});
+	}
+
+	// For regular files, hash the content normally
 	return new Promise((resolve, reject) => {
 		const hash = crypto.createHash('sha256');
 		const stream = fsSync.createReadStream(filePath);

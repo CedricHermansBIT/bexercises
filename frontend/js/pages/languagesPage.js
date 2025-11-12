@@ -2,6 +2,7 @@
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
+import OnlineUsers from '../components/onlineUsers.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 import themeManager from '../utils/themeUtils.js';
 import { setFavicon } from '../utils/faviconUtils.js';
@@ -11,9 +12,11 @@ class LanguagesPage {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.onlineUsers = new OnlineUsers();
 
         // Make auth component globally accessible
         window.authComponent = this.authComponent;
+        window.themeManager = themeManager;
 
         this.exercises = [];
         this.userProgress = {}; // Store user progress from database
@@ -35,6 +38,9 @@ class LanguagesPage {
 
         // Initialize notification banner
         await this.notificationBanner.init();
+
+        // Initialize online users navbar dropdown
+        await this.onlineUsers.init('online-users-dropdown', true);
 
         // Update time display
         this.updateTime();

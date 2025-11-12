@@ -365,4 +365,28 @@ router.get('/progress/language/:languageId', async (req, res) => {
 	}
 });
 
+/**
+ * GET /api/online-users
+ * Get list of users currently online (active in last hour)
+ */
+router.get('/online-users', async (req, res) => {
+	try {
+		// Get users active in the last 60 minutes
+		const onlineUsers = await databaseService.getOnlineUsers(60);
+
+		// Return count and list of display names (privacy-friendly)
+		res.json({
+			count: onlineUsers.length,
+			users: onlineUsers.map(u => ({
+				displayName: u.display_name,
+				isAdmin: u.is_admin === 1,
+				lastActivity: u.last_activity
+			}))
+		});
+	} catch (error) {
+		console.error('Error fetching online users:', error);
+		res.status(500).json({ error: 'Failed to load online users' });
+	}
+});
+
 module.exports = router;

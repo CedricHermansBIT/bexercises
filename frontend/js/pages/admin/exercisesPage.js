@@ -238,7 +238,19 @@ class ExercisesPage {
             localStorage.setItem('admin-selected-language', this.selectedLanguage);
         }
 
-        select.value = this.selectedLanguage || (this.languages.length > 0 ? this.languages[0].id : '');
+        // Always ensure selectedLanguage is set to something if languages exist
+        if (!this.selectedLanguage && this.languages.length > 0) {
+            this.selectedLanguage = this.languages[0].id;
+            localStorage.setItem('admin-selected-language', this.selectedLanguage);
+        }
+
+        select.value = this.selectedLanguage || '';
+
+        console.log('Language selector initialized:', {
+            selectedLanguage: this.selectedLanguage,
+            selectValue: select.value,
+            languagesCount: this.languages.length
+        });
 
         // Update new exercise button text
         this.updateNewExerciseButton();
@@ -279,8 +291,7 @@ class ExercisesPage {
         // Filter exercises by selected language (no 'all' option anymore)
         const filteredExercises = this.selectedLanguage
             ? this.exercises.filter(ex => {
-                return ex.language_id === this.selectedLanguage ||
-                       (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
+                return ex.language_id === this.selectedLanguage;
               })
             : [];
 
@@ -658,6 +669,12 @@ class ExercisesPage {
             }
         }
 
+        // Ensure a language is selected
+        if (!this.selectedLanguage) {
+            alert('Please select a language from the dropdown at the top of the page.');
+            return;
+        }
+
         const exerciseData = {
             id,
             title,
@@ -668,6 +685,14 @@ class ExercisesPage {
             testCases: this.testCases,
             language_id: this.selectedLanguage // Include the currently selected language
         };
+
+        console.log('Saving exercise with data:', {
+            id,
+            chapter,
+            language_id: this.selectedLanguage,
+            isNewChapter: chapter === newChapterInput.value,
+            selectedLanguageDebug: this.selectedLanguage
+        });
 
         if (!id || !title || !description || !solution) {
             alert('Please fill in all required fields');

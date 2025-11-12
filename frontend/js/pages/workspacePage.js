@@ -3,6 +3,7 @@ import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
+import OnlineUsers from '../components/onlineUsers.js';
 import TestResults from '../components/testResults.js';
 import Statistics from '../components/statistics.js';
 import { initializeResizableSidebars, makeVerticallyResizable } from '../utils/resizeUtils.js';
@@ -18,11 +19,13 @@ class WorkspacePage {
         this.storageService = new StorageService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.onlineUsers = new OnlineUsers();
         this.testResults = new TestResults();
         this.statistics = new Statistics();
 
         // Make auth component globally accessible
         window.authComponent = this.authComponent;
+        window.themeManager = themeManager;
 
         this.currentExercise = null;
         this.codeEditor = null;
@@ -45,6 +48,9 @@ class WorkspacePage {
 
         // Initialize notification banner
         await this.notificationBanner.init();
+
+        // Initialize online users navbar dropdown
+        await this.onlineUsers.init('online-users-dropdown', true);
 
         // Setup admin access
         this.setupAdminAccess();
