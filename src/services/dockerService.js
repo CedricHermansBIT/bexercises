@@ -7,6 +7,28 @@ const crypto = require('crypto');
 const config = require('../config');
 
 /**
+ * Detect whether to use docker or podman
+ * @returns {string} 'docker' or 'podman'
+ * @throws {Error} If neither is available
+ */
+function getContainerCommand() {
+	try {
+		const which = require('which');
+		which.sync('docker');
+		return 'docker';
+	} catch (e) {
+		try {
+			const which = require('which');
+			which.sync('podman');
+			console.log('Docker not found, using Podman as a drop-in replacement.');
+			return 'podman';
+		} catch (e2) {
+			throw new Error('Neither Docker nor Podman is installed or found in PATH.');
+		}
+	}
+}
+
+/**
  * Language configuration for execution
  * Maps language IDs to their runtime properties
  * FALLBACK CONFIG - Database is the primary source
@@ -387,36 +409,8 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 			...args
 		];
 
-        // Check if docker is installed, if not check if podman is available and use it as a drop-in replacement (not hardcoded paths)
-        let dockerCmd = 'docker';
-        const isDockerAvailable = (() => {
-            try {
-                const which = require('which');
-                which.sync('docker');
-                return true;
-            } catch (e) {
-                return false;
-            }
-        }
-        )();
-        if (!isDockerAvailable) {
-            const isPodmanAvailable = (() => {
-                try {
-                    const which = require('which');
-                    which.sync('podman');
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }
-            )();
-            if (isPodmanAvailable) {
-                dockerCmd = 'podman';
-                console.log('Docker not found, using Podman as a drop-in replacement.');
-            } else {
-                throw new Error('Neither Docker nor Podman is installed or found in PATH.');
-            }
-        }
+		// Check if docker is installed, if not check if podman is available and use it as a drop-in replacement
+		const dockerCmd = getContainerCommand();
 
 		const docker = spawn(dockerCmd, dockerArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
 
@@ -589,6 +583,7 @@ async function hashOutputFiles(tmpdir, filenames = []) {
 }
 
 module.exports = {
+	getContainerCommand,
 	normalizeOutput,
 	removeRecursive,
 	createTempScript,

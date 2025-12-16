@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const config = require('../config');
+const { getContainerCommand } = require('./dockerService');
 
 /**
  * Start a MariaDB container with optional fixture loading
@@ -15,8 +16,9 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
 	const containerName = `bex-mariadb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 	const password = 'testpass';
 	const database = 'testdb';
+	const containerCmd = getContainerCommand();
 
-	console.log(`[MariaDB] Starting container: ${containerName}`);
+	console.log(`[MariaDB] Starting container: ${containerName} using ${containerCmd}`);
 
 	// Copy fixture files to tmpdir if provided
 	const initSqlPath = path.join(tmpdir, 'init.sql');
@@ -50,7 +52,7 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
 	];
 
 	return new Promise((resolve, reject) => {
-		const docker = spawn('docker', dockerArgs);
+		const docker = spawn(containerCmd, dockerArgs);
 		let stdout = '';
 		let stderr = '';
 
@@ -81,7 +83,7 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
 					cleanup: async () => {
 						console.log(`[MariaDB] Stopping container: ${containerName}`);
 						return new Promise((res) => {
-							const stop = spawn('docker', ['rm', '-f', containerName]);
+							const stop = spawn(containerCmd, ['rm', '-f', containerName]);
 							stop.on('close', () => res());
 						});
 					}
@@ -102,8 +104,9 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
 async function startMongoDBContainer(tmpdir, fixtures = []) {
 	const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 	const database = 'testdb';
+	const containerCmd = getContainerCommand();
 
-	console.log(`[MongoDB] Starting container: ${containerName}`);
+	console.log(`[MongoDB] Starting container: ${containerName} using ${containerCmd}`);
 
 	// Copy fixture files to tmpdir if provided
 	if (fixtures.length > 0) {
@@ -132,7 +135,7 @@ async function startMongoDBContainer(tmpdir, fixtures = []) {
 	];
 
 	return new Promise((resolve, reject) => {
-		const docker = spawn('docker', dockerArgs);
+		const docker = spawn(containerCmd, dockerArgs);
 		let stdout = '';
 		let stderr = '';
 
@@ -162,7 +165,7 @@ async function startMongoDBContainer(tmpdir, fixtures = []) {
 					cleanup: async () => {
 						console.log(`[MongoDB] Stopping container: ${containerName}`);
 						return new Promise((res) => {
-							const stop = spawn('docker', ['rm', '-f', containerName]);
+							const stop = spawn(containerCmd, ['rm', '-f', containerName]);
 							stop.on('close', () => res());
 						});
 					}
@@ -181,6 +184,8 @@ async function startMongoDBContainer(tmpdir, fixtures = []) {
  * @returns {Promise<Object>} Query result {stdout, stderr, exitCode}
  */
 async function executeMariaDBQuery(containerInfo, query) {
+	const containerCmd = getContainerCommand();
+	
 	return new Promise((resolve) => {
 		const dockerArgs = [
 			'exec', containerInfo.containerName,
@@ -191,7 +196,7 @@ async function executeMariaDBQuery(containerInfo, query) {
 			'-e', query
 		];
 
-		const docker = spawn('docker', dockerArgs);
+		const docker = spawn(containerCmd, dockerArgs);
 		let stdout = '';
 		let stderr = '';
 
@@ -228,6 +233,8 @@ async function executeMariaDBQuery(containerInfo, query) {
  * @returns {Promise<Object>} Query result {stdout, stderr, exitCode}
  */
 async function executeMongoDBQuery(containerInfo, query) {
+	const containerCmd = getContainerCommand();
+	
 	return new Promise((resolve) => {
 		const dockerArgs = [
 			'exec', containerInfo.containerName,
@@ -237,7 +244,7 @@ async function executeMongoDBQuery(containerInfo, query) {
 			'--eval', query
 		];
 
-		const docker = spawn('docker', dockerArgs);
+		const docker = spawn(containerCmd, dockerArgs);
 		let stdout = '';
 		let stderr = '';
 
