@@ -85,6 +85,45 @@ async function runTests(exercise, script) {
 			let expectedStderr = normalizeOutput(tc.expectedStderr || '').trim();
 			let expectedExitCode = (tc.expectedExitCode != null) ? tc.expectedExitCode : 0;
 
+			// For database exercises with validation queries, run the validation query AFTER user script
+			// to check the actual database state rather than just the command output
+			let validationOutput = null;
+			if (isDatabaseExercise && tc.validationQuery) {
+				try {
+					console.log(`Running validation query to check database state: ${tc.validationQuery}`);
+					
+					// Create a script that runs the user's query followed by the validation query
+					const combinedScript = script + '\n' + tc.validationQuery;
+					const { tmpdir: valTmpdir, scriptFilename: valScriptFilename, languageConfig: valLangConfig } = await createTempScript(combinedScript, languageId);
+					
+					// Copy fixtures if needed
+					if (tc.fixtures && Array.isArray(tc.fixtures)) {
+						await copyFixtures(valTmpdir, tc.fixtures, tc.fixturePermissions);
+					}
+
+					// Run the combined script
+					const validationResult = await runScriptInContainer(
+						valTmpdir,
+						valScriptFilename,
+						valLangConfig,
+						tc.arguments || [],
+						tc.input || [],
+						config.docker.timeout
+					);
+
+					// Use validation query output as the actual output to compare
+					validationOutput = normalizeOutput(validationResult.stdout).trim();
+					
+					console.log(`Validation query returned: ${validationOutput}`);
+					console.log(`Expected database state: ${expected}`);
+
+					// Cleanup validation temp dir
+					await removeRecursive(valTmpdir);
+				} catch (err) {
+					console.error('Failed to run validation query:', err);
+				}
+			}
+
 			// If test case uses dynamic output, run the exercise solution to get expected output
 			if (tc.useDynamicOutput && exercise.solution) {
 				try {
@@ -146,7 +185,8 @@ async function runTests(exercise, script) {
 			}
 
 			// Compare output - normalize both expected and actual
-			const actual = normalizeOutput(r.stdout).trim();
+			// For database exercises with validation query, use validation output instead
+			const actual = validationOutput !== null ? validationOutput : normalizeOutput(r.stdout).trim();
 			const actualStderr = normalizeOutput(r.stderr || '').trim();
 
 			// For database exercises, focus primarily on stdout (data returned)
@@ -154,6 +194,7 @@ async function runTests(exercise, script) {
 			let passed;
 			if (isDatabaseExercise) {
 				// Database exercises: only check stdout and timeout, ignore stderr and exit codes
+				// If validation query is present, we're checking database state instead of command output
 				passed = (!r.timedOut)
 					&& (actual === expected)
 					&& outputFilesMatch;
@@ -180,6 +221,8 @@ async function runTests(exercise, script) {
 				timedOut: r.timedOut,
 				error: r.error,
 				outputFiles: outputFilesResult,
+				validationQuery: tc.validationQuery || null,
+				usedValidation: validationOutput !== null,
 				passed
 			});
 		}
