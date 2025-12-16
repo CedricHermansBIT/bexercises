@@ -23,6 +23,9 @@ async function runTests(exercise, script) {
 	const { tmpdir, scriptFilename, languageConfig } = await createTempScript(script, languageId);
 	const results = [];
 
+	// Determine if this is a database exercise
+	const isDatabaseExercise = exercise.exercise_type === 'database';
+
 	// Keep track of fixture files and script to avoid deleting them
 	const protectedFiles = new Set([scriptFilename]);
 
@@ -146,12 +149,23 @@ async function runTests(exercise, script) {
 			const actual = normalizeOutput(r.stdout).trim();
 			const actualStderr = normalizeOutput(r.stderr || '').trim();
 
-			const passed = (!r.timedOut)
-				&& (r.exitCode !== null)
-				&& (String(r.exitCode) === String(expectedExitCode))
-				&& (actual === expected)
-				&& (actualStderr === expectedStderr)
-				&& outputFilesMatch;
+			// For database exercises, focus primarily on stdout (data returned)
+			// stderr and exit codes are less critical as database tools often output logs to stderr
+			let passed;
+			if (isDatabaseExercise) {
+				// Database exercises: only check stdout and timeout, ignore stderr and exit codes
+				passed = (!r.timedOut)
+					&& (actual === expected)
+					&& outputFilesMatch;
+			} else {
+				// Programming exercises: check all outputs including stderr and exit codes
+				passed = (!r.timedOut)
+					&& (r.exitCode !== null)
+					&& (String(r.exitCode) === String(expectedExitCode))
+					&& (actual === expected)
+					&& (actualStderr === expectedStderr)
+					&& outputFilesMatch;
+			}
 
 			results.push({
 				testNumber: i + 1,

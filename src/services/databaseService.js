@@ -51,6 +51,7 @@ class DatabaseService {
 				interpreter TEXT DEFAULT 'bash',
 				docker_image TEXT DEFAULT 'alpine:latest',
 				code_template TEXT DEFAULT '#!/bin/bash\n\n# Write your solution here\n',
+				exercise_type TEXT DEFAULT 'programming' CHECK(exercise_type IN ('programming', 'database')),
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);
@@ -257,6 +258,18 @@ class DatabaseService {
 			}
 		}
 
+		// Add exercise_type column if it doesn't exist (migration for existing databases)
+		try {
+			await this.db.exec(`
+				ALTER TABLE languages ADD COLUMN exercise_type TEXT DEFAULT 'programming' CHECK(exercise_type IN ('programming', 'database'))
+			`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding exercise_type column to languages:', err.message);
+			}
+		}
+
 		// Migrate existing languages to have proper execution config based on their ID
 		await this.db.exec(`
 			UPDATE languages 
@@ -267,12 +280,14 @@ class DatabaseService {
                 WHEN id = 'r' THEN '.r'
 			    when id = 'php' THEN '.php'
 			    when id = 'mongodb' THEN '.js'
+			    when id = 'mariadb' THEN '.sql'
 				ELSE file_extension
 			END,
 			interpreter = CASE 
 				WHEN id = 'python' THEN 'python3'
 				WHEN id = 'bash' THEN 'bash'
 			    WHEN id = 'sql' THEN 'mariadb'
+			    WHEN id = 'mariadb' THEN 'mariadb'
                 WHEN id = 'r' THEN 'Rscript'
 			    WHEN id = 'php' THEN 'php'
 			    WHEN id = 'mongodb' THEN 'mongosh'
@@ -282,6 +297,7 @@ class DatabaseService {
 				WHEN id = 'python' THEN 'python:3.11-alpine'
 				WHEN id = 'bash' THEN 'alpine:latest'
 			    WHEN id = 'sql' THEN 'mariadb:latest'
+			    WHEN id = 'mariadb' THEN 'mariadb:latest'
                 WHEN id = 'r' THEN 'r-base:latest'
 			    WHEN id = 'php' THEN 'php:latest'
             WHEN id = 'mongodb' THEN 'mongo:latest'
@@ -291,10 +307,15 @@ class DatabaseService {
 				WHEN id = 'python' THEN '#!/usr/bin/env python3\n\n# Write your solution here\n'
 				WHEN id = 'bash' THEN '#!/bin/bash\n\n# Write your solution here\n'
 			    WHEN id = 'sql' THEN '-- Write your SQL query here\n'
+			    WHEN id = 'mariadb' THEN '-- Write your SQL query here\n'
                 WHEN id = 'r' THEN '#!/usr/bin/env Rscript\n\n# Write your R script here\n'
 			    WHEN id = 'php' THEN '<?php\n\n// Write your PHP code here\n'
 			    WHEN id = 'mongodb' THEN '// Write your MongoDB query here\n'
 				ELSE code_template
+			END,
+			exercise_type = CASE
+				WHEN id IN ('mariadb', 'mongodb', 'sql') THEN 'database'
+				ELSE 'programming'
 			END
 			WHERE file_extension = '.sh' AND interpreter = 'bash' AND docker_image = 'alpine:latest'
 		`);
@@ -522,7 +543,7 @@ class DatabaseService {
 	}
 
 	async updateLanguage(id, data) {
-		const { name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = data;
+		const { name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template, exercise_type } = data;
 		const updates = [];
 		const values = [];
 
@@ -562,6 +583,10 @@ class DatabaseService {
 			updates.push('code_template = ?');
 			values.push(code_template);
 		}
+		if (exercise_type !== undefined) {
+			updates.push('exercise_type = ?');
+			values.push(exercise_type);
+		}
 
 		if (updates.length === 0) {
 			return this.getLanguage(id);
@@ -589,7 +614,7 @@ class DatabaseService {
 	}
 
 	async createLanguage(data) {
-		const { id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = data;
+		const { id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template, exercise_type } = data;
 
 		// Set defaults based on language ID if not provided
 		const ext = file_extension || (id === 'python' ? '.py' : id === 'javascript' ? '.js' : '.sh');
@@ -600,11 +625,12 @@ class DatabaseService {
 			id === 'javascript' ? '#!/usr/bin/env node\n\n// Write your solution here\n' :
 			'#!/bin/bash\n\n# Write your solution here\n'
 		);
+		const exType = exercise_type || (id === 'mariadb' || id === 'mongodb' || id === 'sql' ? 'database' : 'programming');
 
 		await this.db.run(`
-			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0, ext, interp, image, template]);
+			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template, exercise_type)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0, ext, interp, image, template, exType]);
 
 		// Create corresponding language mastery achievement
 		const languageAchievementId = `language-master-${id}`;
