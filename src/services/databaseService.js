@@ -271,16 +271,17 @@ class DatabaseService {
 		}
 
 		// Migrate existing languages to have proper execution config based on their ID
+		// This only runs for languages that still have default bash configuration
 		await this.db.exec(`
 			UPDATE languages 
 			SET file_extension = CASE 
 				WHEN id = 'python' THEN '.py'
 				WHEN id = 'bash' THEN '.sh'
-			    when id = 'sql' THEN '.sql'
+			    WHEN id = 'sql' THEN '.sql'
                 WHEN id = 'r' THEN '.r'
-			    when id = 'php' THEN '.php'
-			    when id = 'mongodb' THEN '.js'
-			    when id = 'mariadb' THEN '.sql'
+			    WHEN id = 'php' THEN '.php'
+			    WHEN id = 'mongodb' THEN '.js'
+			    WHEN id = 'mariadb' THEN '.sql'
 				ELSE file_extension
 			END,
 			interpreter = CASE 
@@ -300,7 +301,7 @@ class DatabaseService {
 			    WHEN id = 'mariadb' THEN 'mariadb:latest'
                 WHEN id = 'r' THEN 'r-base:latest'
 			    WHEN id = 'php' THEN 'php:latest'
-            WHEN id = 'mongodb' THEN 'mongo:latest'
+                WHEN id = 'mongodb' THEN 'mongo:latest'
 				ELSE docker_image
 			END,
 			code_template = CASE 
@@ -312,12 +313,18 @@ class DatabaseService {
 			    WHEN id = 'php' THEN '<?php\n\n// Write your PHP code here\n'
 			    WHEN id = 'mongodb' THEN '// Write your MongoDB query here\n'
 				ELSE code_template
-			END,
-			exercise_type = CASE
-				WHEN id IN ('mariadb', 'mongodb', 'sql') THEN 'database'
-				ELSE 'programming'
 			END
 			WHERE file_extension = '.sh' AND interpreter = 'bash' AND docker_image = 'alpine:latest'
+		`);
+
+		// Separate update for exercise_type to ensure all database languages are properly tagged
+		await this.db.exec(`
+			UPDATE languages 
+			SET exercise_type = CASE
+				WHEN id IN ('mariadb', 'mongodb', 'sql') THEN 'database'
+				ELSE exercise_type
+			END
+			WHERE exercise_type IS NULL OR exercise_type = 'programming' OR id IN ('mariadb', 'mongodb', 'sql')
 		`);
 
 		// Test case fixtures junction table
