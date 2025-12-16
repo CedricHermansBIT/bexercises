@@ -12,13 +12,12 @@ const config = require('../config');
  * @throws {Error} If neither is available
  */
 function getContainerCommand() {
+	const which = require('which');
 	try {
-		const which = require('which');
 		which.sync('docker');
 		return 'docker';
 	} catch (e) {
 		try {
-			const which = require('which');
 			which.sync('podman');
 			console.log('Docker not found, using Podman as a drop-in replacement.');
 			return 'podman';
