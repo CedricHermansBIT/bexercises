@@ -372,8 +372,13 @@ class ExercisesPage {
 
         this.currentExercise = null;
         this.testCases = [];
+        
+        // Set current language info for database detection
+        this.currentLanguageId = this.selectedLanguage;
+        const language = this.languages.find(l => l.id === this.selectedLanguage);
+        this.currentExerciseType = language?.exercise_type || 'programming';
 
-        const languageName = this.languages.find(l => l.id === this.selectedLanguage)?.name || 'Exercise';
+        const languageName = language?.name || 'Exercise';
         document.getElementById('editor-title').textContent = `New ${languageName} Exercise`;
         document.getElementById('exercise-id').value = '';
         document.getElementById('exercise-id').disabled = false;
@@ -395,8 +400,7 @@ class ExercisesPage {
         }
 
         // Get code template from selected language
-        const selectedLanguage = this.languages.find(l => l.id === this.selectedLanguage);
-        const starterCode = selectedLanguage?.code_template || '#!/bin/bash\n\n# Write your solution here\n';
+        const starterCode = language?.code_template || '#!/bin/bash\n\n# Write your solution here\n';
         this.solutionEditor.setValue(starterCode);
 
         this.renderTestCases();
@@ -467,6 +471,11 @@ class ExercisesPage {
             const exercise = await this.apiService.getExerciseWithTests(id);
             this.currentExercise = exercise;
             this.testCases = exercise.testCases || [];
+            
+            // Store current language info for database detection
+            this.currentLanguageId = exercise.language_id;
+            const language = this.languages.find(l => l.id === exercise.language_id);
+            this.currentExerciseType = language?.exercise_type || 'programming';
 
             document.getElementById('editor-title').textContent = 'Edit Exercise';
             document.getElementById('exercise-id').value = exercise.id;
@@ -774,6 +783,9 @@ class ExercisesPage {
         }
 
         container.innerHTML = '';
+        
+        // Check if this is a database exercise
+        const isDatabaseExercise = this.currentExerciseType === 'database';
 
         this.testCases.forEach((testCase, index) => {
             const testCaseDiv = document.createElement('div');
@@ -784,23 +796,29 @@ class ExercisesPage {
                 const isSelected = (testCase.fixtures || []).includes(f.filename);
                 return `<option value="${f.filename}" ${isSelected ? 'selected' : ''}>${f.filename}</option>`;
             }).join('');
+            
+            // Database-specific help text
+            const fixtureHelpText = isDatabaseExercise 
+                ? 'Select .sql files for MariaDB or .js files for MongoDB to initialize the database'
+                : 'Hold Ctrl/Cmd to select multiple files';
 
             testCaseDiv.innerHTML = `
                 <div class="test-case-header">
-                    <span>Test Case ${index + 1}</span>
+                    <span>Test Case ${index + 1}${isDatabaseExercise ? ' (Database Exercise)' : ''}</span>
                     <button type="button" class="icon-btn delete" data-index="${index}">
                         <span>🗑</span>
                     </button>
                 </div>
                 <div class="test-case-fields">
                     <div class="form-group-inline">
-                        <label>Fixture Files (files needed for this test)</label>
+                        <label>Fixture Files ${isDatabaseExercise ? '(Database Initialization Files)' : '(files needed for this test)'}</label>
                         <select multiple class="form-input fixture-select" data-field="fixtures" data-index="${index}"
                                  style="min-height: 80px;">
                             ${fixtureOptions || '<option disabled>No files available - upload files first</option>'}
                         </select>
-                        <small style="color: var(--text-muted); font-size: 0.85rem;">Hold Ctrl/Cmd to select multiple files</small>
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">${fixtureHelpText}</small>
                     </div>
+                    ${!isDatabaseExercise ? `
                     <div class="form-group-inline">
                         <label>Arguments (comma-separated, include filenames)</label>
                         <input type="text" class="form-input" data-field="arguments" data-index="${index}"
@@ -811,17 +829,36 @@ class ExercisesPage {
                         <textarea class="form-input" data-field="input" data-index="${index}"
                                    rows="3" placeholder="Line 1\nLine 2\nLine 3">${(testCase.input || []).join('\n')}</textarea>
                     </div>
+                    ` : ''}
+                    ${isDatabaseExercise ? `
+                    <div class="form-group-inline" style="background: #2a3a4a; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent-blue);">
+                        <label style="color: var(--accent-blue); font-weight: 600;">🔍 Validation Query (checks database state after user's query)</label>
+                        <textarea class="form-input" data-field="validationQuery" data-index="${index}"
+                                   rows="3" placeholder="SELECT * FROM users;\nOR\ndb.users.find();">${testCase.validationQuery || ''}</textarea>
+                        <small style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; display: block;">
+                            💡 <strong>Validation Query runs AFTER the user's query</strong> to check the actual database state.<br>
+                            • For CREATE TABLE: <code>SHOW CREATE TABLE tablename;</code><br>
+                            • For INSERT/UPDATE: <code>SELECT * FROM tablename ORDER BY id;</code><br>
+                            • For DELETE: <code>SELECT COUNT(*) FROM tablename;</code><br>
+                            • MongoDB: <code>db.collection.find();</code> or <code>db.collection.countDocuments();</code>
+                        </small>
+                    </div>
+                    ` : ''}
+                    ${!isDatabaseExercise ? `
                     <div class="form-group-inline">
                         <label>Expected Output Files (comma-separated filenames to verify)</label>
                         <input type="text" class="form-input" data-field="outputFiles" data-index="${index}"
                                 value="${(testCase.outputFiles || []).join(', ')}" placeholder="output.txt, result.tar.gz">
                         <small style="color: var(--text-muted); font-size: 0.85rem;">Files created by script that will be hash-verified</small>
                     </div>
+                    ` : ''}
                     <div class="form-group-inline">
-                        <label>Expected Output (auto-filled when testing)</label>
+                        <label>Expected Output ${isDatabaseExercise ? '(Database Query Result)' : '(auto-filled when testing)'}</label>
                         <textarea class="form-input" data-field="expectedOutput" data-index="${index}"
                                    rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
+                        ${isDatabaseExercise ? '<small style="color: var(--text-muted); font-size: 0.85rem;">Expected output from the validation query</small>' : ''}
                     </div>
+                    ${!isDatabaseExercise ? `
                     <div class="form-group-inline">
                         <label>Expected STDERR (auto-filled when testing)</label>
                         <textarea class="form-input" data-field="expectedStderr" data-index="${index}"
@@ -837,6 +874,7 @@ class ExercisesPage {
                         <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}"
                                 value="${testCase.expectedExitCode || 0}" readonly style="background: #2a2a2a;">
                     </div>
+                    ` : ''}
                     <div class="form-group-inline">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="checkbox" data-field="useDynamicOutput" data-index="${index}"
@@ -874,6 +912,9 @@ class ExercisesPage {
                     value = parseInt(value) || 0;
                 } else if (field === 'useDynamicOutput') {
                     value = e.target.checked;
+                } else if (field === 'validationQuery') {
+                    // Keep as string, trim whitespace
+                    value = value.trim();
                 }
 
                 this.testCases[index][field] = value;

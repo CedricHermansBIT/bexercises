@@ -13,7 +13,7 @@ const { getContainerCommand } = require('./dockerService');
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
 async function startMariaDBContainer(tmpdir, fixtures = []) {
-	const containerName = `bex-mariadb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+	const containerName = `bex-mariadb-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 	const password = 'testpass';
 	const database = 'testdb';
 	const containerCmd = getContainerCommand();
@@ -102,7 +102,7 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
 async function startMongoDBContainer(tmpdir, fixtures = []) {
-	const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+	const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 	const database = 'testdb';
 	const containerCmd = getContainerCommand();
 
