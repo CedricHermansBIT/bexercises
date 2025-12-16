@@ -9,6 +9,12 @@ const {
 	normalizeOutput,
 	hashOutputFiles
 } = require('./dockerService');
+const {
+	startMariaDBContainer,
+	startMongoDBContainer,
+	executeMariaDBQuery,
+	executeMongoDBQuery
+} = require('./databaseContainerService');
 const config = require('../config');
 
 /**
@@ -25,11 +31,44 @@ async function runTests(exercise, script) {
 
 	// Determine if this is a database exercise
 	const isDatabaseExercise = exercise.exercise_type === 'database';
+	
+	// Check if we need to start a database container
+	const needsDatabaseContainer = isDatabaseExercise && (languageId === 'mariadb' || languageId === 'mongodb');
+	let dbContainer = null;
 
 	// Keep track of fixture files and script to avoid deleting them
 	const protectedFiles = new Set([scriptFilename]);
 
 	try {
+		// Start database container if needed (will be reused across test cases)
+		if (needsDatabaseContainer) {
+			// Collect all fixtures from all test cases for initial DB setup
+			const allFixtures = [];
+			for (const tc of exercise.testCases) {
+				if (tc.fixtures && Array.isArray(tc.fixtures)) {
+					// Only include SQL/JS fixtures for database initialization
+					tc.fixtures.forEach(f => {
+						if ((languageId === 'mariadb' && f.endsWith('.sql')) ||
+						    (languageId === 'mongodb' && f.endsWith('.js'))) {
+							if (!allFixtures.includes(f)) {
+								allFixtures.push(f);
+							}
+						}
+					});
+				}
+			}
+
+			console.log(`[Database] Starting ${languageId} container with fixtures:`, allFixtures);
+			
+			if (languageId === 'mariadb') {
+				dbContainer = await startMariaDBContainer(tmpdir, allFixtures);
+			} else if (languageId === 'mongodb') {
+				dbContainer = await startMongoDBContainer(tmpdir, allFixtures);
+			}
+
+			console.log(`[Database] Container ready:`, dbContainer.containerName);
+		}
+
 		for (let i = 0; i < exercise.testCases.length; i++) {
 			const tc = exercise.testCases[i];
 			console.log(`\n=== Test Case ${i + 1}/${exercise.testCases.length} ===`);
@@ -70,15 +109,29 @@ async function runTests(exercise, script) {
 				tc.fixtures.forEach(f => protectedFiles.add(f));
 			}
 
-			// Run script with arguments and inputs
-			const r = await runScriptInContainer(
-				tmpdir,
-				scriptFilename,
-				languageConfig,
-				tc.arguments || [],
-				tc.input || [],
-				config.docker.timeout
-			);
+			let r;
+			// Run script - use database container if available, otherwise use regular container
+			if (dbContainer) {
+				console.log(`[Database] Executing user query in container`);
+				// Read the user's script
+				const userQuery = script.trim();
+				
+				if (languageId === 'mariadb') {
+					r = await executeMariaDBQuery(dbContainer, userQuery);
+				} else if (languageId === 'mongodb') {
+					r = await executeMongoDBQuery(dbContainer, userQuery);
+				}
+			} else {
+				// Regular execution for non-database exercises
+				r = await runScriptInContainer(
+					tmpdir,
+					scriptFilename,
+					languageConfig,
+					tc.arguments || [],
+					tc.input || [],
+					config.docker.timeout
+				);
+			}
 
 			// Determine expected output
 			let expected = normalizeOutput(tc.expectedOutput || '').trim();
@@ -92,18 +145,30 @@ async function runTests(exercise, script) {
 				try {
 					console.log(`Running validation query to check database state: ${tc.validationQuery}`);
 					
-					// Create a script that runs the user's query followed by the validation query
-					const combinedScript = script + '\n' + tc.validationQuery;
-					const { tmpdir: valTmpdir, scriptFilename: valScriptFilename, languageConfig: valLangConfig } = await createTempScript(combinedScript, languageId);
-					
-					// Copy fixtures if needed
-					if (tc.fixtures && Array.isArray(tc.fixtures)) {
-						await copyFixtures(valTmpdir, tc.fixtures, tc.fixturePermissions);
-					}
+					if (dbContainer) {
+						// Use the same database container - validation query runs in the same DB instance
+						let validationResult;
+						if (languageId === 'mariadb') {
+							validationResult = await executeMariaDBQuery(dbContainer, tc.validationQuery);
+						} else if (languageId === 'mongodb') {
+							validationResult = await executeMongoDBQuery(dbContainer, tc.validationQuery);
+						}
+						
+						validationOutput = normalizeOutput(validationResult.stdout).trim();
+						console.log(`Validation query returned: ${validationOutput}`);
+					} else {
+						// Fallback to combined script approach for other databases
+						const combinedScript = script + '\n' + tc.validationQuery;
+						const { tmpdir: valTmpdir, scriptFilename: valScriptFilename, languageConfig: valLangConfig } = await createTempScript(combinedScript, languageId);
+						
+						// Copy fixtures if needed
+						if (tc.fixtures && Array.isArray(tc.fixtures)) {
+							await copyFixtures(valTmpdir, tc.fixtures, tc.fixturePermissions);
+						}
 
-					// Run the combined script
-					const validationResult = await runScriptInContainer(
-						valTmpdir,
+						// Run the combined script
+						const validationResult = await runScriptInContainer(
+							valTmpdir,
 						valScriptFilename,
 						valLangConfig,
 						tc.arguments || [],
@@ -227,6 +292,16 @@ async function runTests(exercise, script) {
 			});
 		}
 	} finally {
+		// Cleanup database container if started
+		if (dbContainer && dbContainer.cleanup) {
+			try {
+				console.log(`[Database] Cleaning up container...`);
+				await dbContainer.cleanup();
+			} catch (e) {
+				console.error('Database container cleanup failed:', e.message);
+			}
+		}
+
 		// Cleanup - don't let cleanup errors affect the test results
 		try {
 			await removeRecursive(tmpdir);
