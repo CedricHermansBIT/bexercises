@@ -10,17 +10,22 @@ const router = express.Router();
 /**
  * GET /api/exercises
  * Get all exercises (without test cases)
- * Optional query param: ?language=bash to filter by language
+ * Optional query param: ?language=bash to filter by language or ?chapter=1 to filter by chapter
  */
 router.get('/exercises', async (req, res) => {
 	try {
 		const languageId = req.query.language;
+        const chapter = req.query.chapter;
 
 		if (languageId) {
 			// Filter by language
 			const exercises = await exerciseService.getExercisesByLanguage(languageId);
 			res.json(exercises);
-		} else {
+		} else if (chapter) {
+            // Filter by chapter
+            const exercises = await exerciseService.getExercisesByChapter(chapter);
+            res.json(exercises);
+        } else {
 			// Get all exercises
 			const exercises = await exerciseService.getAllExercises();
 			res.json(exercises);

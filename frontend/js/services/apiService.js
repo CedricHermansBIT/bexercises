@@ -17,14 +17,19 @@ class ApiService {
 	}
 
 	/**
-	 * Fetch all exercises
-	 * @param {string} [language] - Optional language ID to filter exercises
-	 * @returns {Promise<Array>} Array of exercises
-	 */
-	async getExercises(language = null) {
+     * Fetch all exercises
+     * @param {string} [language] - Optional language ID to filter exercises
+     * @param {string} [chapter] - Optional chapter ID to filter exercises
+     * @returns {Promise<Array>} Array of exercises
+     */
+	async getExercises(language = null, chapter = null) {
 		const url = language
 			? `${this.baseUrl}/api/exercises?language=${encodeURIComponent(language)}`
-			: `${this.baseUrl}/api/exercises`;
+			: chapter
+                ? `${this.baseUrl}/api/exercises?chapter=${encodeURIComponent(chapter)}`
+                : `${this.baseUrl}/api/exercises`;
+
+
 
 		const response = await fetch(url);
 		if (!response.ok) {
