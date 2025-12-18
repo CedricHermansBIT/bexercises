@@ -115,20 +115,83 @@ router.post('/test-solution', async (req, res) => {
  */
 router.post('/run-test-case', async (req, res) => {
 	try {
-		const { solution, languageId = 'bash', arguments: args = [], input = [], fixtures = [], outputFiles = [] } = req.body;
+		const { solution, languageId = 'bash', exerciseType = 'programming', arguments: args = [], input = [], fixtures = [], outputFiles = [], validationQuery = null } = req.body;
 
 		if (!solution || typeof solution !== 'string') {
 			return res.status(400).json({ error: 'Missing solution script' });
 		}
 
-		console.log('Running test case:', { languageId, argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length });
+		console.log('Running test case:', { languageId, exerciseType, argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length, hasValidation: !!validationQuery });
 
-		// If we need to check output files, we need to manage tmpdir manually
-		// Otherwise use the simple runScriptWithTestCase which handles cleanup
+		// Check if this is a database exercise
+		const isDatabaseExercise = exerciseType === 'database';
+		// Map 'sql' to 'mariadb' for backwards compatibility
+		const effectiveLanguageId = languageId === 'sql' ? 'mariadb' : languageId;
+		const needsDatabaseContainer = isDatabaseExercise && (effectiveLanguageId === 'mariadb' || effectiveLanguageId === 'mongodb');
+
 		let result;
+		let validationResult = null;
 		let fileHashes = [];
 
-		if (outputFiles && outputFiles.length > 0) {
+		if (needsDatabaseContainer) {
+			// Use database containers for database exercises
+			const { startMariaDBContainer, startMongoDBContainer, executeMariaDBQuery, executeMongoDBQuery } = require('../services/databaseContainerService');
+			const { createTempScript, removeRecursive } = require('../services/dockerService');
+			const config = require('../config');
+
+			const { tmpdir } = await createTempScript(solution, effectiveLanguageId);
+			let dbContainer = null;
+
+			try {
+				// Start database container with fixtures
+				console.log(`[Admin Test] Starting ${effectiveLanguageId} container with fixtures:`, fixtures);
+
+				if (effectiveLanguageId === 'mariadb') {
+					dbContainer = await startMariaDBContainer(tmpdir, fixtures);
+				} else if (effectiveLanguageId === 'mongodb') {
+					dbContainer = await startMongoDBContainer(tmpdir, fixtures);
+				}
+
+				console.log(`[Admin Test] Container ready, executing query`);
+
+				// Execute the user's query
+				const userQuery = solution.trim();
+				if (effectiveLanguageId === 'mariadb') {
+					result = await executeMariaDBQuery(dbContainer, userQuery);
+				} else if (effectiveLanguageId === 'mongodb') {
+					result = await executeMongoDBQuery(dbContainer, userQuery);
+				}
+
+				console.log(`[Admin Test] Query execution complete`);
+
+				// Execute validation query if provided
+				if (validationQuery && validationQuery.trim()) {
+					console.log(`[Admin Test] Executing validation query`);
+					if (effectiveLanguageId === 'mariadb') {
+						validationResult = await executeMariaDBQuery(dbContainer, validationQuery.trim());
+					} else if (effectiveLanguageId === 'mongodb') {
+						validationResult = await executeMongoDBQuery(dbContainer, validationQuery.trim());
+					}
+					console.log(`[Admin Test] Validation query complete`);
+				}
+			} finally {
+				// Clean up database container
+				if (dbContainer && dbContainer.cleanup) {
+					try {
+						await dbContainer.cleanup();
+					} catch (cleanupErr) {
+						console.error('Failed to cleanup database container:', cleanupErr.message);
+					}
+				}
+
+				// Clean up tmpdir
+				try {
+					await removeRecursive(tmpdir);
+				} catch (cleanupErr) {
+					console.error('Failed to cleanup tmpdir:', cleanupErr.message);
+				}
+			}
+		} else if (outputFiles && outputFiles.length > 0) {
 			// Manual tmpdir management for output file verification
 			const { createTempScript, copyFixtures, runScriptInContainer, hashOutputFiles, removeRecursive } = require('../services/dockerService');
 			const config = require('../config');
@@ -158,16 +221,25 @@ router.post('/run-test-case', async (req, res) => {
 			result = await dockerService.runScriptWithTestCase(solution, languageId, args, input, fixtures);
 		}
 
-		console.log('Test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length, fileHashesLen: fileHashes.length });
+		console.log('Test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length, fileHashesLen: fileHashes.length, hasValidation: !!validationResult });
 
-		res.json({
+		const response = {
 			output: result.stdout,
 			stderr: result.stderr,
 			exitCode: result.exitCode,
 			timedOut: result.timedOut,
 			error: result.error,
 			fileHashes: fileHashes
-		});
+		};
+
+		// Add validation results if present
+		if (validationResult) {
+			response.validationOutput = validationResult.stdout;
+			response.validationStderr = validationResult.stderr;
+			response.validationExitCode = validationResult.exitCode;
+		}
+
+		res.json(response);
 	} catch (error) {
 		console.error('Error running test case:', error);
 		res.status(500).json({

@@ -97,6 +97,7 @@ class DatabaseService {
 				expected_output_files TEXT DEFAULT '[]', -- JSON array of {filename, sha256}
 				use_dynamic_output INTEGER DEFAULT 0, -- If 1, run exercise solution to get expected output
 				validation_query TEXT, -- For database exercises: query to validate database state
+				expected_validation_output TEXT, -- Expected output of validation query
 				order_num INTEGER DEFAULT 0,
 				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 			)
@@ -175,6 +176,13 @@ class DatabaseService {
 		// Add validation_query column to test_cases if it doesn't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN validation_query TEXT`);
+		} catch (e) {
+			// Column already exists
+		}
+
+		// Add expected_validation_output column for database exercises
+		try {
+			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN expected_validation_output TEXT`);
 		} catch (e) {
 			// Column already exists
 		}
@@ -782,8 +790,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -794,6 +802,7 @@ class DatabaseService {
 					JSON.stringify(tc.expectedOutputFiles || []),
 					tc.useDynamicOutput ? 1 : 0,
 					tc.validationQuery || null,
+					tc.expectedValidationOutput || null,
 					i
 				]);
 
@@ -862,8 +871,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -874,6 +883,7 @@ class DatabaseService {
 					JSON.stringify(tc.expectedOutputFiles || []),
 					tc.useDynamicOutput ? 1 : 0,
 					tc.validationQuery || null,
+					tc.expectedValidationOutput || null,
 					i
 				]);
 

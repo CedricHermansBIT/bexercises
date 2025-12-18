@@ -3322,3 +3322,50 @@ body {
     transform: scale(1.05);
 }
 
+/* SQL Result Tables */
+.sql-result-table {
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    border-radius: var(--border-radius);
+    background: var(--bg-tertiary);
+}
+
+.sql-result-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.sql-result-table th {
+    background: var(--accent-blue);
+    color: var(--bg-primary);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.sql-result-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.sql-result-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.sql-result-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Light mode adjustments */
+body.light-mode .sql-result-table th {
+    background: var(--accent-blue);
+    color: white;
+}
+
+body.light-mode .sql-result-table tbody tr:hover {
+    background: rgba(30, 102, 245, 0.1);
+}
+

@@ -83,6 +83,12 @@ class TestResults {
 		const stderrMatch = (result.actualStderr || '') === (result.expectedStderr || '') ? '✓' : '✗';
 		const exitCodeMatch = result.exitCode === result.expectedExitCode ? '✓' : '✗';
 
+		// Check validation match
+		let validationMatch = null;
+		if (result.usedValidation && result.expectedValidationOutput) {
+			validationMatch = (result.actualValidationOutput || '').trim() === result.expectedValidationOutput.trim() ? '✓' : '✗';
+		}
+
 		// Check output files match
 		let filesMatch = '✓';
 		if (result.outputFiles && result.outputFiles.length > 0) {
@@ -93,6 +99,7 @@ class TestResults {
 		let tabsHtml = `
 			<div class="result-tabs">
 				<button class="result-tab active" data-tab="${tabId}-output">Output ${outputMatch}</button>
+				${result.usedValidation && result.validationQuery ? `<button class="result-tab" data-tab="${tabId}-validation">Validation ${validationMatch || ''}</button>` : ''}
 				<button class="result-tab" data-tab="${tabId}-stderr">Stderr ${stderrMatch}</button>
 				${result.outputFiles && result.outputFiles.length > 0 ? `<button class="result-tab" data-tab="${tabId}-files">Files ${filesMatch}</button>` : ''}
 				<button class="result-tab" data-tab="${tabId}-exit">Exit Code ${exitCodeMatch}</button>
@@ -134,6 +141,30 @@ class TestResults {
 			`;
 		}
 
+		// Build validation tab HTML
+		let validationTabHtml = '';
+		if (result.usedValidation && result.validationQuery) {
+			const expectedValHtml = this.formatDatabaseOutput(result.expectedValidationOutput || '');
+			const actualValHtml = this.formatDatabaseOutput(result.actualValidationOutput || '');
+
+			validationTabHtml = `
+				<div class="result-tab-content" id="${tabId}-validation">
+					<p><strong>Validation Query:</strong></p>
+					<pre><code>${this.escapeHtml(result.validationQuery)}</code></pre>
+					<div class="output-comparison">
+						<div class="output-section">
+							<strong>Expected Result:</strong>
+							${expectedValHtml}
+						</div>
+						<div class="output-section">
+							<strong>Actual Result:</strong>
+							${actualValHtml}
+						</div>
+					</div>
+				</div>
+			`;
+		}
+
 		details.innerHTML = `
 			<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
 			
@@ -151,6 +182,8 @@ class TestResults {
 					</div>
 				</div>
 			</div>
+			
+			${validationTabHtml}
 			
 			<div class="result-tab-content" id="${tabId}-stderr">
 				<div class="output-comparison">
@@ -218,6 +251,65 @@ class TestResults {
 	displayNoResults() {
 		if (!this.resultsContainer) return;
 		this.resultsContainer.innerHTML = '<p class="no-results">$ ./solution.sh - waiting for execution...</p>';
+	}
+
+	/**
+	 * Format SQL/database output as HTML table if it looks like tabular data
+	 * @param {string} output - Raw text output
+	 * @returns {string} HTML formatted output
+	 */
+	formatDatabaseOutput(output) {
+		if (!output || !output.trim()) {
+			return `<pre><code></code></pre>`;
+		}
+
+		// Check if output looks like a table (has lines with separators like +--+--+ or |  |  |)
+		const lines = output.trim().split('\n');
+		const hasTableBorders = lines.some(line => /^[\+\-\|]+$/.test(line.trim()) || /^\|.*\|$/.test(line));
+
+		if (!hasTableBorders) {
+			// Not a table, return as pre
+			return `<pre><code>${this.escapeHtml(output)}</code></pre>`;
+		}
+
+		// Parse table format
+		const dataLines = lines.filter(line => {
+			const trimmed = line.trim();
+			return trimmed.startsWith('|') && !trimmed.match(/^[\+\-]+$/);
+		});
+
+		if (dataLines.length < 1) {
+			return `<pre><code>${this.escapeHtml(output)}</code></pre>`;
+		}
+
+		// Parse header and data
+		const parseRow = (line) => {
+			return line.split('|')
+				.slice(1, -1)
+				.map(cell => cell.trim());
+		};
+
+		const headerRow = parseRow(dataLines[0]);
+		const dataRows = dataLines.slice(1).map(parseRow);
+
+		// Build HTML table
+		let tableHtml = '<div class="sql-result-table"><table class="table">';
+		tableHtml += '<thead><tr>';
+		headerRow.forEach(header => {
+			tableHtml += `<th>${this.escapeHtml(header)}</th>`;
+		});
+		tableHtml += '</tr></thead><tbody>';
+
+		dataRows.forEach(row => {
+			tableHtml += '<tr>';
+			row.forEach(cell => {
+				tableHtml += `<td>${this.escapeHtml(cell)}</td>`;
+			});
+			tableHtml += '</tr>';
+		});
+
+		tableHtml += '</tbody></table></div>';
+		return tableHtml;
 	}
 
 	/**

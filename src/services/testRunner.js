@@ -32,8 +32,14 @@ async function runTests(exercise, script) {
 	// Determine if this is a database exercise
 	const isDatabaseExercise = exercise.exercise_type === 'database';
 	
+	// Map 'sql' to 'mariadb' for backwards compatibility
+	const effectiveLanguageId = languageId === 'sql' ? 'mariadb' : languageId;
+
+	// Log for debugging
+	console.log(`[TestRunner] Exercise: ${exercise.id}, Language: ${languageId} (effective: ${effectiveLanguageId}), Exercise Type: ${exercise.exercise_type}, Is Database Exercise: ${isDatabaseExercise}`);
+
 	// Check if we need to start a database container
-	const needsDatabaseContainer = isDatabaseExercise && (languageId === 'mariadb' || languageId === 'mongodb');
+	const needsDatabaseContainer = isDatabaseExercise && (effectiveLanguageId === 'mariadb' || effectiveLanguageId === 'mongodb');
 	let dbContainer = null;
 
 	// Keep track of fixture files and script to avoid deleting them
@@ -48,8 +54,8 @@ async function runTests(exercise, script) {
 				if (tc.fixtures && Array.isArray(tc.fixtures)) {
 					// Only include SQL/JS fixtures for database initialization
 					tc.fixtures.forEach(f => {
-						if ((languageId === 'mariadb' && f.endsWith('.sql')) ||
-						    (languageId === 'mongodb' && f.endsWith('.js'))) {
+						if ((effectiveLanguageId === 'mariadb' && f.endsWith('.sql')) ||
+						    (effectiveLanguageId === 'mongodb' && f.endsWith('.js'))) {
 							if (!allFixtures.includes(f)) {
 								allFixtures.push(f);
 							}
@@ -58,11 +64,11 @@ async function runTests(exercise, script) {
 				}
 			}
 
-			console.log(`[Database] Starting ${languageId} container with fixtures:`, allFixtures);
-			
-			if (languageId === 'mariadb') {
+			console.log(`[Database] Starting ${effectiveLanguageId} container with fixtures:`, allFixtures);
+
+			if (effectiveLanguageId === 'mariadb') {
 				dbContainer = await startMariaDBContainer(tmpdir, allFixtures);
-			} else if (languageId === 'mongodb') {
+			} else if (effectiveLanguageId === 'mongodb') {
 				dbContainer = await startMongoDBContainer(tmpdir, allFixtures);
 			}
 
@@ -116,9 +122,9 @@ async function runTests(exercise, script) {
 				// Read the user's script
 				const userQuery = script.trim();
 				
-				if (languageId === 'mariadb') {
+				if (effectiveLanguageId === 'mariadb') {
 					r = await executeMariaDBQuery(dbContainer, userQuery);
-				} else if (languageId === 'mongodb') {
+				} else if (effectiveLanguageId === 'mongodb') {
 					r = await executeMongoDBQuery(dbContainer, userQuery);
 				}
 			} else {
@@ -148,9 +154,9 @@ async function runTests(exercise, script) {
 					if (dbContainer) {
 						// Use the same database container - validation query runs in the same DB instance
 						let validationResult;
-						if (languageId === 'mariadb') {
+						if (effectiveLanguageId === 'mariadb') {
 							validationResult = await executeMariaDBQuery(dbContainer, tc.validationQuery);
-						} else if (languageId === 'mongodb') {
+						} else if (effectiveLanguageId === 'mongodb') {
 							validationResult = await executeMongoDBQuery(dbContainer, tc.validationQuery);
 						}
 						
@@ -254,6 +260,11 @@ async function runTests(exercise, script) {
 			const actual = validationOutput !== null ? validationOutput : normalizeOutput(r.stdout).trim();
 			const actualStderr = normalizeOutput(r.stderr || '').trim();
 
+			// For validation queries, compare against expected validation output, otherwise use expected output
+			const expectedForComparison = (validationOutput !== null && tc.expectedValidationOutput)
+				? tc.expectedValidationOutput.trim()
+				: expected;
+
 			// For database exercises, focus primarily on stdout (data returned)
 			// stderr and exit codes are less critical as database tools often output logs to stderr
 			let passed;
@@ -261,7 +272,7 @@ async function runTests(exercise, script) {
 				// Database exercises: only check stdout and timeout, ignore stderr and exit codes
 				// If validation query is present, we're checking database state instead of command output
 				passed = (!r.timedOut)
-					&& (actual === expected)
+					&& (actual === expectedForComparison)
 					&& outputFilesMatch;
 			} else {
 				// Programming exercises: check all outputs including stderr and exit codes
@@ -287,6 +298,8 @@ async function runTests(exercise, script) {
 				error: r.error,
 				outputFiles: outputFilesResult,
 				validationQuery: tc.validationQuery || null,
+				expectedValidationOutput: tc.expectedValidationOutput || null,
+				actualValidationOutput: validationOutput,
 				usedValidation: validationOutput !== null,
 				passed
 			});

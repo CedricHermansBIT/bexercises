@@ -103,6 +103,69 @@ class ExercisesPage {
         return modeMap[languageId] || 'shell';
     }
 
+    /**
+     * Format SQL/database output as HTML table if it looks like tabular data
+     * @param {string} output - Raw text output
+     * @param {string} languageId - Language ID (sql, mariadb, etc.)
+     * @returns {string} HTML formatted output
+     */
+    formatDatabaseOutput(output, languageId) {
+        // Only format for SQL-like languages
+        const isSQLLanguage = ['sql', 'mariadb'].includes(languageId);
+
+        if (!isSQLLanguage || !output || !output.trim()) {
+            return `<pre class="test-output-preview">${escapeHtml(output || '')}</pre>`;
+        }
+
+        // Check if output looks like a table (has lines with separators like +--+--+ or |  |  |)
+        const lines = output.trim().split('\n');
+        const hasTableBorders = lines.some(line => /^[\+\-\|]+$/.test(line.trim()) || /^\|.*\|$/.test(line));
+
+        if (!hasTableBorders) {
+            // Not a table, return as pre
+            return `<pre class="test-output-preview">${escapeHtml(output)}</pre>`;
+        }
+
+        // Parse table format (MariaDB outputs tables with +--+--+ borders and | col | col | format)
+        const dataLines = lines.filter(line => {
+            const trimmed = line.trim();
+            return trimmed.startsWith('|') && !trimmed.match(/^[\+\-]+$/);
+        });
+
+        if (dataLines.length < 1) {
+            return `<pre class="test-output-preview">${escapeHtml(output)}</pre>`;
+        }
+
+        // Parse header and data
+        const parseRow = (line) => {
+            return line.split('|')
+                .slice(1, -1) // Remove first and last empty elements
+                .map(cell => cell.trim());
+        };
+
+        const headerRow = parseRow(dataLines[0]);
+        const dataRows = dataLines.slice(1).map(parseRow);
+
+        // Build HTML table
+        let tableHtml = '<div class="sql-result-table"><table class="table">';
+        tableHtml += '<thead><tr>';
+        headerRow.forEach(header => {
+            tableHtml += `<th>${escapeHtml(header)}</th>`;
+        });
+        tableHtml += '</tr></thead><tbody>';
+
+        dataRows.forEach(row => {
+            tableHtml += '<tr>';
+            row.forEach(cell => {
+                tableHtml += `<td>${escapeHtml(cell)}</td>`;
+            });
+            tableHtml += '</tr>';
+        });
+
+        tableHtml += '</tbody></table></div>';
+        return tableHtml;
+    }
+
     setupCodeEditor() {
         const textarea = document.getElementById('exercise-solution');
         if (textarea && window.CodeMirror) {
@@ -563,17 +626,28 @@ class ExercisesPage {
 
                 resultsHtml += `<div class="test-case-result"><h4>Test Case ${i + 1}</h4>`;
 
+                // Get exercise_type from the selected language
+                const selectedLangObj = this.languages.find(l => l.id === this.selectedLanguage);
+                const exerciseType = selectedLangObj?.exercise_type || 'programming';
+
                 const result = await this.apiService.runTestCase(solution, {
                     languageId: this.selectedLanguage,
+                    exerciseType: exerciseType,
                     arguments: testCase.arguments || [],
                     input: testCase.input || [],
                     fixtures: fixtures,
-                    outputFiles: testCase.outputFiles || []
+                    outputFiles: testCase.outputFiles || [],
+                    validationQuery: testCase.validationQuery || null
                 });
 
                 this.testCases[i].expectedOutput = result.output;
                 this.testCases[i].expectedStderr = result.stderr || '';
                 this.testCases[i].expectedExitCode = result.exitCode;
+
+                // Store validation results if present
+                if (result.validationOutput !== undefined) {
+                    this.testCases[i].expectedValidationOutput = result.validationOutput;
+                }
 
                 // Store file hashes if any output files were specified
                 if (result.fileHashes && result.fileHashes.length > 0) {
@@ -601,17 +675,35 @@ class ExercisesPage {
                     });
                 }
 
+                const outputHtml = this.formatDatabaseOutput(result.output, this.selectedLanguage);
+                const validationHtml = result.validationOutput !== undefined
+                    ? this.formatDatabaseOutput(result.validationOutput, this.selectedLanguage)
+                    : null;
+
                 resultsHtml += `
                     <div class="test-result-details">
                         <p><strong>Arguments:</strong> ${(testCase.arguments || []).join(', ') || '(none)'}</p>
                         <p><strong>Input:</strong> ${(testCase.input || []).length} lines</p>
                         <p><strong>Fixtures Used:</strong> ${fixtures.join(', ') || '(none)'}</p>
                         ${fileHashesHtml}
-                        <p><strong>Output:</strong></p>
-                        <pre class="test-output-preview">${escapeHtml(result.output)}</pre>
-                        <p><strong>STDERR:</strong></p>
-                        <pre class="test-output-preview">${escapeHtml(result.stderr || '')}</pre>
+                        <p><strong>Solution Output:</strong></p>
+                        ${outputHtml}
+                        ${result.stderr ? `
+                            <p><strong>STDERR:</strong></p>
+                            <pre class="test-output-preview">${escapeHtml(result.stderr)}</pre>
+                        ` : ''}
                         <p><strong>Exit Code:</strong> ${result.exitCode}</p>
+                        ${validationHtml ? `
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                <p><strong>Validation Query Output:</strong></p>
+                                ${validationHtml}
+                                ${result.validationStderr ? `
+                                    <p><strong>Validation STDERR:</strong></p>
+                                    <pre class="test-output-preview">${escapeHtml(result.validationStderr)}</pre>
+                                ` : ''}
+                                <p><strong>Validation Exit Code:</strong> ${result.validationExitCode}</p>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
 
