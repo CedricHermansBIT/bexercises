@@ -13,243 +13,272 @@ const { getContainerCommand } = require('./dockerService');
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
 async function startMariaDBContainer(tmpdir, fixtures = []) {
-	const containerName = `bex-mariadb-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-	const password = 'testpass';
-	const database = 'testdb';
-	const containerCmd = getContainerCommand();
+    const containerName = `bex-mariadb-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    const password = 'testpass';
+    const database = 'testdb';
+    const containerCmd = getContainerCommand();
 
-	console.log(`[MariaDB] Starting container: ${containerName} using ${containerCmd}`);
+    console.log(`[MariaDB] Starting container: ${containerName} using ${containerCmd}`);
 
-	// Copy fixture files to tmpdir if provided
-	const initSqlPath = path.join(tmpdir, 'init.sql');
-	if (fixtures.length > 0) {
-		let initSql = `CREATE DATABASE IF NOT EXISTS ${database};\nUSE ${database};\n\n`;
-		
-		for (const fixtureName of fixtures) {
-			const fixturePath = path.join(config.paths.fixtures, fixtureName);
-			if (fsSync.existsSync(fixturePath)) {
-				const content = await fs.readFile(fixturePath, 'utf8');
-				initSql += `-- Fixture: ${fixtureName}\n${content}\n\n`;
-			}
-		}
-		
-		await fs.writeFile(initSqlPath, initSql);
-		console.log(`[MariaDB] Created init.sql with ${fixtures.length} fixtures`);
-	} else {
-		// Create empty database
-		await fs.writeFile(initSqlPath, `CREATE DATABASE IF NOT EXISTS ${database};\nUSE ${database};\n`);
-	}
+    // Copy fixture files to tmpdir if provided
+    const initSqlPath = path.join(tmpdir, 'init.sql');
+    if (fixtures.length > 0) {
+        let initSql = `CREATE DATABASE IF NOT EXISTS ${database};\nUSE ${database};\n\n`;
 
-	// Start MariaDB container
-	const dockerArgs = [
-		'run', '-d',
-		'--name', containerName,
-		'--network', 'none',
-		'-e', `MYSQL_ROOT_PASSWORD=${password}`,
-		'-e', `MYSQL_DATABASE=${database}`,
-		'-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
-		'mariadb:latest'
-	];
+        for (const fixtureName of fixtures) {
+            const fixturePath = path.join(config.paths.fixtures, fixtureName);
+            if (fsSync.existsSync(fixturePath)) {
+                const content = await fs.readFile(fixturePath, 'utf8');
+                initSql += `-- Fixture: ${fixtureName}\n${content}\n\n`;
+            }
+        }
 
-	return new Promise((resolve, reject) => {
-		const docker = spawn(containerCmd, dockerArgs);
-		let stdout = '';
-		let stderr = '';
+        await fs.writeFile(initSqlPath, initSql);
+        console.log(`[MariaDB] Created init.sql with ${fixtures.length} fixtures`);
+    } else {
+        // Create empty database
+        await fs.writeFile(initSqlPath, `CREATE DATABASE IF NOT EXISTS ${database};\nUSE ${database};\n`);
+    }
 
-		docker.stdout.on('data', (data) => {
-			stdout += data.toString();
-		});
+    // Start MariaDB container
+    const dockerArgs = [
+        'run', '-d',
+        '--name', containerName,
+        '--network', 'none',
+        '-e', `MYSQL_ROOT_PASSWORD=${password}`,
+        '-e', `MYSQL_DATABASE=${database}`,
+        '-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
+        'mariadb:latest'
+    ];
 
-		docker.stderr.on('data', (data) => {
-			stderr += data.toString();
-		});
+    return new Promise((resolve, reject) => {
+        const docker = spawn(containerCmd, dockerArgs);
+        let stdout = '';
+        let stderr = '';
 
-		// This 'close' event fires when the 'docker run' command completes (immediately with -d flag)
-		// The container itself continues running in the background
-		docker.on('close', async (code) => {
-			if (code !== 0) {
-				reject(new Error(`Failed to start MariaDB container: ${stderr}`));
-				return;
-			}
+        docker.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
 
-			const containerId = stdout.trim();
-			console.log(`[MariaDB] Container started: ${containerId}`);
-			console.log(`[MariaDB] Waiting for database to be ready...`);
+        docker.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
 
-			// Manual retry loop - simpler and more reliable than --wait
-			const maxRetries = 40;
-			const retryDelay = 2000; // 2 seconds between attempts
-			let ready = false;
-			let lastError = '';
+        // This 'close' event fires when the 'docker run' command completes (immediately with -d flag)
+        // The container itself continues running in the background
+        docker.on('close', async (code) => {
+            if (code !== 0) {
+                reject(new Error(`Failed to start MariaDB container: ${stderr}`));
+                return;
+            }
 
-			// Determine which admin command to use
-			let adminCmd = 'mariadb-admin';
-			await new Promise((resolve) => {
-				const check = spawn(containerCmd, ['exec', containerName, 'which', 'mariadb-admin']);
-				check.on('close', (code) => {
-					if (code !== 0) {
-						adminCmd = 'mysqladmin'; // Fallback to mysqladmin
-					}
-					resolve();
-				});
-			});
+            const containerId = stdout.trim();
+            console.log(`[MariaDB] Container started: ${containerId}`);
+            console.log(`[MariaDB] Waiting for database to be ready...`);
 
-			console.log(`[MariaDB] Using ${adminCmd} for health checks`);
+            let ready = false;
+            let lastError = '';
 
-			// First, wait for the container to be minimally ready
-			for (let attempt = 0; attempt < maxRetries && !ready; attempt++) {
-				// Wait before checking (except first attempt after 2 second initial delay)
-				if (attempt === 0) {
-					await new Promise(res => setTimeout(res, 2000));
-				} else {
-					await new Promise(res => setTimeout(res, retryDelay));
-				}
+            // Determine which admin command to use
+            let adminCmd = 'mariadb-admin';
+            await new Promise((resolve) => {
+                const check = spawn(containerCmd, ['exec', containerName, 'which', 'mariadb-admin']);
+                check.on('close', (code) => {
+                    if (code !== 0) {
+                        adminCmd = 'mysqladmin'; // Fallback to mysqladmin
+                    }
+                    resolve();
+                });
+            });
 
-				const pingResult = await new Promise((pingResolve) => {
-					const pingArgs = [
-						'exec', containerName,
-						adminCmd,
-						'ping',
-						'-u', 'root',
-						`-p${password}`
-					];
+            console.log(`[MariaDB] Using ${adminCmd} for health checks`);
 
-					const pingDocker = spawn(containerCmd, pingArgs);
-					let pingStdout = '';
-					let pingStderr = '';
+            // Wait for initialization to complete by checking logs
+            // The container runs init scripts first with a temporary server, then starts the real server
+            console.log(`[MariaDB] Waiting for initialization to complete...`);
+            let initComplete = false;
 
-					pingDocker.stdout.on('data', (data) => {
-						pingStdout += data.toString();
-					});
+            for (let i = 0; i < 30 && !initComplete; i++) {
+                await new Promise(res => setTimeout(res, 1000));
 
-					pingDocker.stderr.on('data', (data) => {
-						pingStderr += data.toString();
-					});
+                // Check container logs for completion message
+                const logs = await new Promise((logsResolve) => {
+                    const logsDocker = spawn(containerCmd, ['logs', containerName]);
+                    let logsOutput = '';
+                    logsDocker.stdout.on('data', (data) => logsOutput += data.toString());
+                    logsDocker.stderr.on('data', (data) => logsOutput += data.toString());
+                    logsDocker.on('close', () => logsResolve(logsOutput));
+                });
 
-					pingDocker.on('close', (pingCode) => {
-						pingResolve({ stdout: pingStdout, stderr: pingStderr, exitCode: pingCode });
-					});
+                // Look for the message indicating the real server is ready
+                // After init scripts run, it says "Stopping temporary server" then starts the real one
+                if (logs.includes('ready for connections') &&
+                    logs.includes('Stopping temporary server')) {
+                    // Make sure we see "ready for connections" AFTER "Stopping temporary server"
+                    const tempServerStop = logs.indexOf('Stopping temporary server');
+                    const lastReady = logs.lastIndexOf('ready for connections');
+                    if (lastReady > tempServerStop) {
+                        initComplete = true;
+                        console.log(`[MariaDB] Initialization complete, server is ready`);
+                        break;
+                    }
+                }
 
-					pingDocker.on('error', (err) => {
-						pingResolve({ stdout: '', stderr: err.message, exitCode: -1 });
-					});
-				});
+                if (i % 5 === 0 && i > 0) {
+                    console.log(`[MariaDB] Still initializing... (${i}s)`);
+                }
+            }
 
-				if (pingResult.exitCode === 0) {
-					ready = true;
-					const totalTime = 2 + (attempt * (retryDelay / 1000));
-					console.log(`[MariaDB] Database is ready after ${totalTime} seconds!`);
-					break;
-				} else {
-					lastError = pingResult.stderr || pingResult.stdout;
-					if (attempt % 5 === 0) { // Log every 5th attempt to reduce noise
-						console.log(`[MariaDB] Not ready yet (attempt ${attempt + 1}/${maxRetries})...`);
-					}
-				}
-			}
+            if (!initComplete) {
+                console.warn(`[MariaDB] Initialization check timed out, attempting to connect anyway...`);
+            }
 
-			if (!ready) {
-				console.error(`[MariaDB] Failed to become ready after ${maxRetries} attempts`);
-				console.error(`[MariaDB] Last error: ${lastError}`);
-				console.error(`[MariaDB] Showing container logs for debugging:`);
+            // Now try to connect with ping
+            for (let attempt = 0; attempt < 10 && !ready; attempt++) {
+                await new Promise(res => setTimeout(res, 1000));
 
-				// Show container logs to help debug
-				const logsResult = await new Promise((logsResolve) => {
-					const logsDocker = spawn(containerCmd, ['logs', containerName]);
-					let logs = '';
-					logsDocker.stdout.on('data', (data) => logs += data.toString());
-					logsDocker.stderr.on('data', (data) => logs += data.toString());
-					logsDocker.on('close', () => logsResolve(logs));
-				});
-				console.error(logsResult);
+                const pingResult = await new Promise((pingResolve) => {
+                    const pingArgs = [
+                        'exec', containerName,
+                        adminCmd,
+                        'ping',
+                        '-u', 'root',
+                        `-p${password}`
+                    ];
 
-				// Clean up the container
-				await new Promise((res) => {
-					const stop = spawn(containerCmd, ['rm', '-f', containerName]);
-					stop.on('close', () => res());
-				});
-				reject(new Error(`MariaDB container failed to become ready. Last error: ${lastError}`));
-				return;
-			}
+                    const pingDocker = spawn(containerCmd, pingArgs);
+                    let pingStdout = '';
+                    let pingStderr = '';
 
-			// Verify that we can actually query the database (test for permission issues)
-			console.log(`[MariaDB] Verifying database permissions...`);
-			const verifyResult = await new Promise((verifyResolve) => {
-				const verifyArgs = [
-					'exec', containerName,
-					'mariadb',
-					'-u', 'root',
-					`-p${password}`,
-					database,
-					'-e', 'SELECT 1 AS test;'
-				];
+                    pingDocker.stdout.on('data', (data) => {
+                        pingStdout += data.toString();
+                    });
 
-				const verifyDocker = spawn(containerCmd, verifyArgs);
-				let verifyStdout = '';
-				let verifyStderr = '';
+                    pingDocker.stderr.on('data', (data) => {
+                        pingStderr += data.toString();
+                    });
 
-				verifyDocker.stdout.on('data', (data) => {
-					verifyStdout += data.toString();
-				});
+                    pingDocker.on('close', (pingCode) => {
+                        pingResolve({ stdout: pingStdout, stderr: pingStderr, exitCode: pingCode });
+                    });
 
-				verifyDocker.stderr.on('data', (data) => {
-					verifyStderr += data.toString();
-				});
+                    pingDocker.on('error', (err) => {
+                        pingResolve({ stdout: '', stderr: err.message, exitCode: -1 });
+                    });
+                });
 
-				verifyDocker.on('close', (verifyCode) => {
-					verifyResolve({ stdout: verifyStdout, stderr: verifyStderr, exitCode: verifyCode });
-				});
+                if (pingResult.exitCode === 0) {
+                    ready = true;
+                    console.log(`[MariaDB] Successfully connected to database!`);
+                    break;
+                } else {
+                    lastError = pingResult.stderr || pingResult.stdout;
+                    console.log(`[MariaDB] Connection attempt ${attempt + 1}/10 failed`);
+                }
+            }
 
-				verifyDocker.on('error', (err) => {
-					verifyResolve({ stdout: '', stderr: err.message, exitCode: -1 });
-				});
-			});
+            if (!ready) {
+                console.error(`[MariaDB] Failed to become ready after multiple attempts`);
+                console.error(`[MariaDB] Last error: ${lastError}`);
+                console.error(`[MariaDB] Showing container logs for debugging:`);
 
-			if (verifyResult.exitCode !== 0) {
-				console.error(`[MariaDB] Permission verification failed!`);
-				console.error(`[MariaDB] stderr: ${verifyResult.stderr}`);
-				console.error(`[MariaDB] stdout: ${verifyResult.stdout}`);
-				console.error(`[MariaDB] This indicates a permission or authentication issue.`);
+                // Show container logs to help debug
+                const logsResult = await new Promise((logsResolve) => {
+                    const logsDocker = spawn(containerCmd, ['logs', containerName]);
+                    let logs = '';
+                    logsDocker.stdout.on('data', (data) => logs += data.toString());
+                    logsDocker.stderr.on('data', (data) => logs += data.toString());
+                    logsDocker.on('close', () => logsResolve(logs));
+                });
+                console.error(logsResult);
 
-				// Show container logs
-				const logsResult = await new Promise((logsResolve) => {
-					const logsDocker = spawn(containerCmd, ['logs', containerName]);
-					let logs = '';
-					logsDocker.stdout.on('data', (data) => logs += data.toString());
-					logsDocker.stderr.on('data', (data) => logs += data.toString());
-					logsDocker.on('close', () => logsResolve(logs));
-				});
-				console.error(`[MariaDB] Container logs:\n${logsResult}`);
+                // Clean up the container
+                await new Promise((res) => {
+                    const stop = spawn(containerCmd, ['rm', '-f', containerName]);
+                    stop.on('close', () => res());
+                });
+                reject(new Error(`MariaDB container failed to become ready. Last error: ${lastError}`));
+                return;
+            }
 
-				// Clean up
-				await new Promise((res) => {
-					const stop = spawn(containerCmd, ['rm', '-f', containerName]);
-					stop.on('close', () => res());
-				});
-				reject(new Error(`MariaDB permission verification failed: ${verifyResult.stderr}`));
-				return;
-			}
+            // Verify that we can actually query the database (test for permission issues)
+            console.log(`[MariaDB] Verifying database permissions...`);
+            const verifyResult = await new Promise((verifyResolve) => {
+                const verifyArgs = [
+                    'exec', containerName,
+                    'mariadb',
+                    '-u', 'root',
+                    `-p${password}`,
+                    database,
+                    '-e', 'SELECT 1 AS test;'
+                ];
 
-			console.log(`[MariaDB] Permission verification successful!`);
+                const verifyDocker = spawn(containerCmd, verifyArgs);
+                let verifyStdout = '';
+                let verifyStderr = '';
+
+                verifyDocker.stdout.on('data', (data) => {
+                    verifyStdout += data.toString();
+                });
+
+                verifyDocker.stderr.on('data', (data) => {
+                    verifyStderr += data.toString();
+                });
+
+                verifyDocker.on('close', (verifyCode) => {
+                    verifyResolve({ stdout: verifyStdout, stderr: verifyStderr, exitCode: verifyCode });
+                });
+
+                verifyDocker.on('error', (err) => {
+                    verifyResolve({ stdout: '', stderr: err.message, exitCode: -1 });
+                });
+            });
+
+            if (verifyResult.exitCode !== 0) {
+                console.error(`[MariaDB] Permission verification failed!`);
+                console.error(`[MariaDB] stderr: ${verifyResult.stderr}`);
+                console.error(`[MariaDB] stdout: ${verifyResult.stdout}`);
+                console.error(`[MariaDB] This indicates a permission or authentication issue.`);
+
+                // Show container logs
+                const logsResult = await new Promise((logsResolve) => {
+                    const logsDocker = spawn(containerCmd, ['logs', containerName]);
+                    let logs = '';
+                    logsDocker.stdout.on('data', (data) => logs += data.toString());
+                    logsDocker.stderr.on('data', (data) => logs += data.toString());
+                    logsDocker.on('close', () => logsResolve(logs));
+                });
+                console.error(`[MariaDB] Container logs:\n${logsResult}`);
+
+                // Clean up
+                await new Promise((res) => {
+                    const stop = spawn(containerCmd, ['rm', '-f', containerName]);
+                    stop.on('close', () => res());
+                });
+                reject(new Error(`MariaDB permission verification failed: ${verifyResult.stderr}`));
+                return;
+            }
+
+            console.log(`[MariaDB] Permission verification successful!`);
 
 
-			resolve({
-				containerId,
-				containerName,
-				database,
-				password,
-				cleanup: async () => {
-					console.log(`[MariaDB] Stopping container: ${containerName}`);
-					return new Promise((res) => {
-						const stop = spawn(containerCmd, ['rm', '-f', containerName]);
-						stop.on('close', () => res());
-					});
-				}
-			});
-		});
+            resolve({
+                containerId,
+                containerName,
+                database,
+                password,
+                cleanup: async () => {
+                    console.log(`[MariaDB] Stopping container: ${containerName}`);
+                    return new Promise((res) => {
+                        const stop = spawn(containerCmd, ['rm', '-f', containerName]);
+                        stop.on('close', () => res());
+                    });
+                }
+            });
+        });
 
-		docker.on('error', reject);
-	});
+        docker.on('error', reject);
+    });
 }
 
 /**
@@ -259,132 +288,132 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
 async function startMongoDBContainer(tmpdir, fixtures = []) {
-	const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-	const database = 'testdb';
-	const containerCmd = getContainerCommand();
+    const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    const database = 'testdb';
+    const containerCmd = getContainerCommand();
 
-	console.log(`[MongoDB] Starting container: ${containerName} using ${containerCmd}`);
+    console.log(`[MongoDB] Starting container: ${containerName} using ${containerCmd}`);
 
-	// Copy fixture files to tmpdir if provided
-	if (fixtures.length > 0) {
-		const initJsPath = path.join(tmpdir, 'init.js');
-		let initJs = `use ${database};\n\n`;
-		
-		for (const fixtureName of fixtures) {
-			const fixturePath = path.join(config.paths.fixtures, fixtureName);
-			if (fsSync.existsSync(fixturePath)) {
-				const content = await fs.readFile(fixturePath, 'utf8');
-				initJs += `// Fixture: ${fixtureName}\n${content}\n\n`;
-			}
-		}
-		
-		await fs.writeFile(initJsPath, initJs);
-		console.log(`[MongoDB] Created init.js with ${fixtures.length} fixtures`);
-	}
+    // Copy fixture files to tmpdir if provided
+    if (fixtures.length > 0) {
+        const initJsPath = path.join(tmpdir, 'init.js');
+        let initJs = `use ${database};\n\n`;
 
-	// Start MongoDB container
-	const dockerArgs = [
-		'run', '-d',
-		'--name', containerName,
-		'--network', 'none',
-		'-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
-		'mongo:latest'
-	];
+        for (const fixtureName of fixtures) {
+            const fixturePath = path.join(config.paths.fixtures, fixtureName);
+            if (fsSync.existsSync(fixturePath)) {
+                const content = await fs.readFile(fixturePath, 'utf8');
+                initJs += `// Fixture: ${fixtureName}\n${content}\n\n`;
+            }
+        }
 
-	return new Promise((resolve, reject) => {
-		const docker = spawn(containerCmd, dockerArgs);
-		let stdout = '';
-		let stderr = '';
+        await fs.writeFile(initJsPath, initJs);
+        console.log(`[MongoDB] Created init.js with ${fixtures.length} fixtures`);
+    }
 
-		docker.stdout.on('data', (data) => {
-			stdout += data.toString();
-		});
+    // Start MongoDB container
+    const dockerArgs = [
+        'run', '-d',
+        '--name', containerName,
+        '--network', 'none',
+        '-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
+        'mongo:latest'
+    ];
 
-		docker.stderr.on('data', (data) => {
-			stderr += data.toString();
-		});
+    return new Promise((resolve, reject) => {
+        const docker = spawn(containerCmd, dockerArgs);
+        let stdout = '';
+        let stderr = '';
 
-		docker.on('close', async (code) => {
-			if (code !== 0) {
-				reject(new Error(`Failed to start MongoDB container: ${stderr}`));
-				return;
-			}
+        docker.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
 
-			const containerId = stdout.trim();
-			console.log(`[MongoDB] Container started: ${containerId}`);
+        docker.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
 
-			// Use a simple retry loop with mongosh ping - MongoDB doesn't have a built-in wait like MariaDB
-			console.log(`[MongoDB] Waiting for database to be ready...`);
+        docker.on('close', async (code) => {
+            if (code !== 0) {
+                reject(new Error(`Failed to start MongoDB container: ${stderr}`));
+                return;
+            }
 
-			const maxRetries = 30;
-			let ready = false;
+            const containerId = stdout.trim();
+            console.log(`[MongoDB] Container started: ${containerId}`);
 
-			for (let i = 0; i < maxRetries && !ready; i++) {
-				await new Promise(res => setTimeout(res, 2000)); // Wait 2 seconds between attempts
+            // Use a simple retry loop with mongosh ping - MongoDB doesn't have a built-in wait like MariaDB
+            console.log(`[MongoDB] Waiting for database to be ready...`);
 
-				const pingResult = await new Promise((pingResolve) => {
-					const pingArgs = [
-						'exec', containerName,
-						'mongosh',
-						'--quiet',
-						'--eval', 'db.runCommand({ ping: 1 }).ok'
-					];
+            const maxRetries = 30;
+            let ready = false;
 
-					const pingDocker = spawn(containerCmd, pingArgs);
-					let pingStdout = '';
-					let pingStderr = '';
+            for (let i = 0; i < maxRetries && !ready; i++) {
+                await new Promise(res => setTimeout(res, 2000)); // Wait 2 seconds between attempts
 
-					pingDocker.stdout.on('data', (data) => {
-						pingStdout += data.toString();
-					});
+                const pingResult = await new Promise((pingResolve) => {
+                    const pingArgs = [
+                        'exec', containerName,
+                        'mongosh',
+                        '--quiet',
+                        '--eval', 'db.runCommand({ ping: 1 }).ok'
+                    ];
 
-					pingDocker.stderr.on('data', (data) => {
-						pingStderr += data.toString();
-					});
+                    const pingDocker = spawn(containerCmd, pingArgs);
+                    let pingStdout = '';
+                    let pingStderr = '';
 
-					pingDocker.on('close', (pingCode) => {
-						pingResolve({ stdout: pingStdout, stderr: pingStderr, exitCode: pingCode });
-					});
+                    pingDocker.stdout.on('data', (data) => {
+                        pingStdout += data.toString();
+                    });
 
-					pingDocker.on('error', () => {
-						pingResolve({ stdout: '', stderr: '', exitCode: -1 });
-					});
-				});
+                    pingDocker.stderr.on('data', (data) => {
+                        pingStderr += data.toString();
+                    });
 
-				// MongoDB ping returns "1" when ready
-				if (pingResult.exitCode === 0 && pingResult.stdout.trim() === '1') {
-					ready = true;
-					console.log(`[MongoDB] Database is ready after ${(i + 1) * 2} seconds`);
-				}
-			}
+                    pingDocker.on('close', (pingCode) => {
+                        pingResolve({ stdout: pingStdout, stderr: pingStderr, exitCode: pingCode });
+                    });
 
-			if (!ready) {
-				console.error(`[MongoDB] Failed to become ready within timeout`);
-				// Clean up the container
-				await new Promise((res) => {
-					const stop = spawn(containerCmd, ['rm', '-f', containerName]);
-					stop.on('close', () => res());
-				});
-				reject(new Error('MongoDB container failed to become ready in time'));
-				return;
-			}
+                    pingDocker.on('error', () => {
+                        pingResolve({ stdout: '', stderr: '', exitCode: -1 });
+                    });
+                });
 
-			resolve({
-				containerId,
-				containerName,
-				database,
-				cleanup: async () => {
-					console.log(`[MongoDB] Stopping container: ${containerName}`);
-					return new Promise((res) => {
-						const stop = spawn(containerCmd, ['rm', '-f', containerName]);
-						stop.on('close', () => res());
-					});
-				}
-			});
-		});
+                // MongoDB ping returns "1" when ready
+                if (pingResult.exitCode === 0 && pingResult.stdout.trim() === '1') {
+                    ready = true;
+                    console.log(`[MongoDB] Database is ready after ${(i + 1) * 2} seconds`);
+                }
+            }
 
-		docker.on('error', reject);
-	});
+            if (!ready) {
+                console.error(`[MongoDB] Failed to become ready within timeout`);
+                // Clean up the container
+                await new Promise((res) => {
+                    const stop = spawn(containerCmd, ['rm', '-f', containerName]);
+                    stop.on('close', () => res());
+                });
+                reject(new Error('MongoDB container failed to become ready in time'));
+                return;
+            }
+
+            resolve({
+                containerId,
+                containerName,
+                database,
+                cleanup: async () => {
+                    console.log(`[MongoDB] Stopping container: ${containerName}`);
+                    return new Promise((res) => {
+                        const stop = spawn(containerCmd, ['rm', '-f', containerName]);
+                        stop.on('close', () => res());
+                    });
+                }
+            });
+        });
+
+        docker.on('error', reject);
+    });
 }
 
 /**
@@ -394,61 +423,61 @@ async function startMongoDBContainer(tmpdir, fixtures = []) {
  * @returns {Promise<Object>} Query result {stdout, stderr, exitCode}
  */
 async function executeMariaDBQuery(containerInfo, query) {
-	const containerCmd = getContainerCommand();
-	
-	console.log(`[MariaDB] Executing query: ${query.substring(0, 150)}...`);
-	console.log(`[MariaDB] Target database: ${containerInfo.database}`);
+    const containerCmd = getContainerCommand();
 
-	return new Promise((resolve) => {
-		// Use the database name as argument which is more reliable than USE statement
-		const dockerArgs = [
-			'exec', containerInfo.containerName,
-			'mariadb',
-			'-u', 'root',
-			`-p${containerInfo.password}`,
-			containerInfo.database,
-			'-e', query
-		];
+    console.log(`[MariaDB] Executing query: ${query.substring(0, 150)}...`);
+    console.log(`[MariaDB] Target database: ${containerInfo.database}`);
 
-		console.log(`[MariaDB] Command: mariadb -u root -p*** ${containerInfo.database} -e "${query.substring(0, 50)}..."`);
+    return new Promise((resolve) => {
+        // Use the database name as argument which is more reliable than USE statement
+        const dockerArgs = [
+            'exec', containerInfo.containerName,
+            'mariadb',
+            '-u', 'root',
+            `-p${containerInfo.password}`,
+            containerInfo.database,
+            '-e', query
+        ];
 
-		const docker = spawn(containerCmd, dockerArgs);
-		let stdout = '';
-		let stderr = '';
+        console.log(`[MariaDB] Command: mariadb -u root -p*** ${containerInfo.database} -e "${query.substring(0, 50)}..."`);
 
-		docker.stdout.on('data', (data) => {
-			stdout += data.toString();
-		});
+        const docker = spawn(containerCmd, dockerArgs);
+        let stdout = '';
+        let stderr = '';
 
-		docker.stderr.on('data', (data) => {
-			stderr += data.toString();
-		});
+        docker.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
 
-		docker.on('close', (code) => {
-			if (code !== 0) {
-				console.error(`[MariaDB] Query failed with exit code ${code}`);
-				console.error(`[MariaDB] stderr: ${stderr}`);
-				console.error(`[MariaDB] stdout: ${stdout}`);
-			} else {
-				console.log(`[MariaDB] Query successful, output length: ${stdout.length}`);
-			}
+        docker.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
 
-			resolve({
-				stdout,
-				stderr,
-				exitCode: code
-			});
-		});
+        docker.on('close', (code) => {
+            if (code !== 0) {
+                console.error(`[MariaDB] Query failed with exit code ${code}`);
+                console.error(`[MariaDB] stderr: ${stderr}`);
+                console.error(`[MariaDB] stdout: ${stdout}`);
+            } else {
+                console.log(`[MariaDB] Query successful, output length: ${stdout.length}`);
+            }
 
-		docker.on('error', (err) => {
-			console.error(`[MariaDB] Query error: ${err.message}`);
-			resolve({
-				stdout,
-				stderr: err.message,
-				exitCode: -1
-			});
-		});
-	});
+            resolve({
+                stdout,
+                stderr,
+                exitCode: code
+            });
+        });
+
+        docker.on('error', (err) => {
+            console.error(`[MariaDB] Query error: ${err.message}`);
+            resolve({
+                stdout,
+                stderr: err.message,
+                exitCode: -1
+            });
+        });
+    });
 }
 
 /**
@@ -458,50 +487,50 @@ async function executeMariaDBQuery(containerInfo, query) {
  * @returns {Promise<Object>} Query result {stdout, stderr, exitCode}
  */
 async function executeMongoDBQuery(containerInfo, query) {
-	const containerCmd = getContainerCommand();
-	
-	return new Promise((resolve) => {
-		const dockerArgs = [
-			'exec', containerInfo.containerName,
-			'mongosh',
-			containerInfo.database,
-			'--quiet',
-			'--eval', query
-		];
+    const containerCmd = getContainerCommand();
 
-		const docker = spawn(containerCmd, dockerArgs);
-		let stdout = '';
-		let stderr = '';
+    return new Promise((resolve) => {
+        const dockerArgs = [
+            'exec', containerInfo.containerName,
+            'mongosh',
+            containerInfo.database,
+            '--quiet',
+            '--eval', query
+        ];
 
-		docker.stdout.on('data', (data) => {
-			stdout += data.toString();
-		});
+        const docker = spawn(containerCmd, dockerArgs);
+        let stdout = '';
+        let stderr = '';
 
-		docker.stderr.on('data', (data) => {
-			stderr += data.toString();
-		});
+        docker.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
 
-		docker.on('close', (code) => {
-			resolve({
-				stdout,
-				stderr,
-				exitCode: code
-			});
-		});
+        docker.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
 
-		docker.on('error', (err) => {
-			resolve({
-				stdout,
-				stderr: err.message,
-				exitCode: -1
-			});
-		});
-	});
+        docker.on('close', (code) => {
+            resolve({
+                stdout,
+                stderr,
+                exitCode: code
+            });
+        });
+
+        docker.on('error', (err) => {
+            resolve({
+                stdout,
+                stderr: err.message,
+                exitCode: -1
+            });
+        });
+    });
 }
 
 module.exports = {
-	startMariaDBContainer,
-	startMongoDBContainer,
-	executeMariaDBQuery,
-	executeMongoDBQuery
+    startMariaDBContainer,
+    startMongoDBContainer,
+    executeMariaDBQuery,
+    executeMongoDBQuery
 };

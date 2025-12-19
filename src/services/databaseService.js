@@ -768,7 +768,8 @@ class DatabaseService {
 				expectedOutputFiles: tc.expected_output_files ? JSON.parse(tc.expected_output_files) : [],
 				useDynamicOutput: tc.use_dynamic_output === 1,
 				validationQuery: tc.validation_query || null,
-				fixtures: fixtures.map(f => f.filename),
+                expectedValidationOutput: tc.expected_validation_output || null,
+                fixtures: fixtures.map(f => f.filename),
 				fixturePermissions: {} // TODO: Add permissions column if needed
 			};
 		}));

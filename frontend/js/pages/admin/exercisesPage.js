@@ -260,11 +260,23 @@ class ExercisesPage {
             // Save to localStorage to remember selection
             localStorage.setItem('admin-selected-language', this.selectedLanguage);
 
+            // Update exercise type based on the new language
+            const language = this.languages.find(l => l.id === this.selectedLanguage);
+            this.currentExerciseType = language?.exercise_type || 'programming';
+
+            console.log('[Language Change]', {
+                selectedLanguage: this.selectedLanguage,
+                exerciseType: this.currentExerciseType
+            });
+
             // Update CodeMirror syntax highlighting
             if (this.solutionEditor) {
                 const mode = this.getCodeMirrorMode(this.selectedLanguage);
                 this.solutionEditor.setOption('mode', mode);
             }
+
+            // Update chapter options to show chapters for the new language
+            this.updateChapterOptions();
 
             this.updateNewExerciseButton();
             this.populateExerciseList();
@@ -343,8 +355,8 @@ class ExercisesPage {
         const filteredExercises = this.selectedLanguage
             ? this.exercises.filter(ex => {
                 return ex.language_id === this.selectedLanguage ||
-                       (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
-              })
+                    (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
+            })
             : [];
 
         if (filteredExercises.length === 0) {
@@ -435,7 +447,7 @@ class ExercisesPage {
 
         this.currentExercise = null;
         this.testCases = [];
-        
+
         // Set current language info for database detection
         this.currentLanguageId = this.selectedLanguage;
         const language = this.languages.find(l => l.id === this.selectedLanguage);
@@ -534,7 +546,7 @@ class ExercisesPage {
             const exercise = await this.apiService.getExerciseWithTests(id);
             this.currentExercise = exercise;
             this.testCases = exercise.testCases || [];
-            
+
             // Store current language info for database detection
             this.currentLanguageId = exercise.language_id;
             const language = this.languages.find(l => l.id === exercise.language_id);
@@ -629,6 +641,7 @@ class ExercisesPage {
                 // Get exercise_type from the selected language
                 const selectedLangObj = this.languages.find(l => l.id === this.selectedLanguage);
                 const exerciseType = selectedLangObj?.exercise_type || 'programming';
+                const isDatabaseExercise = exerciseType === 'database';
 
                 const result = await this.apiService.runTestCase(solution, {
                     languageId: this.selectedLanguage,
@@ -637,16 +650,17 @@ class ExercisesPage {
                     input: testCase.input || [],
                     fixtures: fixtures,
                     outputFiles: testCase.outputFiles || [],
-                    validationQuery: testCase.validationQuery || null
+                    validationQuery: (isDatabaseExercise && testCase.validationQuery) ? testCase.validationQuery : null
                 });
 
                 this.testCases[i].expectedOutput = result.output;
                 this.testCases[i].expectedStderr = result.stderr || '';
                 this.testCases[i].expectedExitCode = result.exitCode;
 
-                // Store validation results if present
-                if (result.validationOutput !== undefined) {
+                // Store validation results if present (database exercises only)
+                if (isDatabaseExercise && result.validationOutput !== undefined) {
                     this.testCases[i].expectedValidationOutput = result.validationOutput;
+                    console.log(`[Test Case ${i + 1}] Stored validation output:`, result.validationOutput?.substring(0, 100));
                 }
 
                 // Store file hashes if any output files were specified
@@ -676,9 +690,15 @@ class ExercisesPage {
                 }
 
                 const outputHtml = this.formatDatabaseOutput(result.output, this.selectedLanguage);
-                const validationHtml = result.validationOutput !== undefined
+                const validationHtml = (isDatabaseExercise && result.validationOutput !== undefined)
                     ? this.formatDatabaseOutput(result.validationOutput, this.selectedLanguage)
                     : null;
+
+                console.log(`[Test Case ${i + 1}] Display validation:`, {
+                    isDatabaseExercise,
+                    hasValidationOutput: !!result.validationOutput,
+                    willShowValidation: !!validationHtml
+                });
 
                 resultsHtml += `
                     <div class="test-result-details">
@@ -686,16 +706,16 @@ class ExercisesPage {
                         <p><strong>Input:</strong> ${(testCase.input || []).length} lines</p>
                         <p><strong>Fixtures Used:</strong> ${fixtures.join(', ') || '(none)'}</p>
                         ${fileHashesHtml}
-                        <p><strong>Solution Output:</strong></p>
+                        <p><strong>${isDatabaseExercise ? 'Solution Query' : 'Solution'} Output:</strong></p>
                         ${outputHtml}
-                        ${result.stderr ? `
+                        ${!isDatabaseExercise && result.stderr ? `
                             <p><strong>STDERR:</strong></p>
                             <pre class="test-output-preview">${escapeHtml(result.stderr)}</pre>
                         ` : ''}
                         <p><strong>Exit Code:</strong> ${result.exitCode}</p>
-                        ${validationHtml ? `
-                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                                <p><strong>Validation Query Output:</strong></p>
+                        ${isDatabaseExercise && validationHtml ? `
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); background: rgba(137, 180, 250, 0.1); padding: 1rem; border-radius: 8px;">
+                                <p><strong>🔍 Validation Query Output (Database State Check):</strong></p>
                                 ${validationHtml}
                                 ${result.validationStderr ? `
                                     <p><strong>Validation STDERR:</strong></p>
@@ -710,7 +730,32 @@ class ExercisesPage {
                 resultsHtml += '</div>';
             }
 
+            console.log('[Before renderTestCases] Test cases state:', this.testCases.map((tc, i) => ({
+                index: i,
+                hasExpectedOutput: !!tc.expectedOutput,
+                hasExpectedValidationOutput: !!tc.expectedValidationOutput,
+                expectedValidationOutputLength: tc.expectedValidationOutput?.length || 0
+            })));
+
             this.renderTestCases();
+
+            // Manually update readonly textarea values after render (fixes display issue with readonly fields)
+            this.testCases.forEach((tc, index) => {
+                if (tc.expectedValidationOutput) {
+                    const field = document.querySelector(`[data-field="expectedValidationOutput"][data-index="${index}"]`);
+                    if (field) {
+                        field.value = tc.expectedValidationOutput;
+                        console.log(`[Manual Update] Set validation output for test case ${index + 1}, length: ${tc.expectedValidationOutput.length}`);
+                    }
+                }
+                // Also update expectedOutput field
+                if (tc.expectedOutput) {
+                    const outputField = document.querySelector(`[data-field="expectedOutput"][data-index="${index}"]`);
+                    if (outputField) {
+                        outputField.value = tc.expectedOutput;
+                    }
+                }
+            });
 
             document.getElementById('test-results-container').innerHTML = resultsHtml;
             document.getElementById('test-preview').style.display = 'block';
@@ -769,6 +814,23 @@ class ExercisesPage {
             testCases: this.testCases,
             language_id: this.selectedLanguage // Include the currently selected language
         };
+
+        // Debug: Log exercise data being saved
+        console.log('[Frontend] Saving exercise:', {
+            id,
+            chapter,
+            language_id: this.selectedLanguage,
+            currentExerciseType: this.currentExerciseType
+        });
+
+        // Debug: Log test cases to verify expectedValidationOutput is present
+        console.log('[Frontend] Saving exercise with test cases:', this.testCases.map((tc, i) => ({
+            index: i,
+            hasValidationQuery: !!tc.validationQuery,
+            hasExpectedValidationOutput: !!tc.expectedValidationOutput,
+            validationQuery: tc.validationQuery?.substring(0, 50),
+            expectedValidationOutput: tc.expectedValidationOutput?.substring(0, 50)
+        })));
 
         if (!id || !title || !description || !solution) {
             alert('Please fill in all required fields');
@@ -875,9 +937,16 @@ class ExercisesPage {
         }
 
         container.innerHTML = '';
-        
+
         // Check if this is a database exercise
         const isDatabaseExercise = this.currentExerciseType === 'database';
+
+        console.log('[renderTestCases] Rendering test cases:', this.testCases.map((tc, i) => ({
+            index: i,
+            hasValidationQuery: !!tc.validationQuery,
+            hasExpectedValidationOutput: !!tc.expectedValidationOutput,
+            expectedValidationOutputPreview: tc.expectedValidationOutput?.substring(0, 50)
+        })));
 
         this.testCases.forEach((testCase, index) => {
             const testCaseDiv = document.createElement('div');
@@ -888,9 +957,9 @@ class ExercisesPage {
                 const isSelected = (testCase.fixtures || []).includes(f.filename);
                 return `<option value="${f.filename}" ${isSelected ? 'selected' : ''}>${f.filename}</option>`;
             }).join('');
-            
+
             // Database-specific help text
-            const fixtureHelpText = isDatabaseExercise 
+            const fixtureHelpText = isDatabaseExercise
                 ? 'Select .sql files for MariaDB or .js files for MongoDB to initialize the database'
                 : 'Hold Ctrl/Cmd to select multiple files';
 
@@ -934,6 +1003,14 @@ class ExercisesPage {
                             • For DELETE: <code>SELECT COUNT(*) FROM tablename;</code><br>
                             • MongoDB: <code>db.collection.find();</code> or <code>db.collection.countDocuments();</code>
                         </small>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Expected Validation Output (auto-filled when testing)</label>
+                        <textarea class="form-input" data-field="expectedValidationOutput" data-index="${index}"
+                                   rows="3" placeholder="Run tests to populate..." readonly 
+                                   style="background: #2a2a2a;" 
+                                   data-has-value="${!!testCase.expectedValidationOutput}">${escapeHtml(testCase.expectedValidationOutput || '')}</textarea>
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">Expected result from the validation query - used for pass/fail comparison</small>
                     </div>
                     ` : ''}
                     ${!isDatabaseExercise ? `
@@ -1196,7 +1273,7 @@ class ExercisesPage {
         // Filter exercises for selected language only, with solutions
         const exercisesWithSolutions = this.exercises.filter(ex => {
             const matchesLanguage = ex.language_id === this.selectedLanguage ||
-                                   (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
+                (ex.chapter_id && ex.chapter_id.startsWith(this.selectedLanguage));
             return matchesLanguage && ex.solution && ex.solution.trim();
         });
 
