@@ -51,6 +51,7 @@ class DatabaseService {
 				interpreter TEXT DEFAULT 'bash',
 				docker_image TEXT DEFAULT 'alpine:latest',
 				code_template TEXT DEFAULT '#!/bin/bash\n\n# Write your solution here\n',
+				exercise_type TEXT DEFAULT 'programming' CHECK(exercise_type IN ('programming', 'database')),
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`);
@@ -95,6 +96,8 @@ class DatabaseService {
 				expected_exit_code INTEGER DEFAULT 0,
 				expected_output_files TEXT DEFAULT '[]', -- JSON array of {filename, sha256}
 				use_dynamic_output INTEGER DEFAULT 0, -- If 1, run exercise solution to get expected output
+				validation_query TEXT, -- For database exercises: query to validate database state
+				expected_validation_output TEXT, -- Expected output of validation query
 				order_num INTEGER DEFAULT 0,
 				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 			)
@@ -174,6 +177,20 @@ class DatabaseService {
 		// Add use_dynamic_output column to test_cases if it doesn't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN use_dynamic_output INTEGER DEFAULT 0`);
+		} catch (e) {
+			// Column already exists
+		}
+
+		// Add validation_query column to test_cases if it doesn't exist (for existing databases)
+		try {
+			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN validation_query TEXT`);
+		} catch (e) {
+			// Column already exists
+		}
+
+		// Add expected_validation_output column for database exercises
+		try {
+			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN expected_validation_output TEXT`);
 		} catch (e) {
 			// Column already exists
 		}
@@ -265,22 +282,37 @@ class DatabaseService {
 			}
 		}
 
+		// Add exercise_type column if it doesn't exist (migration for existing databases)
+		try {
+			await this.db.exec(`
+				ALTER TABLE languages ADD COLUMN exercise_type TEXT DEFAULT 'programming' CHECK(exercise_type IN ('programming', 'database'))
+			`);
+		} catch (err) {
+			// Column already exists, ignore
+			if (!err.message.includes('duplicate column')) {
+				console.warn('Error adding exercise_type column to languages:', err.message);
+			}
+		}
+
 		// Migrate existing languages to have proper execution config based on their ID
+		// This only runs for languages that still have default bash configuration
 		await this.db.exec(`
 			UPDATE languages 
 			SET file_extension = CASE 
 				WHEN id = 'python' THEN '.py'
 				WHEN id = 'bash' THEN '.sh'
-			    when id = 'sql' THEN '.sql'
+			    WHEN id = 'sql' THEN '.sql'
                 WHEN id = 'r' THEN '.r'
-			    when id = 'php' THEN '.php'
-			    when id = 'mongodb' THEN '.js'
+			    WHEN id = 'php' THEN '.php'
+			    WHEN id = 'mongodb' THEN '.js'
+			    WHEN id = 'mariadb' THEN '.sql'
 				ELSE file_extension
 			END,
 			interpreter = CASE 
 				WHEN id = 'python' THEN 'python3'
 				WHEN id = 'bash' THEN 'bash'
 			    WHEN id = 'sql' THEN 'mariadb'
+			    WHEN id = 'mariadb' THEN 'mariadb'
                 WHEN id = 'r' THEN 'Rscript'
 			    WHEN id = 'php' THEN 'php'
 			    WHEN id = 'mongodb' THEN 'mongosh'
@@ -290,21 +322,33 @@ class DatabaseService {
 				WHEN id = 'python' THEN 'python:3.11-alpine'
 				WHEN id = 'bash' THEN 'alpine:latest'
 			    WHEN id = 'sql' THEN 'mariadb:latest'
+			    WHEN id = 'mariadb' THEN 'mariadb:latest'
                 WHEN id = 'r' THEN 'r-base:latest'
 			    WHEN id = 'php' THEN 'php:latest'
-            WHEN id = 'mongodb' THEN 'mongo:latest'
+                WHEN id = 'mongodb' THEN 'mongo:latest'
 				ELSE docker_image
 			END,
 			code_template = CASE 
 				WHEN id = 'python' THEN '#!/usr/bin/env python3\n\n# Write your solution here\n'
 				WHEN id = 'bash' THEN '#!/bin/bash\n\n# Write your solution here\n'
 			    WHEN id = 'sql' THEN '-- Write your SQL query here\n'
+			    WHEN id = 'mariadb' THEN '-- Write your SQL query here\n'
                 WHEN id = 'r' THEN '#!/usr/bin/env Rscript\n\n# Write your R script here\n'
 			    WHEN id = 'php' THEN '<?php\n\n// Write your PHP code here\n'
 			    WHEN id = 'mongodb' THEN '// Write your MongoDB query here\n'
 				ELSE code_template
 			END
 			WHERE file_extension = '.sh' AND interpreter = 'bash' AND docker_image = 'alpine:latest'
+		`);
+
+		// Separate update for exercise_type to ensure all database languages are properly tagged
+		await this.db.exec(`
+			UPDATE languages 
+			SET exercise_type = CASE
+				WHEN id IN ('mariadb', 'mongodb', 'sql') THEN 'database'
+				ELSE exercise_type
+			END
+			WHERE exercise_type IS NULL OR exercise_type = 'programming' OR id IN ('mariadb', 'mongodb', 'sql')
 		`);
 
 		// Test case fixtures junction table
@@ -530,7 +574,7 @@ class DatabaseService {
 	}
 
 	async updateLanguage(id, data) {
-		const { name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = data;
+		const { name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template, exercise_type } = data;
 		const updates = [];
 		const values = [];
 
@@ -570,6 +614,10 @@ class DatabaseService {
 			updates.push('code_template = ?');
 			values.push(code_template);
 		}
+		if (exercise_type !== undefined) {
+			updates.push('exercise_type = ?');
+			values.push(exercise_type);
+		}
 
 		if (updates.length === 0) {
 			return this.getLanguage(id);
@@ -597,7 +645,7 @@ class DatabaseService {
 	}
 
 	async createLanguage(data) {
-		const { id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template } = data;
+		const { id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template, exercise_type } = data;
 
 		// Set defaults based on language ID if not provided
 		const ext = file_extension || (id === 'python' ? '.py' : id === 'javascript' ? '.js' : '.sh');
@@ -608,11 +656,12 @@ class DatabaseService {
 			id === 'javascript' ? '#!/usr/bin/env node\n\n// Write your solution here\n' :
 			'#!/bin/bash\n\n# Write your solution here\n'
 		);
+		const exType = exercise_type || (id === 'mariadb' || id === 'mongodb' || id === 'sql' ? 'database' : 'programming');
 
 		await this.db.run(`
-			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0, ext, interp, image, template]);
+			INSERT INTO languages (id, name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template, exercise_type)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, [id, name, description || null, icon_svg || null, order_num || 0, enabled !== false ? 1 : 0, ext, interp, image, template, exType]);
 
 		// Create corresponding language mastery achievement
 		const languageAchievementId = `language-master-${id}`;
@@ -753,7 +802,9 @@ class DatabaseService {
 				expectedExitCode: tc.expected_exit_code != null ? tc.expected_exit_code : 0,
 				expectedOutputFiles: tc.expected_output_files ? JSON.parse(tc.expected_output_files) : [],
 				useDynamicOutput: tc.use_dynamic_output === 1,
-				fixtures: fixtures.map(f => f.filename),
+				validationQuery: tc.validation_query || null,
+                expectedValidationOutput: tc.expected_validation_output || null,
+                fixtures: fixtures.map(f => f.filename),
 				fixturePermissions: {} // TODO: Add permissions column if needed
 			};
 		}));
@@ -775,8 +826,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -786,6 +837,8 @@ class DatabaseService {
 					tc.expectedExitCode || 0,
 					JSON.stringify(tc.expectedOutputFiles || []),
 					tc.useDynamicOutput ? 1 : 0,
+					tc.validationQuery || null,
+					tc.expectedValidationOutput || null,
 					i
 				]);
 
@@ -854,8 +907,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -865,6 +918,8 @@ class DatabaseService {
 					tc.expectedExitCode || 0,
 					JSON.stringify(tc.expectedOutputFiles || []),
 					tc.useDynamicOutput ? 1 : 0,
+					tc.validationQuery || null,
+					tc.expectedValidationOutput || null,
 					i
 				]);
 

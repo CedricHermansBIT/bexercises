@@ -232,6 +232,7 @@ async function getExerciseWithTests(id) {
 		let languageId = null;
 		let languageName = null;
 		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
+		let exerciseType = 'programming';
 
 		if (chapter) {
 			languageId = chapter.language_id;
@@ -239,6 +240,7 @@ async function getExerciseWithTests(id) {
 			if (language) {
 				languageName = language.name;
 				codeTemplate = language.code_template || codeTemplate;
+				exerciseType = language.exercise_type || 'programming';
 			}
 		}
 
@@ -247,7 +249,8 @@ async function getExerciseWithTests(id) {
 			chapter: chapter ? chapter.name : 'Unknown',
 			language_id: languageId,
 			language: languageName,
-			code_template: codeTemplate
+			code_template: codeTemplate,
+			exercise_type: exerciseType
 		};
 	} catch (error) {
 		console.error('Error getting exercise with tests from database:', error);

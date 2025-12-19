@@ -1,0 +1,2 @@
+-- Empty database fixture for CREATE TABLE exercises
+-- This file intentionally left empty to provide a clean database

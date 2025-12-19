@@ -169,6 +169,7 @@ class LanguagesPage {
         document.getElementById('language-icon').value = '';
         document.getElementById('language-order').value = '0';
         document.getElementById('language-enabled').checked = true;
+        document.getElementById('language-exercise-type').value = 'programming';
 
         // Reset execution config with defaults
         document.getElementById('language-file-extension').value = '.sh';
@@ -200,6 +201,7 @@ class LanguagesPage {
         document.getElementById('language-icon').value = language.icon_svg || '';
         document.getElementById('language-order').value = language.order_num || 0;
         document.getElementById('language-enabled').checked = language.enabled;
+        document.getElementById('language-exercise-type').value = language.exercise_type || 'programming';
 
         // Fill execution config with defaults if not set
         document.getElementById('language-file-extension').value = language.file_extension || '.sh';
@@ -224,6 +226,7 @@ class LanguagesPage {
         const icon_svg = document.getElementById('language-icon').value.trim();
         const order_num = parseInt(document.getElementById('language-order').value) || 0;
         const enabled = document.getElementById('language-enabled').checked;
+        const exercise_type = document.getElementById('language-exercise-type').value;
 
         // Get execution config
         const file_extension = document.getElementById('language-file-extension').value.trim();
@@ -263,7 +266,8 @@ class LanguagesPage {
             file_extension,
             interpreter,
             docker_image,
-            code_template
+            code_template,
+            exercise_type
         };
 
         try {
