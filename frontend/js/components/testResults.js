@@ -165,22 +165,32 @@ class TestResults {
 			`;
 		}
 
+		// For database exercises, create a unified comparison view
+		let outputTabContent;
+		if (result.isDatabaseExercise) {
+			outputTabContent = this.createDatabaseComparisonView(result.expectedOutput, result.actualOutput, result.passed);
+		} else {
+			outputTabContent = `
+				<div class="output-comparison">
+					<div class="output-section">
+						<strong>Expected Output:</strong>
+						<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>
+					</div>
+					<div class="output-section">
+						<strong>Actual Output:</strong>
+						<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>
+					</div>
+				</div>
+			`;
+		}
+
 		details.innerHTML = `
 			<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
 			
 			${tabsHtml}
 			
 			<div class="result-tab-content active" id="${tabId}-output">
-				<div class="output-comparison">
-					<div class="output-section">
-						<strong>Expected Output:</strong>
-						${result.isDatabaseExercise ? this.formatDatabaseOutput(result.expectedOutput) : `<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>`}
-					</div>
-					<div class="output-section">
-						<strong>Actual Output:</strong>
-						${result.isDatabaseExercise ? this.formatDatabaseOutput(result.actualOutput) : `<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>`}
-					</div>
-				</div>
+				${outputTabContent}
 			</div>
 			
 			${validationTabHtml}
@@ -214,6 +224,7 @@ class TestResults {
 	 * Setup tab switching for results
 	 */
 	setupTabs() {
+		// Setup main tabs (Output, Stderr, Exit Code, etc.)
 		const tabs = document.querySelectorAll('.result-tab');
 		tabs.forEach(tab => {
 			tab.addEventListener('click', (e) => {
@@ -227,6 +238,23 @@ class TestResults {
 				// Add active to clicked tab and its content
 				e.target.classList.add('active');
 				document.getElementById(targetId).classList.add('active');
+			});
+		});
+
+		// Setup comparison view toggle buttons
+		const toggleBtns = document.querySelectorAll('.comparison-toggle .toggle-btn');
+		toggleBtns.forEach(btn => {
+			btn.addEventListener('click', (e) => {
+				const viewType = e.target.dataset.view;
+				const container = e.target.closest('.db-comparison-container');
+
+				// Update button states
+				container.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+				e.target.classList.add('active');
+
+				// Update view visibility
+				container.querySelectorAll('.comparison-view').forEach(v => v.classList.remove('active'));
+				container.querySelector(`.${viewType}-view`).classList.add('active');
 			});
 		});
 	}
@@ -251,6 +279,210 @@ class TestResults {
 	displayNoResults() {
 		if (!this.resultsContainer) return;
 		this.resultsContainer.innerHTML = '<p class="no-results">$ ./solution.sh - waiting for execution...</p>';
+	}
+
+	/**
+	 * Create a unified comparison view for database exercise outputs
+	 * @param {string} expectedOutput - Expected output string
+	 * @param {string} actualOutput - Actual output string
+	 * @param {boolean} passed - Whether the test passed
+	 * @returns {string} HTML for the comparison view
+	 */
+	createDatabaseComparisonView(expectedOutput, actualOutput, passed) {
+		const expectedData = this.parseTableData(expectedOutput);
+		const actualData = this.parseTableData(actualOutput);
+
+		// If both parsed successfully as tables, show unified comparison
+		if (expectedData && actualData) {
+			return this.buildComparisonTable(expectedData, actualData, passed);
+		}
+
+		// Fallback to side-by-side pre blocks
+		return `
+			<div class="output-comparison">
+				<div class="output-section">
+					<strong>Expected Output:</strong>
+					${this.formatDatabaseOutput(expectedOutput)}
+				</div>
+				<div class="output-section">
+					<strong>Actual Output:</strong>
+					${this.formatDatabaseOutput(actualOutput)}
+				</div>
+			</div>
+		`;
+	}
+
+	/**
+	 * Parse table data from output string
+	 * @param {string} output - Output string
+	 * @returns {Object|null} Parsed table data {headers, rows} or null
+	 */
+	parseTableData(output) {
+		if (!output || !output.trim()) {
+			return { headers: [], rows: [] };
+		}
+
+		const lines = output.trim().split('\n').filter(line => line.trim());
+		if (lines.length === 0) {
+			return { headers: [], rows: [] };
+		}
+
+		const firstLine = lines[0];
+
+		// Try tab-separated
+		if (lines.some(line => line.includes('\t'))) {
+			const headers = firstLine.split('\t').map(h => h.trim());
+			const rows = lines.slice(1).map(line => {
+				const cells = line.split('\t').map(c => c.trim());
+				while (cells.length < headers.length) cells.push('');
+				return cells.slice(0, headers.length);
+			});
+			return { headers, rows };
+		}
+
+		// Try multi-space separated
+		const multiSpacePattern = /\s{2,}/;
+		if (multiSpacePattern.test(firstLine)) {
+			const headers = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
+			if (headers.length > 1) {
+				const rows = lines.slice(1).map(line => {
+					const cells = line.split(multiSpacePattern).map(c => c.trim()).filter(c => c);
+					while (cells.length < headers.length) cells.push('');
+					return cells;
+				});
+				return { headers, rows };
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Build a comparison table showing expected vs actual with diff highlighting
+	 * @param {Object} expected - Expected data {headers, rows}
+	 * @param {Object} actual - Actual data {headers, rows}
+	 * @param {boolean} passed - Whether test passed
+	 * @returns {string} HTML table
+	 */
+	buildComparisonTable(expected, actual, passed) {
+		// Check if headers match
+		const headersMatch = JSON.stringify(expected.headers) === JSON.stringify(actual.headers);
+		const maxRows = Math.max(expected.rows.length, actual.rows.length);
+		const maxCols = Math.max(expected.headers.length, actual.headers.length);
+
+		let html = '<div class="db-comparison-container">';
+
+		// Summary
+		if (passed) {
+			html += '<div class="comparison-summary match"><span>✓</span> Output matches expected</div>';
+		} else {
+			const rowDiff = actual.rows.length - expected.rows.length;
+			const colDiff = actual.headers.length - expected.headers.length;
+			let diffMsg = 'Output differs: ';
+			const diffs = [];
+			if (!headersMatch) diffs.push('columns differ');
+			if (rowDiff !== 0) diffs.push(`${Math.abs(rowDiff)} row${Math.abs(rowDiff) !== 1 ? 's' : ''} ${rowDiff > 0 ? 'extra' : 'missing'}`);
+			if (diffs.length === 0) diffs.push('values differ');
+			diffMsg += diffs.join(', ');
+			html += `<div class="comparison-summary mismatch"><span>✗</span> ${diffMsg}</div>`;
+		}
+
+		// Toggle buttons for view mode
+		html += `
+			<div class="comparison-toggle">
+				<button class="toggle-btn active" data-view="unified">Unified View</button>
+				<button class="toggle-btn" data-view="split">Split View</button>
+			</div>
+		`;
+
+		// Unified view (default)
+		html += '<div class="comparison-view unified-view active">';
+		html += '<div class="sql-result-table"><table>';
+
+		// Headers
+		html += '<thead><tr>';
+		for (let i = 0; i < maxCols; i++) {
+			const expHeader = expected.headers[i] || '';
+			const actHeader = actual.headers[i] || '';
+			const headerMatch = expHeader === actHeader;
+			const headerClass = headerMatch ? '' : 'cell-mismatch';
+			html += `<th class="${headerClass}">${this.escapeHtml(actHeader || expHeader)}</th>`;
+		}
+		html += '</tr></thead>';
+
+		// Rows
+		html += '<tbody>';
+		for (let r = 0; r < maxRows; r++) {
+			const expRow = expected.rows[r] || [];
+			const actRow = actual.rows[r] || [];
+			const rowMissing = r >= actual.rows.length;
+			const rowExtra = r >= expected.rows.length;
+
+			let rowClass = '';
+			if (rowMissing) rowClass = 'row-missing';
+			else if (rowExtra) rowClass = 'row-extra';
+
+			html += `<tr class="${rowClass}">`;
+			for (let c = 0; c < maxCols; c++) {
+				const expVal = expRow[c] || '';
+				const actVal = actRow[c] || '';
+				const cellMatch = expVal === actVal;
+
+				let cellClass = '';
+				let cellContent = this.escapeHtml(actVal || expVal);
+
+				if (rowMissing) {
+					cellClass = 'cell-missing';
+					cellContent = `<span class="expected-val">${this.escapeHtml(expVal)}</span>`;
+				} else if (rowExtra) {
+					cellClass = 'cell-extra';
+				} else if (!cellMatch) {
+					cellClass = 'cell-mismatch';
+					cellContent = `<span class="actual-val">${this.escapeHtml(actVal)}</span><span class="expected-hint">expected: ${this.escapeHtml(expVal)}</span>`;
+				}
+
+				html += `<td class="${cellClass}">${cellContent}</td>`;
+			}
+			html += '</tr>';
+		}
+		html += '</tbody></table></div></div>';
+
+		// Split view
+		html += '<div class="comparison-view split-view">';
+		html += '<div class="split-panel"><strong>Expected Output:</strong>' + this.buildSimpleTable(expected) + '</div>';
+		html += '<div class="split-panel"><strong>Actual Output:</strong>' + this.buildSimpleTable(actual) + '</div>';
+		html += '</div>';
+
+		html += '</div>';
+
+		return html;
+	}
+
+	/**
+	 * Build a simple table from parsed data
+	 * @param {Object} data - Table data {headers, rows}
+	 * @returns {string} HTML table
+	 */
+	buildSimpleTable(data) {
+		if (!data || data.headers.length === 0) {
+			return '<pre><code>(empty)</code></pre>';
+		}
+
+		let html = '<div class="sql-result-table"><table>';
+		html += '<thead><tr>';
+		data.headers.forEach(h => {
+			html += `<th>${this.escapeHtml(h)}</th>`;
+		});
+		html += '</tr></thead><tbody>';
+		data.rows.forEach(row => {
+			html += '<tr>';
+			row.forEach(cell => {
+				html += `<td>${this.escapeHtml(cell)}</td>`;
+			});
+			html += '</tr>';
+		});
+		html += '</tbody></table></div>';
+		return html;
 	}
 
 	/**

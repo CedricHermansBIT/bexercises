@@ -3539,6 +3539,137 @@ body {
     overflow-x: auto;
 }
 
+/* Database Comparison View */
+.db-comparison-container {
+    margin: 0.5rem 0;
+}
+
+.comparison-summary {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comparison-summary.match {
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--accent-green);
+    border: 1px solid var(--accent-green);
+}
+
+.comparison-summary.mismatch {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--accent-red);
+    border: 1px solid var(--accent-red);
+}
+
+.comparison-summary span {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.comparison-toggle {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.comparison-toggle .toggle-btn {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.comparison-toggle .toggle-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.comparison-toggle .toggle-btn.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.comparison-view {
+    display: none;
+}
+
+.comparison-view.active {
+    display: block;
+}
+
+/* Split view */
+.split-view {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.split-view.active {
+    display: grid;
+}
+
+.split-panel {
+    overflow: hidden;
+}
+
+.split-panel strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Diff highlighting */
+.cell-mismatch {
+    background: rgba(231, 76, 60, 0.2) !important;
+}
+
+.cell-missing {
+    background: rgba(231, 76, 60, 0.15) !important;
+    color: var(--text-muted) !important;
+    font-style: italic;
+}
+
+.cell-extra {
+    background: rgba(241, 196, 15, 0.2) !important;
+}
+
+.row-missing {
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.row-extra {
+    background: rgba(241, 196, 15, 0.15);
+}
+
+.sql-result-table th.cell-mismatch {
+    background: rgba(231, 76, 60, 0.4) !important;
+}
+
+.expected-val {
+    color: var(--text-muted);
+}
+
+.expected-hint {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--accent-green);
+    margin-top: 0.15rem;
+}
+
+.actual-val {
+    color: var(--accent-red);
+}
+
 /* Light mode adjustments */
 body.light-mode .sql-result-table th {
     background: var(--accent-blue);
