@@ -166,23 +166,25 @@ class TestResults {
 		}
 
 		// For database exercises, create a unified comparison view
+		// For non-database, create diff-highlighted comparison view
 		let outputTabContent;
 		if (result.isDatabaseExercise) {
 			outputTabContent = this.createDatabaseComparisonView(result.expectedOutput, result.actualOutput, result.passed);
 		} else {
-			outputTabContent = `
-				<div class="output-comparison">
-					<div class="output-section">
-						<strong>Expected Output:</strong>
-						<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>
-					</div>
-					<div class="output-section">
-						<strong>Actual Output:</strong>
-						<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>
-					</div>
-				</div>
-			`;
+			outputTabContent = this.createTextComparisonView(result.expectedOutput, result.actualOutput, 'Output');
 		}
+
+		// Create unified views for stderr and exit code
+		const stderrTabContent = this.createTextComparisonView(
+			result.expectedStderr || '',
+			result.actualStderr || result.stderr || '',
+			'Stderr'
+		);
+		const exitCodeTabContent = this.createExitCodeComparisonView(
+			result.expectedExitCode,
+			result.exitCode,
+			result.error
+		);
 
 		details.innerHTML = `
 			<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
@@ -196,24 +198,13 @@ class TestResults {
 			${validationTabHtml}
 			
 			<div class="result-tab-content" id="${tabId}-stderr">
-				<div class="output-comparison">
-					<div class="output-section">
-						<strong>Expected STDERR:</strong>
-						<pre><code>${this.escapeHtml(result.expectedStderr || '')}</code></pre>
-					</div>
-					<div class="output-section">
-						<strong>Actual STDERR:</strong>
-						<pre><code>${this.escapeHtml(result.actualStderr || result.stderr || '')}</code></pre>
-					</div>
-				</div>
+				${stderrTabContent}
 			</div>
 			
 			${filesTabHtml}
 			
 			<div class="result-tab-content" id="${tabId}-exit">
-				<p><strong>Expected Exit Code:</strong> ${result.expectedExitCode}</p>
-				<p><strong>Actual Exit Code:</strong> ${result.exitCode}</p>
-				${result.error ? `<p class="error"><strong>Error:</strong> ${result.error}</p>` : ''}
+				${exitCodeTabContent}
 			</div>
 		`;
 
@@ -279,6 +270,235 @@ class TestResults {
 	displayNoResults() {
 		if (!this.resultsContainer) return;
 		this.resultsContainer.innerHTML = '<p class="no-results">$ ./solution.sh - waiting for execution...</p>';
+	}
+
+	/**
+	 * Create a unified comparison view for text outputs (non-database exercises)
+	 * Shows differences with highlighting for bash/script outputs
+	 * @param {string} expected - Expected output string
+	 * @param {string} actual - Actual output string
+	 * @param {string} label - Label for the comparison (e.g., 'Output', 'Stderr')
+	 * @returns {string} HTML for the comparison view
+	 */
+	createTextComparisonView(expected, actual, label) {
+		const expectedStr = expected || '';
+		const actualStr = actual || '';
+		const matches = expectedStr === actualStr;
+
+		let html = '<div class="text-comparison-container">';
+
+		// Summary
+		if (matches) {
+			html += `<div class="comparison-summary match"><span>✓</span> ${label} matches expected</div>`;
+		} else {
+			const diff = this.computeTextDiff(expectedStr, actualStr);
+			html += `<div class="comparison-summary mismatch"><span>✗</span> ${label} differs: ${diff.summary}</div>`;
+		}
+
+		// Toggle buttons for view mode
+		html += `
+			<div class="comparison-toggle">
+				<button class="toggle-btn active" data-view="unified">Unified View</button>
+				<button class="toggle-btn" data-view="split">Split View</button>
+			</div>
+		`;
+
+		// Unified diff view
+		html += '<div class="comparison-view unified-view active">';
+		html += this.buildUnifiedDiffView(expectedStr, actualStr);
+		html += '</div>';
+
+		// Split view
+		html += '<div class="comparison-view split-view">';
+		html += `<div class="split-panel"><strong>Expected ${label}:</strong><div class="sql-output-wrapper"><pre><code>${this.escapeHtml(expectedStr) || '(empty)'}</code></pre></div></div>`;
+		html += `<div class="split-panel"><strong>Actual ${label}:</strong><div class="sql-output-wrapper"><pre><code>${this.escapeHtml(actualStr) || '(empty)'}</code></pre></div></div>`;
+		html += '</div>';
+
+		html += '</div>';
+
+		return html;
+	}
+
+	/**
+	 * Compute a text diff summary
+	 * @param {string} expected - Expected text
+	 * @param {string} actual - Actual text
+	 * @returns {Object} Diff info with summary
+	 */
+	computeTextDiff(expected, actual) {
+		const expectedLines = expected.split('\n');
+		const actualLines = actual.split('\n');
+
+		const lineDiff = actualLines.length - expectedLines.length;
+		const charDiff = actual.length - expected.length;
+
+		const diffs = [];
+		if (lineDiff !== 0) {
+			diffs.push(`${Math.abs(lineDiff)} line${Math.abs(lineDiff) !== 1 ? 's' : ''} ${lineDiff > 0 ? 'extra' : 'missing'}`);
+		}
+		if (charDiff !== 0 && lineDiff === 0) {
+			diffs.push(`${Math.abs(charDiff)} character${Math.abs(charDiff) !== 1 ? 's' : ''} ${charDiff > 0 ? 'extra' : 'missing'}`);
+		}
+		if (diffs.length === 0) {
+			diffs.push('content differs');
+		}
+
+		return { summary: diffs.join(', ') };
+	}
+
+	/**
+	 * Build a unified diff view with line-by-line comparison
+	 * @param {string} expected - Expected text
+	 * @param {string} actual - Actual text
+	 * @returns {string} HTML diff view
+	 */
+	buildUnifiedDiffView(expected, actual) {
+		const expectedLines = expected.split('\n');
+		const actualLines = actual.split('\n');
+		const maxLines = Math.max(expectedLines.length, actualLines.length);
+
+		if (maxLines === 0 || (expectedLines.length === 1 && expectedLines[0] === '' && actualLines.length === 1 && actualLines[0] === '')) {
+			return '<div class="unified-diff"><div class="diff-line unchanged"><span class="line-num">-</span><span class="line-content">(empty)</span></div></div>';
+		}
+
+		let html = '<div class="unified-diff">';
+
+		for (let i = 0; i < maxLines; i++) {
+			const expLine = expectedLines[i];
+			const actLine = actualLines[i];
+
+			if (expLine === undefined) {
+				// Extra line in actual
+				html += `<div class="diff-line added"><span class="line-num">+${i + 1}</span><span class="line-content">${this.escapeHtml(actLine)}</span></div>`;
+			} else if (actLine === undefined) {
+				// Missing line in actual
+				html += `<div class="diff-line removed"><span class="line-num">-${i + 1}</span><span class="line-content">${this.escapeHtml(expLine)}</span></div>`;
+			} else if (expLine === actLine) {
+				// Lines match
+				html += `<div class="diff-line unchanged"><span class="line-num">${i + 1}</span><span class="line-content">${this.escapeHtml(actLine)}</span></div>`;
+			} else {
+				// Lines differ - show inline diff
+				const inlineDiff = this.computeInlineDiff(expLine, actLine);
+				html += `<div class="diff-line modified"><span class="line-num">~${i + 1}</span><span class="line-content">${inlineDiff}</span></div>`;
+			}
+		}
+
+		html += '</div>';
+		return html;
+	}
+
+	/**
+	 * Compute inline character-level diff between two lines
+	 * @param {string} expected - Expected line
+	 * @param {string} actual - Actual line
+	 * @returns {string} HTML with highlighted differences
+	 */
+	computeInlineDiff(expected, actual) {
+		// Use a simple character-by-character comparison with context
+		const result = [];
+		const maxLen = Math.max(expected.length, actual.length);
+
+		let i = 0;
+		while (i < maxLen) {
+			const expChar = expected[i];
+			const actChar = actual[i];
+
+			if (expChar === actChar) {
+				result.push(this.escapeHtml(actChar));
+			} else if (actChar === undefined) {
+				// Character missing in actual
+				result.push(`<span class="diff-char-removed" title="missing: '${this.escapeHtml(expChar)}'">⌀</span>`);
+			} else if (expChar === undefined) {
+				// Extra character in actual
+				result.push(`<span class="diff-char-added" title="extra character">${this.escapeHtml(actChar)}</span>`);
+			} else {
+				// Character differs
+				result.push(`<span class="diff-char-changed" title="expected: '${this.escapeHtml(expChar)}'">${this.escapeHtml(actChar)}</span>`);
+			}
+			i++;
+		}
+
+		return result.join('');
+	}
+
+	/**
+	 * Create a unified comparison view for exit codes
+	 * @param {number} expected - Expected exit code
+	 * @param {number} actual - Actual exit code
+	 * @param {string} error - Optional error message
+	 * @returns {string} HTML for the exit code comparison
+	 */
+	createExitCodeComparisonView(expected, actual, error) {
+		const matches = expected === actual;
+
+		let html = '<div class="exit-code-comparison">';
+
+		// Summary with visual indicator
+		if (matches) {
+			html += `<div class="comparison-summary match"><span>✓</span> Exit code matches expected (${expected})</div>`;
+		} else {
+			html += `<div class="comparison-summary mismatch"><span>✗</span> Exit code differs</div>`;
+		}
+
+		// Visual comparison
+		html += '<div class="exit-code-visual">';
+		html += `<div class="exit-code-box ${matches ? 'match' : 'expected'}">
+			<div class="exit-code-label">Expected</div>
+			<div class="exit-code-value">${expected}</div>
+		</div>`;
+		html += '<div class="exit-code-arrow">' + (matches ? '=' : '≠') + '</div>';
+		html += `<div class="exit-code-box ${matches ? 'match' : 'actual'}">
+			<div class="exit-code-label">Actual</div>
+			<div class="exit-code-value">${actual}</div>
+		</div>`;
+		html += '</div>';
+
+		// Exit code meaning hints
+		html += '<div class="exit-code-hints">';
+		html += this.getExitCodeHint(expected, 'expected');
+		if (!matches) {
+			html += this.getExitCodeHint(actual, 'actual');
+		}
+		html += '</div>';
+
+		// Error message if present
+		if (error) {
+			html += `<div class="exit-code-error"><strong>Error:</strong> ${this.escapeHtml(error)}</div>`;
+		}
+
+		html += '</div>';
+
+		return html;
+	}
+
+	/**
+	 * Get a hint about what an exit code typically means
+	 * @param {number} code - Exit code
+	 * @param {string} type - 'expected' or 'actual'
+	 * @returns {string} HTML hint
+	 */
+	getExitCodeHint(code, type) {
+		const hints = {
+			0: 'Success',
+			1: 'General error',
+			2: 'Misuse of shell command',
+			126: 'Command not executable',
+			127: 'Command not found',
+			128: 'Invalid exit argument',
+			130: 'Terminated by Ctrl+C (SIGINT)',
+			137: 'Killed (SIGKILL)',
+			139: 'Segmentation fault (SIGSEGV)',
+			143: 'Terminated (SIGTERM)'
+		};
+
+		const hint = hints[code];
+		if (hint) {
+			return `<div class="exit-hint ${type}"><span class="hint-code">${code}</span>: ${hint}</div>`;
+		}
+		if (code > 128 && code < 165) {
+			return `<div class="exit-hint ${type}"><span class="hint-code">${code}</span>: Terminated by signal ${code - 128}</div>`;
+		}
+		return '';
 	}
 
 	/**
@@ -377,7 +597,6 @@ class TestResults {
 			html += '<div class="comparison-summary match"><span>✓</span> Output matches expected</div>';
 		} else {
 			const rowDiff = actual.rows.length - expected.rows.length;
-			const colDiff = actual.headers.length - expected.headers.length;
 			let diffMsg = 'Output differs: ';
 			const diffs = [];
 			if (!headersMatch) diffs.push('columns differ');

@@ -3680,3 +3680,243 @@ body.light-mode .sql-result-table tbody tr:hover {
     background: rgba(30, 102, 245, 0.1);
 }
 
+/* Text Comparison View (for non-database exercises) */
+.text-comparison-container {
+    margin: 0.5rem 0;
+}
+
+/* Unified Diff View */
+.unified-diff {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.diff-line {
+    display: flex;
+    padding: 0.15rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.diff-line:last-child {
+    border-bottom: none;
+}
+
+.diff-line .line-num {
+    min-width: 3rem;
+    padding: 0 0.5rem;
+    text-align: right;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border-right: 1px solid var(--border-color);
+    user-select: none;
+    font-size: 0.75rem;
+}
+
+.diff-line .line-content {
+    flex: 1;
+    padding: 0 0.5rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+}
+
+/* Diff line types */
+.diff-line.unchanged {
+    background: var(--bg-primary);
+}
+
+.diff-line.added {
+    background: rgba(46, 204, 113, 0.15);
+}
+
+.diff-line.added .line-num {
+    background: rgba(46, 204, 113, 0.3);
+    color: var(--accent-green);
+}
+
+.diff-line.removed {
+    background: rgba(231, 76, 60, 0.15);
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.diff-line.removed .line-num {
+    background: rgba(231, 76, 60, 0.3);
+    color: var(--accent-red);
+}
+
+.diff-line.modified {
+    background: rgba(241, 196, 15, 0.1);
+}
+
+.diff-line.modified .line-num {
+    background: rgba(241, 196, 15, 0.3);
+    color: var(--accent-yellow);
+}
+
+/* Inline character diff highlighting */
+.diff-char-added {
+    background: rgba(46, 204, 113, 0.4);
+    color: var(--accent-green);
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.diff-char-removed {
+    background: rgba(231, 76, 60, 0.3);
+    color: var(--accent-red);
+    border-radius: 2px;
+    padding: 0 2px;
+    font-size: 0.7rem;
+}
+
+.diff-char-changed {
+    background: rgba(241, 196, 15, 0.4);
+    color: var(--text-primary);
+    border-radius: 2px;
+    padding: 0 1px;
+    text-decoration: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: var(--accent-red);
+}
+
+/* Exit Code Comparison */
+.exit-code-comparison {
+    margin: 0.5rem 0;
+}
+
+.exit-code-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius);
+    margin: 0.75rem 0;
+}
+
+.exit-code-box {
+    text-align: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    min-width: 80px;
+}
+
+.exit-code-box.match {
+    border-color: var(--accent-green);
+    background: rgba(46, 204, 113, 0.1);
+}
+
+.exit-code-box.expected {
+    border-color: var(--accent-green);
+    background: rgba(46, 204, 113, 0.1);
+}
+
+.exit-code-box.actual {
+    border-color: var(--accent-red);
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.exit-code-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.exit-code-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    font-family: var(--font-mono);
+}
+
+.exit-code-box.match .exit-code-value {
+    color: var(--accent-green);
+}
+
+.exit-code-box.expected .exit-code-value {
+    color: var(--accent-green);
+}
+
+.exit-code-box.actual .exit-code-value {
+    color: var(--accent-red);
+}
+
+.exit-code-arrow {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    font-weight: bold;
+}
+
+.exit-code-hints {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.exit-hint {
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.exit-hint.expected {
+    background: rgba(46, 204, 113, 0.1);
+    color: var(--text-secondary);
+}
+
+.exit-hint.actual {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--text-secondary);
+}
+
+.hint-code {
+    font-family: var(--font-mono);
+    font-weight: bold;
+    padding: 0.1rem 0.3rem;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
+
+.exit-code-error {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid var(--accent-red);
+    border-radius: var(--border-radius);
+    color: var(--accent-red);
+    font-size: 0.85rem;
+}
+
+/* Light mode adjustments for diff/comparison */
+body.light-mode .diff-line.added {
+    background: rgba(46, 204, 113, 0.2);
+}
+
+body.light-mode .diff-line.removed {
+    background: rgba(231, 76, 60, 0.2);
+}
+
+body.light-mode .diff-line.modified {
+    background: rgba(241, 196, 15, 0.2);
+}
+
+body.light-mode .diff-char-changed {
+    background: rgba(241, 196, 15, 0.5);
+}
+
+body.light-mode .exit-code-box {
+    background: var(--bg-primary);
+}
+
