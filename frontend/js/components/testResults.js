@@ -186,10 +186,23 @@ class TestResults {
 			result.error
 		);
 
+		// Single view toggle for the entire test case
+		const viewToggleHtml = `
+			<div class="test-view-toggle">
+				<span class="comparison-toggle">
+					<button class="toggle-btn active" data-view="unified">Unified</button>
+					<button class="toggle-btn" data-view="split">Split</button>
+				</span>
+			</div>
+		`;
+
 		details.innerHTML = `
 			<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
 			
-			${tabsHtml}
+			<div class="test-header-row">
+				${tabsHtml}
+				${viewToggleHtml}
+			</div>
 			
 			<div class="result-tab-content active" id="${tabId}-output">
 				${outputTabContent}
@@ -232,20 +245,26 @@ class TestResults {
 			});
 		});
 
-		// Setup comparison view toggle buttons
+		// Setup comparison view toggle buttons (one toggle per test case)
 		const toggleBtns = document.querySelectorAll('.comparison-toggle .toggle-btn');
 		toggleBtns.forEach(btn => {
 			btn.addEventListener('click', (e) => {
 				const viewType = e.target.dataset.view;
-				const container = e.target.closest('.db-comparison-container');
+				const testDetails = e.target.closest('.test-details');
+				if (!testDetails) return;
 
-				// Update button states
-				container.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-				e.target.classList.add('active');
+				// Update ALL toggle buttons in this test case
+				testDetails.querySelectorAll('.comparison-toggle .toggle-btn').forEach(b => {
+					b.classList.toggle('active', b.dataset.view === viewType);
+				});
 
-				// Update view visibility
-				container.querySelectorAll('.comparison-view').forEach(v => v.classList.remove('active'));
-				container.querySelector(`.${viewType}-view`).classList.add('active');
+				// Update ALL comparison views in this test case
+				testDetails.querySelectorAll('.comparison-view').forEach(v => {
+					v.classList.remove('active');
+					if (v.classList.contains(`${viewType}-view`)) {
+						v.classList.add('active');
+					}
+				});
 			});
 		});
 	}
@@ -287,8 +306,7 @@ class TestResults {
 
 		let html = '<div class="text-comparison-container">';
 
-		// Summary and toggle on same line
-		html += '<div class="comparison-header">';
+		// Summary only (toggle is now at test level)
 		if (matches) {
 			html += `<span class="comparison-summary match"><span>✓</span> ${label} matches</span>`;
 		} else {
@@ -296,13 +314,6 @@ class TestResults {
 			html += `<span class="comparison-summary mismatch"><span>✗</span> ${diff.summary}</span>`;
 		}
 
-		// Toggle buttons for view mode
-		html += `
-			<span class="comparison-toggle">
-				<button class="toggle-btn active" data-view="unified">Unified</button>
-				<button class="toggle-btn" data-view="split">Split</button>
-			</span>
-		</div>`;
 
 		// Unified diff view
 		html += '<div class="comparison-view unified-view active">';
@@ -628,13 +639,6 @@ class TestResults {
 			html += `<div class="comparison-summary mismatch"><span>✗</span> ${diffMsg}</div>`;
 		}
 
-		// Toggle buttons for view mode
-		html += `
-			<div class="comparison-toggle">
-				<button class="toggle-btn active" data-view="unified">Unified View</button>
-				<button class="toggle-btn" data-view="split">Split View</button>
-			</div>
-		`;
 
 		// Unified view (default)
 		html += '<div class="comparison-view unified-view active">';

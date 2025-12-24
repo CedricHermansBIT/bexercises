@@ -3573,12 +3573,19 @@ body {
     font-size: 0.8rem;
 }
 
-.comparison-header {
+/* Test header row with tabs and view toggle */
+.test-header-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.5rem;
     flex-wrap: wrap;
+}
+
+.test-view-toggle {
+    display: flex;
+    align-items: center;
 }
 
 .comparison-toggle {
