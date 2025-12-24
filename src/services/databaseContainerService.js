@@ -101,6 +101,41 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
             for (let i = 0; i < 30 && !initComplete; i++) {
                 await new Promise(res => setTimeout(res, 1000));
 
+                // Check if container is still running (it may have stopped due to SQL error in init scripts)
+                const stateCheck = await new Promise((stateResolve) => {
+                    const inspectDocker = spawn(containerCmd, ['inspect', '--format', '{{.State.Running}}', containerName]);
+                    let stateOutput = '';
+                    inspectDocker.stdout.on('data', (data) => stateOutput += data.toString());
+                    inspectDocker.on('close', (code) => stateResolve({ running: stateOutput.trim() === 'true', code }));
+                });
+
+                if (!stateCheck.running) {
+                    // Container stopped - likely due to init script error
+                    const logsResult = await new Promise((logsResolve) => {
+                        const logsDocker = spawn(containerCmd, ['logs', containerName]);
+                        let logs = '';
+                        logsDocker.stdout.on('data', (data) => logs += data.toString());
+                        logsDocker.stderr.on('data', (data) => logs += data.toString());
+                        logsDocker.on('close', () => logsResolve(logs));
+                    });
+
+                    // Extract SQL error from logs
+                    const errorMatch = logsResult.match(/ERROR \d+ \(\w+\)[^\n]*/);
+                    const errorMsg = errorMatch ? errorMatch[0] : 'Container stopped during initialization';
+
+                    console.error(`[MariaDB] Container stopped during initialization`);
+                    console.error(`[MariaDB] Error: ${errorMsg}`);
+
+                    // Clean up
+                    await new Promise((res) => {
+                        const stop = spawn(containerCmd, ['rm', '-f', containerName]);
+                        stop.on('close', () => res());
+                    });
+
+                    reject(new Error(`MariaDB initialization failed: ${errorMsg}`));
+                    return;
+                }
+
                 // Check container logs for completion message
                 const logs = await new Promise((logsResolve) => {
                     const logsDocker = spawn(containerCmd, ['logs', containerName]);
