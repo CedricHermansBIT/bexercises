@@ -339,45 +339,13 @@ class TestResults {
 					}
 				}
 			}
-
-			if (columnBreaks.length >= 1) {
-				// Parse using column positions
-				const parseLineByPositions = (line) => {
-					const cells = [];
-					let lastPos = 0;
-					for (const breakPos of columnBreaks) {
-						cells.push(line.substring(lastPos, breakPos).trim());
-						// Skip the gap
-						lastPos = breakPos;
-						while (lastPos < line.length && line[lastPos] === ' ') {
-							lastPos++;
-						}
-					}
-					// Add remaining content as last column
-					cells.push(line.substring(lastPos).trim());
-					return cells;
-				};
-
-				const headerRow = parseLineByPositions(nonEmptyLines[0]).filter(c => c !== '');
-				const dataRows = nonEmptyLines.slice(1).map(line => {
-					const cells = parseLineByPositions(line);
-					// Ensure same number of columns as header
-					while (cells.length < headerRow.length) {
-						cells.push('');
-					}
-					return cells.slice(0, headerRow.length);
-				});
-
-				if (headerRow.length > 1) {
-					return this.buildTableHtml(headerRow, dataRows);
-				}
-			}
 		}
 
-		// Fallback: try simple multi-space split (2+ spaces as delimiter)
-		const multiSpacePattern = /\s{2,}/;
-		if (multiSpacePattern.test(firstLine)) {
-			const headerRow = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
+			// Check if columns are separated by 2+ spaces (common in SQL output)
+			// This is a heuristic: if first line has multiple segments separated by 2+ spaces
+			const multiSpacePattern = /\s{2,}/;
+			if (multiSpacePattern.test(firstLine) && lines.length >= 1) {
+				const headerRow = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
 
 			if (headerRow.length > 1) {
 				const dataRows = nonEmptyLines.slice(1)
