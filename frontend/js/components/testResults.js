@@ -296,8 +296,11 @@ class TestResults {
 		}
 
 		// Check if it's tab-separated (MariaDB default output format)
+		// Even a single tab indicates tab-separated format
 		const firstLine = nonEmptyLines[0];
-		if (firstLine.includes('\t')) {
+		const hasTab = nonEmptyLines.some(line => line.includes('\t'));
+
+		if (hasTab) {
 			const headerRow = firstLine.split('\t').map(h => h.trim());
 			const dataRows = nonEmptyLines.slice(1)
 				.map(line => {
@@ -306,12 +309,11 @@ class TestResults {
 					while (cells.length < headerRow.length) {
 						cells.push('');
 					}
-					return cells;
+					return cells.slice(0, headerRow.length);
 				});
 
-			if (headerRow.length >= 1) {
-				return this.buildTableHtml(headerRow, dataRows);
-			}
+			// Always render as table if we have tabs, even with just 1 column
+			return this.buildTableHtml(headerRow, dataRows);
 		}
 
 		// Try to detect column-aligned output (fixed-width columns)
@@ -329,15 +331,10 @@ class TestResults {
 						spaceCount++;
 					}
 				}
-				// If 80%+ of lines have double-space at this position, it's likely a column break
-				if (spaceCount >= nonEmptyLines.length * 0.8) {
-					// Find the start of the gap (first space)
-					let gapStart = pos;
-					while (gapStart > 0 && nonEmptyLines.every(l => l[gapStart - 1] === ' ')) {
-						gapStart--;
-					}
-					// Avoid duplicate breaks
-					if (columnBreaks.length === 0 || columnBreaks[columnBreaks.length - 1] < gapStart - 1) {
+				// If 60%+ of lines have double-space at this position, it's likely a column break
+				if (spaceCount >= nonEmptyLines.length * 0.6) {
+					// Avoid duplicate breaks (must be at least 3 chars apart)
+					if (columnBreaks.length === 0 || pos - columnBreaks[columnBreaks.length - 1] >= 3) {
 						columnBreaks.push(pos);
 					}
 				}
@@ -358,11 +355,18 @@ class TestResults {
 					}
 					// Add remaining content as last column
 					cells.push(line.substring(lastPos).trim());
-					return cells.filter(c => c !== '');
+					return cells;
 				};
 
-				const headerRow = parseLineByPositions(nonEmptyLines[0]);
-				const dataRows = nonEmptyLines.slice(1).map(parseLineByPositions);
+				const headerRow = parseLineByPositions(nonEmptyLines[0]).filter(c => c !== '');
+				const dataRows = nonEmptyLines.slice(1).map(line => {
+					const cells = parseLineByPositions(line);
+					// Ensure same number of columns as header
+					while (cells.length < headerRow.length) {
+						cells.push('');
+					}
+					return cells.slice(0, headerRow.length);
+				});
 
 				if (headerRow.length > 1) {
 					return this.buildTableHtml(headerRow, dataRows);
@@ -401,7 +405,7 @@ class TestResults {
 	 * @returns {string} HTML table
 	 */
 	buildTableHtml(headerRow, dataRows) {
-		let tableHtml = '<div class="sql-result-table"><table class="table">';
+		let tableHtml = '<div class="sql-result-table"><table>';
 		tableHtml += '<thead><tr>';
 		headerRow.forEach(header => {
 			tableHtml += `<th>${this.escapeHtml(header)}</th>`;

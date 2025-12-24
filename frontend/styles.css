@@ -3470,34 +3470,50 @@ body {
 /* SQL Result Tables */
 .sql-result-table {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 400px;
     margin: 0.5rem 0;
     border-radius: var(--border-radius);
     background: var(--bg-tertiary);
     max-width: 100%;
+    border: 1px solid var(--border-color);
 }
 
 .sql-result-table table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 .sql-result-table th {
     background: var(--accent-blue);
     color: var(--bg-primary);
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.6rem;
     text-align: left;
     font-weight: 600;
     border-bottom: 2px solid var(--border-color);
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .sql-result-table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.6rem;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
     white-space: nowrap;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sql-result-table td:hover {
+    white-space: normal;
+    word-break: break-word;
+    max-width: none;
 }
 
 .sql-result-table tbody tr:hover {
@@ -3513,6 +3529,8 @@ body {
     overflow-x: auto;
     max-width: 100%;
     margin: 0.5rem 0;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .sql-output-wrapper pre {
