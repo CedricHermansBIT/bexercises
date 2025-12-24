@@ -426,37 +426,164 @@ class TestResults {
 	}
 
 	/**
-	 * Compute inline character-level diff between two lines
+	 * Compute inline word-level diff between two lines
+	 * Uses a word-based approach to identify actual changes rather than shifted characters
 	 * @param {string} expected - Expected line
 	 * @param {string} actual - Actual line
 	 * @returns {string} HTML with highlighted differences
 	 */
 	computeInlineDiff(expected, actual) {
-		// Use a simple character-by-character comparison with context
-		const result = [];
-		const maxLen = Math.max(expected.length, actual.length);
+		// Tokenize into words while preserving whitespace
+		const tokenize = (str) => {
+			const tokens = [];
+			let current = '';
+			let isSpace = false;
 
-		let i = 0;
-		while (i < maxLen) {
-			const expChar = expected[i];
-			const actChar = actual[i];
-
-			if (expChar === actChar) {
-				result.push(this.escapeHtml(actChar));
-			} else if (actChar === undefined) {
-				// Character missing in actual
-				result.push(`<span class="diff-char-removed" title="missing: '${this.escapeHtml(expChar)}'">⌀</span>`);
-			} else if (expChar === undefined) {
-				// Extra character in actual
-				result.push(`<span class="diff-char-added" title="extra character">${this.escapeHtml(actChar)}</span>`);
-			} else {
-				// Character differs
-				result.push(`<span class="diff-char-changed" title="expected: '${this.escapeHtml(expChar)}'">${this.escapeHtml(actChar)}</span>`);
+			for (const char of str) {
+				const charIsSpace = /\s/.test(char);
+				if (charIsSpace !== isSpace && current) {
+					tokens.push({ text: current, isSpace });
+					current = '';
+				}
+				isSpace = charIsSpace;
+				current += char;
 			}
-			i++;
+			if (current) {
+				tokens.push({ text: current, isSpace });
+			}
+			return tokens;
+		};
+
+		const expectedTokens = tokenize(expected);
+		const actualTokens = tokenize(actual);
+
+		// Find longest common subsequence of tokens
+		const lcs = this.findLCS(
+			expectedTokens.map(t => t.text),
+			actualTokens.map(t => t.text)
+		);
+
+		// Build result by walking through actual tokens and marking changes
+		const result = [];
+		let expIdx = 0;
+		let actIdx = 0;
+		let lcsIdx = 0;
+
+		while (actIdx < actualTokens.length) {
+			const actToken = actualTokens[actIdx];
+
+			// Check if this token is part of LCS (unchanged)
+			if (lcsIdx < lcs.length && actToken.text === lcs[lcsIdx]) {
+				// Find corresponding expected token
+				while (expIdx < expectedTokens.length && expectedTokens[expIdx].text !== lcs[lcsIdx]) {
+					// This expected token was removed
+					if (!expectedTokens[expIdx].isSpace) {
+						result.push(`<span class="diff-char-removed" title="removed: '${this.escapeHtml(expectedTokens[expIdx].text)}'">⌀</span>`);
+					}
+					expIdx++;
+				}
+				// Output unchanged token
+				result.push(this.escapeHtml(actToken.text));
+				expIdx++;
+				lcsIdx++;
+			} else {
+				// This token in actual is either added or modified
+				// Check if there's a corresponding expected token that's different
+				const matchingExpected = this.findSimilarToken(actToken.text, expectedTokens, expIdx, lcs, lcsIdx);
+
+				if (matchingExpected !== null && !actToken.isSpace) {
+					// Modified token - show what changed
+					result.push(`<span class="diff-char-changed" title="expected: '${this.escapeHtml(expectedTokens[matchingExpected].text)}'">${this.escapeHtml(actToken.text)}</span>`);
+				} else if (!actToken.isSpace) {
+					// Added token
+					result.push(`<span class="diff-char-added" title="extra">${this.escapeHtml(actToken.text)}</span>`);
+				} else {
+					// Whitespace - just output it
+					result.push(this.escapeHtml(actToken.text));
+				}
+			}
+			actIdx++;
+		}
+
+		// Check for remaining expected tokens that were removed
+		while (expIdx < expectedTokens.length) {
+			if (!expectedTokens[expIdx].isSpace) {
+				const inLcs = lcsIdx < lcs.length && expectedTokens[expIdx].text === lcs[lcsIdx];
+				if (!inLcs) {
+					result.push(`<span class="diff-char-removed" title="removed: '${this.escapeHtml(expectedTokens[expIdx].text)}'">⌀</span>`);
+				}
+			}
+			expIdx++;
 		}
 
 		return result.join('');
+	}
+
+	/**
+	 * Find Longest Common Subsequence of two arrays
+	 * @param {Array} arr1 - First array
+	 * @param {Array} arr2 - Second array
+	 * @returns {Array} LCS array
+	 */
+	findLCS(arr1, arr2) {
+		const m = arr1.length;
+		const n = arr2.length;
+
+		// Build DP table
+		const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+		for (let i = 1; i <= m; i++) {
+			for (let j = 1; j <= n; j++) {
+				if (arr1[i - 1] === arr2[j - 1]) {
+					dp[i][j] = dp[i - 1][j - 1] + 1;
+				} else {
+					dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+				}
+			}
+		}
+
+		// Backtrack to find LCS
+		const lcs = [];
+		let i = m, j = n;
+		while (i > 0 && j > 0) {
+			if (arr1[i - 1] === arr2[j - 1]) {
+				lcs.unshift(arr1[i - 1]);
+				i--;
+				j--;
+			} else if (dp[i - 1][j] > dp[i][j - 1]) {
+				i--;
+			} else {
+				j--;
+			}
+		}
+
+		return lcs;
+	}
+
+	/**
+	 * Find a similar token in expected that might be a modification
+	 * @param {string} actualToken - The actual token text
+	 * @param {Array} expectedTokens - Array of expected tokens
+	 * @param {number} startIdx - Start index in expected
+	 * @param {Array} lcs - LCS array
+	 * @param {number} lcsIdx - Current LCS index
+	 * @returns {number|null} Index of similar token or null
+	 */
+	findSimilarToken(actualToken, expectedTokens, startIdx, lcs, lcsIdx) {
+		// Look for a non-LCS token in expected that might be the "before" version
+		for (let i = startIdx; i < expectedTokens.length; i++) {
+			const expToken = expectedTokens[i];
+			if (expToken.isSpace) continue;
+
+			// Stop if we hit a token that's in the LCS
+			if (lcsIdx < lcs.length && expToken.text === lcs[lcsIdx]) {
+				break;
+			}
+
+			// Found a candidate - return it
+			return i;
+		}
+		return null;
 	}
 
 	/**
