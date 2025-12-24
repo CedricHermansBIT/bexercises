@@ -174,11 +174,11 @@ class TestResults {
 				<div class="output-comparison">
 					<div class="output-section">
 						<strong>Expected Output:</strong>
-						<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>
+						${result.usedValidation ? this.formatDatabaseOutput(result.expectedOutput) : `<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>`}
 					</div>
 					<div class="output-section">
 						<strong>Actual Output:</strong>
-						<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>
+						${result.usedValidation ? this.formatDatabaseOutput(result.actualOutput) : `<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>`}
 					</div>
 				</div>
 			</div>
@@ -240,7 +240,7 @@ class TestResults {
 		this.resultsContainer.innerHTML = `
 			<div class="test-result failed">
 				<h4>Error</h4>
-				<p>${message}</p>
+				<pre style="white-space: pre-wrap; word-wrap: break-word;"><code>${this.escapeHtml(message)}</code></pre>
 			</div>
 		`;
 	}
