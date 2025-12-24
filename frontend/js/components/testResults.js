@@ -265,12 +265,18 @@ class TestResults {
 
 		const lines = output.trim().split('\n');
 
+		// Skip empty lines at the start
+		const nonEmptyLines = lines.filter(line => line.trim());
+		if (nonEmptyLines.length === 0) {
+			return `<pre><code></code></pre>`;
+		}
+
 		// Check if output looks like a pipe-bordered table (e.g., | col1 | col2 |)
-		const hasTableBorders = lines.some(line => /^\|.*\|$/.test(line.trim()));
+		const hasTableBorders = nonEmptyLines.some(line => /^\|.*\|$/.test(line.trim()));
 
 		if (hasTableBorders) {
 			// Parse pipe-bordered table format
-			const dataLines = lines.filter(line => {
+			const dataLines = nonEmptyLines.filter(line => {
 				const trimmed = line.trim();
 				return trimmed.startsWith('|') && !trimmed.match(/^[+\-|]+$/);
 			});
@@ -289,44 +295,98 @@ class TestResults {
 			}
 		}
 
-		// Check if output looks like MariaDB/MySQL space-aligned format
-		// First line is headers, subsequent lines are data, all tab or space separated
-		if (lines.length >= 1) {
-			// Try to detect tab-separated or multi-space separated columns
-			const firstLine = lines[0];
+		// Check if it's tab-separated (MariaDB default output format)
+		const firstLine = nonEmptyLines[0];
+		if (firstLine.includes('\t')) {
+			const headerRow = firstLine.split('\t').map(h => h.trim());
+			const dataRows = nonEmptyLines.slice(1)
+				.map(line => {
+					const cells = line.split('\t').map(cell => cell.trim());
+					// Pad with empty cells if needed
+					while (cells.length < headerRow.length) {
+						cells.push('');
+					}
+					return cells;
+				});
 
-			// Check if it's tab-separated
-			if (firstLine.includes('\t')) {
-				const headerRow = firstLine.split('\t').map(h => h.trim());
-				const dataRows = lines.slice(1)
-					.filter(line => line.trim())
-					.map(line => line.split('\t').map(cell => cell.trim()));
+			if (headerRow.length >= 1) {
+				return this.buildTableHtml(headerRow, dataRows);
+			}
+		}
 
-				if (headerRow.length > 1 && dataRows.length >= 0) {
-					return this.buildTableHtml(headerRow, dataRows);
+		// Try to detect column-aligned output (fixed-width columns)
+		// This works by finding consistent column boundaries across all rows
+		if (nonEmptyLines.length >= 2) {
+			// Find positions where spaces appear in ALL lines (potential column boundaries)
+			const minLength = Math.min(...nonEmptyLines.map(l => l.length));
+			const columnBreaks = [];
+
+			for (let pos = 1; pos < minLength - 1; pos++) {
+				// Check if this position and next are spaces in most lines (column gap)
+				let spaceCount = 0;
+				for (const line of nonEmptyLines) {
+					if (line[pos] === ' ' && line[pos + 1] === ' ') {
+						spaceCount++;
+					}
+				}
+				// If 80%+ of lines have double-space at this position, it's likely a column break
+				if (spaceCount >= nonEmptyLines.length * 0.8) {
+					// Find the start of the gap (first space)
+					let gapStart = pos;
+					while (gapStart > 0 && nonEmptyLines.every(l => l[gapStart - 1] === ' ')) {
+						gapStart--;
+					}
+					// Avoid duplicate breaks
+					if (columnBreaks.length === 0 || columnBreaks[columnBreaks.length - 1] < gapStart - 1) {
+						columnBreaks.push(pos);
+					}
 				}
 			}
 
-			// Check if columns are separated by 2+ spaces (common in SQL output)
-			// This is a heuristic: if first line has multiple segments separated by 2+ spaces
-			const multiSpacePattern = /\s{2,}/;
-			if (multiSpacePattern.test(firstLine) && lines.length >= 1) {
-				const headerRow = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
+			if (columnBreaks.length >= 1) {
+				// Parse using column positions
+				const parseLineByPositions = (line) => {
+					const cells = [];
+					let lastPos = 0;
+					for (const breakPos of columnBreaks) {
+						cells.push(line.substring(lastPos, breakPos).trim());
+						// Skip the gap
+						lastPos = breakPos;
+						while (lastPos < line.length && line[lastPos] === ' ') {
+							lastPos++;
+						}
+					}
+					// Add remaining content as last column
+					cells.push(line.substring(lastPos).trim());
+					return cells.filter(c => c !== '');
+				};
+
+				const headerRow = parseLineByPositions(nonEmptyLines[0]);
+				const dataRows = nonEmptyLines.slice(1).map(parseLineByPositions);
 
 				if (headerRow.length > 1) {
-					const dataRows = lines.slice(1)
-						.filter(line => line.trim())
-						.map(line => {
-							const cells = line.split(multiSpacePattern).map(cell => cell.trim()).filter(c => c);
-							// Pad with empty cells if needed
-							while (cells.length < headerRow.length) {
-								cells.push('');
-							}
-							return cells;
-						});
-
 					return this.buildTableHtml(headerRow, dataRows);
 				}
+			}
+		}
+
+		// Fallback: try simple multi-space split (2+ spaces as delimiter)
+		const multiSpacePattern = /\s{2,}/;
+		if (multiSpacePattern.test(firstLine)) {
+			const headerRow = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
+
+			if (headerRow.length > 1) {
+				const dataRows = nonEmptyLines.slice(1)
+					.map(line => {
+						const cells = line.split(multiSpacePattern).map(cell => cell.trim()).filter(c => c);
+						// Pad with empty cells if needed
+						while (cells.length < headerRow.length) {
+							cells.push('');
+						}
+						return cells;
+					});
+
+				return this.buildTableHtml(headerRow, dataRows);
 			}
 		}
 
