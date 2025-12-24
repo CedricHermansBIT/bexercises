@@ -263,36 +263,84 @@ class TestResults {
 			return `<pre><code></code></pre>`;
 		}
 
-		// Check if output looks like a table (has lines with separators like +--+--+ or |  |  |)
 		const lines = output.trim().split('\n');
-		const hasTableBorders = lines.some(line => /^[\+\-\|]+$/.test(line.trim()) || /^\|.*\|$/.test(line));
 
-		if (!hasTableBorders) {
-			// Not a table, return as pre
-			return `<pre><code>${this.escapeHtml(output)}</code></pre>`;
+		// Check if output looks like a pipe-bordered table (e.g., | col1 | col2 |)
+		const hasTableBorders = lines.some(line => /^\|.*\|$/.test(line.trim()));
+
+		if (hasTableBorders) {
+			// Parse pipe-bordered table format
+			const dataLines = lines.filter(line => {
+				const trimmed = line.trim();
+				return trimmed.startsWith('|') && !trimmed.match(/^[+\-|]+$/);
+			});
+
+			if (dataLines.length >= 1) {
+				const parseRow = (line) => {
+					return line.split('|')
+						.slice(1, -1)
+						.map(cell => cell.trim());
+				};
+
+				const headerRow = parseRow(dataLines[0]);
+				const dataRows = dataLines.slice(1).map(parseRow);
+
+				return this.buildTableHtml(headerRow, dataRows);
+			}
 		}
 
-		// Parse table format
-		const dataLines = lines.filter(line => {
-			const trimmed = line.trim();
-			return trimmed.startsWith('|') && !trimmed.match(/^[\+\-]+$/);
-		});
+		// Check if output looks like MariaDB/MySQL space-aligned format
+		// First line is headers, subsequent lines are data, all tab or space separated
+		if (lines.length >= 1) {
+			// Try to detect tab-separated or multi-space separated columns
+			const firstLine = lines[0];
 
-		if (dataLines.length < 1) {
-			return `<pre><code>${this.escapeHtml(output)}</code></pre>`;
+			// Check if it's tab-separated
+			if (firstLine.includes('\t')) {
+				const headerRow = firstLine.split('\t').map(h => h.trim());
+				const dataRows = lines.slice(1)
+					.filter(line => line.trim())
+					.map(line => line.split('\t').map(cell => cell.trim()));
+
+				if (headerRow.length > 1 && dataRows.length >= 0) {
+					return this.buildTableHtml(headerRow, dataRows);
+				}
+			}
+
+			// Check if columns are separated by 2+ spaces (common in SQL output)
+			// This is a heuristic: if first line has multiple segments separated by 2+ spaces
+			const multiSpacePattern = /\s{2,}/;
+			if (multiSpacePattern.test(firstLine) && lines.length >= 1) {
+				const headerRow = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
+
+				if (headerRow.length > 1) {
+					const dataRows = lines.slice(1)
+						.filter(line => line.trim())
+						.map(line => {
+							const cells = line.split(multiSpacePattern).map(cell => cell.trim()).filter(c => c);
+							// Pad with empty cells if needed
+							while (cells.length < headerRow.length) {
+								cells.push('');
+							}
+							return cells;
+						});
+
+					return this.buildTableHtml(headerRow, dataRows);
+				}
+			}
 		}
 
-		// Parse header and data
-		const parseRow = (line) => {
-			return line.split('|')
-				.slice(1, -1)
-				.map(cell => cell.trim());
-		};
+		// Not a table format, return as pre with overflow handling
+		return `<div class="sql-output-wrapper"><pre><code>${this.escapeHtml(output)}</code></pre></div>`;
+	}
 
-		const headerRow = parseRow(dataLines[0]);
-		const dataRows = dataLines.slice(1).map(parseRow);
-
-		// Build HTML table
+	/**
+	 * Build HTML table from header and data rows
+	 * @param {Array} headerRow - Array of header strings
+	 * @param {Array} dataRows - Array of arrays of cell strings
+	 * @returns {string} HTML table
+	 */
+	buildTableHtml(headerRow, dataRows) {
 		let tableHtml = '<div class="sql-result-table"><table class="table">';
 		tableHtml += '<thead><tr>';
 		headerRow.forEach(header => {
