@@ -104,7 +104,6 @@ function expandCommandSubstitution(str) {
 async function runTests(exercise, script) {
     // Get language from exercise, default to 'bash' for backwards compatibility
     const languageId = exercise.language_id || exercise.language || 'bash';
-    const { tmpdir, scriptFilename, languageConfig } = await createTempScript(script, languageId);
     const results = [];
 
     // Determine if this is a database exercise
@@ -116,12 +115,33 @@ async function runTests(exercise, script) {
     // Log for debugging
     console.log(`[TestRunner] Exercise: ${exercise.id}, Language: ${languageId} (effective: ${effectiveLanguageId}), Exercise Type: ${exercise.exercise_type}, Is Database Exercise: ${isDatabaseExercise}`);
 
+    // For database exercises, we don't need to create a script file since we use executeMariaDBQuery/executeMongoDBQuery
+    // For regular exercises, create the temp script as usual
+    let tmpdir, scriptFilename, languageConfig;
+
+    if (isDatabaseExercise && (effectiveLanguageId === 'mariadb' || effectiveLanguageId === 'mongodb')) {
+        // Create a temp directory without the user script (to avoid it being executed during DB init)
+        tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-db-'));
+        await fs.chmod(tmpdir, 0o777);
+        scriptFilename = null; // No script file for database exercises
+        languageConfig = null;
+        console.log(`[Database] Created temp directory without script file: ${tmpdir}`);
+    } else {
+        const tempScript = await createTempScript(script, languageId);
+        tmpdir = tempScript.tmpdir;
+        scriptFilename = tempScript.scriptFilename;
+        languageConfig = tempScript.languageConfig;
+    }
+
     // Check if we need to start a database container
     const needsDatabaseContainer = isDatabaseExercise && (effectiveLanguageId === 'mariadb' || effectiveLanguageId === 'mongodb');
     let dbContainer = null;
 
     // Keep track of fixture files and script to avoid deleting them
-    const protectedFiles = new Set([scriptFilename]);
+    const protectedFiles = new Set();
+    if (scriptFilename) {
+        protectedFiles.add(scriptFilename);
+    }
 
     try {
         // Start database container if needed (will be reused across test cases)

@@ -145,19 +145,95 @@ router.post('/test-solution', async (req, res) => {
  */
 router.post('/run-test-case', async (req, res) => {
 	try {
-		const { solution, languageId = 'bash', arguments: args = [], input = [], fixtures = [], outputFiles = [] } = req.body;
+		const { solution, languageId = 'bash', exerciseType = 'programming', arguments: args = [], input = [], fixtures = [], outputFiles = [], validationQuery = null } = req.body;
 
 		if (!solution || typeof solution !== 'string') {
 			return res.status(400).json({ error: 'Missing solution script' });
 		}
 
-		console.log('Running test case:', { languageId, argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length });
+		console.log('Running test case:', { languageId, exerciseType, argsLen: args.length, inputLen: input.length, fixturesLen: fixtures.length, outputFilesLen: outputFiles.length });
 
-		// If we need to check output files, we need to manage tmpdir manually
-		// Otherwise use the simple runScriptWithTestCase which handles cleanup
+		// Map 'sql' to 'mariadb' for backwards compatibility
+		const effectiveLanguageId = languageId === 'sql' ? 'mariadb' : languageId;
+		const isDatabaseExercise = exerciseType === 'database';
+
 		let result;
 		let fileHashes = [];
+		let validationOutput;
 
+		// Handle database exercises specially
+		if (isDatabaseExercise && (effectiveLanguageId === 'mariadb' || effectiveLanguageId === 'mongodb')) {
+			const { startMariaDBContainer, startMongoDBContainer, executeMariaDBQuery, executeMongoDBQuery } = require('../services/databaseContainerService');
+			const { removeRecursive } = require('../services/dockerService');
+			const fs = require('fs').promises;
+			const path = require('path');
+			const config = require('../config');
+
+			// Create temp directory for fixtures only (no user script)
+			const tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-admin-db-'));
+			await fs.chmod(tmpdir, 0o777);
+
+			let dbContainer = null;
+
+			try {
+				// Filter SQL/JS fixtures for database initialization
+				const dbFixtures = fixtures.filter(f =>
+					(effectiveLanguageId === 'mariadb' && f.endsWith('.sql')) ||
+					(effectiveLanguageId === 'mongodb' && f.endsWith('.js'))
+				);
+
+				// Start database container with fixtures
+				if (effectiveLanguageId === 'mariadb') {
+					dbContainer = await startMariaDBContainer(tmpdir, dbFixtures);
+					// Execute user query
+					result = await executeMariaDBQuery(dbContainer, solution.trim());
+
+					// Run validation query if provided
+					if (validationQuery) {
+						const validationResult = await executeMariaDBQuery(dbContainer, validationQuery);
+						validationOutput = validationResult.stdout;
+					}
+				} else if (effectiveLanguageId === 'mongodb') {
+					dbContainer = await startMongoDBContainer(tmpdir, dbFixtures);
+					result = await executeMongoDBQuery(dbContainer, solution.trim());
+
+					if (validationQuery) {
+						const validationResult = await executeMongoDBQuery(dbContainer, validationQuery);
+						validationOutput = validationResult.stdout;
+					}
+				}
+			} finally {
+				// Cleanup database container
+				if (dbContainer && dbContainer.cleanup) {
+					try {
+						await dbContainer.cleanup();
+					} catch (e) {
+						console.error('Database container cleanup failed:', e.message);
+					}
+				}
+				// Cleanup temp directory
+				try {
+					await removeRecursive(tmpdir);
+				} catch (cleanupErr) {
+					console.error('Failed to cleanup tmpdir:', cleanupErr.message);
+				}
+			}
+
+			console.log('Database test case result:', { exitCode: result.exitCode, stdoutLen: result.stdout.length });
+
+			res.json({
+				output: result.stdout,
+				stderr: result.stderr,
+				exitCode: result.exitCode,
+				timedOut: result.timedOut,
+				error: result.error,
+				fileHashes: [],
+				validationOutput: validationOutput
+			});
+			return;
+		}
+
+		// Handle regular (non-database) exercises
 		if (outputFiles && outputFiles.length > 0) {
 			// Manual tmpdir management for output file verification
 			const { createTempScript, copyFixtures, runScriptInContainer, hashOutputFiles, removeRecursive } = require('../services/dockerService');

@@ -227,10 +227,12 @@ class ApiService {
 			body: JSON.stringify({
 				solution,
 				languageId: testCase.languageId || 'bash',
+				exerciseType: testCase.exerciseType || 'programming',
 				arguments: testCase.arguments || [],
 				input: testCase.input || [],
 				fixtures: testCase.fixtures || [],
-				outputFiles: testCase.outputFiles || []
+				outputFiles: testCase.outputFiles || [],
+				validationQuery: testCase.validationQuery || null
 			})
 		});
 
