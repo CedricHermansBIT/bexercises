@@ -81,7 +81,8 @@ class ApiService {
 
 		if (!response.ok) {
 			const err = await response.json().catch(() => ({ error: 'unknown' }));
-			throw new Error(`Server error: ${response.status} ${err.error || ''}`);
+			const errorMsg = err.detail || err.error || 'Unknown error';
+			throw new Error(`Server error: ${response.status} - ${errorMsg}`);
 		}
 
 		return response.json();
@@ -234,7 +235,9 @@ class ApiService {
 		});
 
 		if (!response.ok) {
-			throw new Error(`Failed to run test case: ${response.status}`);
+			const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+			const errorMsg = err.detail || err.error || 'Unknown error';
+			throw new Error(`Failed to run test case: ${response.status} - ${errorMsg}`);
 		}
 
 		return response.json();
