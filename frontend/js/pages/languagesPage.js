@@ -267,6 +267,9 @@ class LanguagesPage {
         const displayName = isDisabled ? `.${language.name}` : language.name;
 
         // Determine status badge
+        let statusBadge;
+        let metaText;
+
         if (!hasExercises) {
             // No exercises = always "Coming Soon"
             statusBadge = '<span class="status-badge coming-soon">Coming Soon</span>';
