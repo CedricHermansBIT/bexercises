@@ -35,8 +35,20 @@
                 <button class="topbar-btn" id="leaderboard-btn-workspace" title="Leaderboard">
                     <span>🏆</span>
                 </button>
+                <div class="online-users-navbar" id="online-users-navbar">
+                    <button class="topbar-btn" id="online-users-btn" title="Online Users">
+                        <span class="online-indicator-navbar"></span>
+                        <span class="online-count-navbar">0</span>
+                    </button>
+                    <div class="online-users-dropdown" id="online-users-dropdown">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
                 <button class="topbar-btn admin-only" id="admin-btn-workspace" title="Admin Panel" style="display: none;">
                     <span>⚙️</span>
+                </button>
+                <button class="topbar-btn admin-only" id="edit-exercise" title="Edit Exercise" style="display: none;">
+                    <span>✏️</span>
                 </button>
                 <span class="system-time" id="system-time-workspace">00:00</span>
                 <div class="user-menu" id="user-menu-workspace">

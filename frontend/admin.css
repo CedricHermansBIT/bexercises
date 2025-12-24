@@ -1521,4 +1521,175 @@ select:required:valid {
     border-color: var(--border-color);
 }
 
+/* ============================================================
+   Online Users Widget Styles
+   ============================================================ */
+
+.online-users-widget {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.online-users-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.online-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    box-shadow: none;
+    flex-shrink: 0;
+}
+
+.online-indicator.online-active {
+    background: #2ecc71;
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.6);
+    animation: pulse 2s infinite;
+}
+
+.online-indicator.online-idle {
+    background: #f39c12;
+    box-shadow: 0 0 8px rgba(243, 156, 18, 0.6);
+    animation: pulse 3s infinite;
+}
+
+.online-indicator.offline {
+    background: var(--text-muted);
+    box-shadow: none;
+    animation: none;
+}
+
+.online-indicator.admin.online-active {
+    background: var(--accent-lavender);
+    box-shadow: 0 0 8px rgba(203, 166, 247, 0.8);
+}
+
+.online-indicator.admin.online-idle {
+    background: #cba6f7;
+    box-shadow: 0 0 8px rgba(203, 166, 247, 0.4);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.online-count {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.online-users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.online-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.online-user:hover {
+    background: var(--surface);
+}
+
+.user-name {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    flex: 1;
+}
+
+.time-ago {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.online-more {
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.online-users-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* SQL Result Tables */
+.sql-result-table {
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    border-radius: var(--border-radius);
+    background: var(--bg-tertiary);
+}
+
+.sql-result-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.sql-result-table th {
+    background: var(--accent-blue);
+    color: var(--bg-primary);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.sql-result-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.sql-result-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.sql-result-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Light mode adjustments */
+body.light-mode .sql-result-table th {
+    background: var(--accent-blue);
+    color: white;
+}
+
+body.light-mode .sql-result-table tbody tr:hover {
+    background: rgba(137, 180, 250, 0.1);
+}
 

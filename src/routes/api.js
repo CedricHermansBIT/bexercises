@@ -10,17 +10,22 @@ const router = express.Router();
 /**
  * GET /api/exercises
  * Get all exercises (without test cases)
- * Optional query param: ?language=bash to filter by language
+ * Optional query param: ?language=bash to filter by language or ?chapter=1 to filter by chapter
  */
 router.get('/exercises', async (req, res) => {
 	try {
 		const languageId = req.query.language;
+        const chapter = req.query.chapter;
 
 		if (languageId) {
 			// Filter by language
 			const exercises = await exerciseService.getExercisesByLanguage(languageId);
 			res.json(exercises);
-		} else {
+		} else if (chapter) {
+            // Filter by chapter
+            const exercises = await exerciseService.getExercisesByChapter(chapter);
+            res.json(exercises);
+        } else {
 			// Get all exercises
 			const exercises = await exerciseService.getAllExercises();
 			res.json(exercises);
@@ -362,6 +367,30 @@ router.get('/progress/language/:languageId', async (req, res) => {
 	} catch (error) {
 		console.error('Error fetching user progress by language:', error);
 		res.status(500).json({ error: 'Failed to load user progress' });
+	}
+});
+
+/**
+ * GET /api/online-users
+ * Get list of users currently online (active in last hour)
+ */
+router.get('/online-users', async (req, res) => {
+	try {
+		// Get users active in the last 60 minutes
+		const onlineUsers = await databaseService.getOnlineUsers(60);
+
+		// Return count and list of display names (privacy-friendly)
+		res.json({
+			count: onlineUsers.length,
+			users: onlineUsers.map(u => ({
+				displayName: u.display_name,
+				isAdmin: u.is_admin === 1,
+				lastActivity: u.last_activity
+			}))
+		});
+	} catch (error) {
+		console.error('Error fetching online users:', error);
+		res.status(500).json({ error: 'Failed to load online users' });
 	}
 });
 

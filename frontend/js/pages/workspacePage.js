@@ -3,6 +3,7 @@ import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
 import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
+import OnlineUsers from '../components/onlineUsers.js';
 import TestResults from '../components/testResults.js';
 import Statistics from '../components/statistics.js';
 import { initializeResizableSidebars, makeVerticallyResizable } from '../utils/resizeUtils.js';
@@ -18,11 +19,13 @@ class WorkspacePage {
         this.storageService = new StorageService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.onlineUsers = new OnlineUsers();
         this.testResults = new TestResults();
         this.statistics = new Statistics();
 
         // Make auth component globally accessible
         window.authComponent = this.authComponent;
+        window.themeManager = themeManager;
 
         this.currentExercise = null;
         this.codeEditor = null;
@@ -45,6 +48,9 @@ class WorkspacePage {
 
         // Initialize notification banner
         await this.notificationBanner.init();
+
+        // Initialize online users navbar dropdown
+        await this.onlineUsers.init('online-users-dropdown', true);
 
         // Setup admin access
         this.setupAdminAccess();
@@ -522,23 +528,23 @@ class WorkspacePage {
     async loadChapterExercises(currentExercise) {
         try {
             // Get all exercises
-            const allExercises = await this.apiService.getExercises();
+            this.chapterExercises = await this.apiService.getExercises(null, currentExercise.chapter_id);
 
-            console.log('Current exercise:', currentExercise);
-            console.log('Current exercise chapter:', currentExercise.chapter);
-            console.log('All exercises:', allExercises);
+            //console.log('Current exercise:', currentExercise);
+            //console.log('Current exercise chapter:', currentExercise.chapter);
+            //console.log('All exercises:', allExercises);
 
             // Filter exercises by chapter (matching chapter name)
-            this.chapterExercises = allExercises
-                .filter(ex => ex.chapter === currentExercise.chapter)
-                .sort((a, b) => (a.order || 0) - (b.order || 0));
+            //this.chapterExercises = allExercises
+            //    .filter(ex => ex.chapter === currentExercise.chapter)
+            //    .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-            console.log('Chapter exercises:', this.chapterExercises);
+            //console.log('Chapter exercises:', this.chapterExercises);
 
             // Find current exercise index
             this.currentExerciseIndex = this.chapterExercises.findIndex(ex => ex.id === currentExercise.id);
 
-            console.log('Current exercise index:', this.currentExerciseIndex);
+            //console.log('Current exercise index:', this.currentExerciseIndex);
         } catch (error) {
             console.error('Failed to load chapter exercises:', error);
             this.chapterExercises = [];
@@ -551,12 +557,12 @@ class WorkspacePage {
         const prevBtn = document.getElementById('prev-exercise-btn');
         const nextBtn = document.getElementById('next-exercise-btn');
 
-        console.log('Updating navigation buttons...');
-        console.log('Navigation div:', navigationDiv);
-        console.log('Prev btn:', prevBtn);
-        console.log('Next btn:', nextBtn);
-        console.log('Chapter exercises length:', this.chapterExercises.length);
-        console.log('Current index:', this.currentExerciseIndex);
+        //console.log('Updating navigation buttons...');
+        //console.log('Navigation div:', navigationDiv);
+        //console.log('Prev btn:', prevBtn);
+        //console.log('Next btn:', nextBtn);
+        //console.log('Chapter exercises length:', this.chapterExercises.length);
+        //console.log('Current index:', this.currentExerciseIndex);
 
         if (!navigationDiv || !prevBtn || !nextBtn) return;
 
@@ -569,10 +575,10 @@ class WorkspacePage {
                 prevBtn.style.display = 'flex';
                 const prevExercise = this.chapterExercises[this.currentExerciseIndex - 1];
                 prevBtn.title = prevExercise.title;
-                console.log('Showing previous button for:', prevExercise.title);
+                //console.log('Showing previous button for:', prevExercise.title);
             } else {
                 prevBtn.style.display = 'none';
-                console.log('Hiding previous button (first exercise)');
+                //console.log('Hiding previous button (first exercise)');
             }
 
             // Show/hide next button
@@ -580,10 +586,10 @@ class WorkspacePage {
                 nextBtn.style.display = 'flex';
                 const nextExercise = this.chapterExercises[this.currentExerciseIndex + 1];
                 nextBtn.title = nextExercise.title;
-                console.log('Showing next button for:', nextExercise.title);
+                //console.log('Showing next button for:', nextExercise.title);
             } else {
                 nextBtn.style.display = 'none';
-                console.log('Hiding next button (last exercise)');
+                //console.log('Hiding next button (last exercise)');
             }
         } else {
             // Hide navigation if only one exercise in chapter
@@ -748,8 +754,8 @@ class WorkspacePage {
         // Check every 2 seconds (less aggressive than before)
         // Also wait 5 seconds before starting to avoid initial page load issues
         setTimeout(() => {
-            setInterval(detectDevTools, 2000);
-        }, 5000);
+            setInterval(detectDevTools, 1000);
+        }, 2000);
     }
 
     /**

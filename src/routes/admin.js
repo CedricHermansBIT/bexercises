@@ -6,7 +6,6 @@ const databaseService = require('../services/databaseService');
 const dockerService = require('../services/dockerService');
 const fs = require('fs').promises;
 const path = require('path');
-const { execSync } = require('child_process');
 const config = require('../config');
 
 const router = express.Router();
@@ -235,16 +234,16 @@ router.post('/exercises', async (req, res) => {
 			}
 		}
 
-		const exercise = {
-			id: exerciseData.id,
-			title: exerciseData.title,
-			description: exerciseData.description || '',
-			solution: exerciseData.solution,
-			testCases: exerciseData.testCases || [],
-			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order, // Frontend calculates the correct order
-			language_id: exerciseData.language_id // Include language_id for proper chapter creation
-		};
+        const exercise = {
+            id: exerciseData.id,
+            title: exerciseData.title,
+            description: exerciseData.description || '',
+            solution: exerciseData.solution,
+            testCases: exerciseData.testCases || [],
+            chapter: exerciseData.chapter || 'Additional exercises',
+            order: exerciseData.order, // Frontend calculates the correct order
+            language_id: exerciseData.language_id || 'bash' // Include language_id for correct chapter assignment
+        };
 
 		await exerciseService.createExercise(exercise);
 
@@ -283,16 +282,16 @@ router.put('/exercises/:id', async (req, res) => {
 			}
 		}
 
-		const exercise = {
-			id: exerciseData.id || exerciseId,
-			title: exerciseData.title,
-			description: exerciseData.description || '',
-			solution: exerciseData.solution,
-			testCases: exerciseData.testCases || [],
-			chapter: exerciseData.chapter || 'Additional exercises',
-			order: exerciseData.order, // Don't default to 0, let service layer handle it
-			language_id: exerciseData.language_id // Include language_id for proper chapter management
-		};
+        const exercise = {
+            id: exerciseData.id || exerciseId,
+            title: exerciseData.title,
+            description: exerciseData.description || '',
+            solution: exerciseData.solution,
+            testCases: exerciseData.testCases || [],
+            chapter: exerciseData.chapter || 'Additional exercises',
+            order: exerciseData.order, // Don't default to 0, let service layer handle it
+            language_id: exerciseData.language_id // Include language_id for correct chapter assignment
+        };
 
 		await exerciseService.updateExercise(exerciseId, exercise);
 
@@ -791,41 +790,41 @@ router.get('/users', async (req, res) => {
 	try {
 		const databaseService = require('../services/databaseService');
 
-		// Get all users with enhanced statistics
-		const users = await databaseService.db.all(`
-			SELECT 
-				u.id,
-				u.google_id,
-				u.email,
-				u.display_name,
-				u.is_admin,
-				u.created_at,
-				u.last_login,
-				COALESCE(p.exercises_attempted, 0) as exercises_attempted,
-				COALESCE(p.exercises_completed, 0) as exercises_completed,
-				COALESCE(p.total_test_runs, 0) as total_test_runs,
-				p.last_activity,
-				COALESCE(a.achievements_unlocked, 0) as achievements_unlocked
-			FROM users u
-			LEFT JOIN (
-				SELECT 
-					user_id,
-					COUNT(DISTINCT exercise_id) as exercises_attempted,
-					SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
-					SUM(attempts) as total_test_runs,
-					MAX(last_submission_at) as last_activity
-				FROM user_progress
-				GROUP BY user_id
-			) p ON u.id = p.user_id
-			LEFT JOIN (
-				SELECT 
-					user_id,
-					COUNT(DISTINCT achievement_id) as achievements_unlocked
-				FROM user_achievements
-				GROUP BY user_id
-			) a ON u.id = a.user_id
-			ORDER BY u.last_login DESC
-		`);
+        // Get all users with enhanced statistics
+        const users = await databaseService.db.all(`
+            SELECT
+                u.id,
+                u.google_id,
+                u.email,
+                u.display_name,
+                u.is_admin,
+                u.created_at,
+                u.last_login,
+                COALESCE(p.exercises_attempted, 0) as exercises_attempted,
+                COALESCE(p.exercises_completed, 0) as exercises_completed,
+                COALESCE(p.total_test_runs, 0) as total_test_runs,
+                p.last_activity,
+                COALESCE(a.achievements_unlocked, 0) as achievements_unlocked
+            FROM users u
+                     LEFT JOIN (
+                SELECT
+                    user_id,
+                    COUNT(DISTINCT exercise_id) as exercises_attempted,
+                    SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as exercises_completed,
+                    SUM(attempts) as total_test_runs,
+                    MAX(last_submission_at) as last_activity
+                FROM user_progress
+                GROUP BY user_id
+            ) p ON u.id = p.user_id
+                     LEFT JOIN (
+                SELECT
+                    user_id,
+                    COUNT(DISTINCT achievement_id) as achievements_unlocked
+                FROM user_achievements
+                GROUP BY user_id
+            ) a ON u.id = a.user_id
+            ORDER BY u.last_login DESC
+        `);
 
 		res.json(users);
 	} catch (error) {

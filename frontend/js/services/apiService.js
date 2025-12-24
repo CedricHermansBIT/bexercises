@@ -17,14 +17,19 @@ class ApiService {
 	}
 
 	/**
-	 * Fetch all exercises
-	 * @param {string} [language] - Optional language ID to filter exercises
-	 * @returns {Promise<Array>} Array of exercises
-	 */
-	async getExercises(language = null) {
+     * Fetch all exercises
+     * @param {string} [language] - Optional language ID to filter exercises
+     * @param {string} [chapter] - Optional chapter ID to filter exercises
+     * @returns {Promise<Array>} Array of exercises
+     */
+	async getExercises(language = null, chapter = null) {
 		const url = language
 			? `${this.baseUrl}/api/exercises?language=${encodeURIComponent(language)}`
-			: `${this.baseUrl}/api/exercises`;
+			: chapter
+                ? `${this.baseUrl}/api/exercises?chapter=${encodeURIComponent(chapter)}`
+                : `${this.baseUrl}/api/exercises`;
+
+
 
 		const response = await fetch(url);
 		if (!response.ok) {
@@ -738,6 +743,20 @@ class ApiService {
 		if (!response.ok) {
 			const error = await response.json().catch(() => ({ error: 'Unknown error' }));
 			throw new Error(error.error || `Failed to delete chapter: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	// ============= Online Users =============
+
+	/**
+	 * Get online users (active in last hour)
+	 * @returns {Promise<Object>} Object with count and users array
+	 */
+	async getOnlineUsers() {
+		const response = await fetch(`${this.baseUrl}/api/online-users`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch online users: ${response.status}`);
 		}
 		return response.json();
 	}

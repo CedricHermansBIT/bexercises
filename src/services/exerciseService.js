@@ -124,6 +124,43 @@ async function getExercisesByLanguage(languageId) {
 }
 
 /**
+ * Get exercises for a specific chapter (without test cases)
+ * @param {string} chapterID - Chapter ID
+ * @returns {Promise<Array>} Exercises without test cases for the chapter
+ */
+async function getExercisesByChapter(chapterID) {
+    try {
+        const exercises = await databaseService.getExercisesByChapter(chapterID);
+
+        const language = await databaseService.getChapter(chapterID);
+
+        return exercises.map(ex => ({
+            id: ex.id,
+            title: ex.title,
+            description: ex.description,
+            chapter: ex.chapter_name,
+            order: ex.order_num,
+            language_id: language?.language_id || ex.language_id,
+            language: language?.name || ex.language_id
+        }));
+    } catch (error) {
+        console.error('Error loading exercises from database:', error);
+        const allExercises = await loadExercisesInternal();
+        return allExercises
+            .filter(ex => ex.chapter_id === chapterID)
+            .map(ex => ({
+                id: ex.id,
+                title: ex.title,
+                description: ex.description,
+                chapter: ex.chapter,
+                order: ex.order,
+                language_id: ex.language_id,
+                language: ex.language
+            }));
+    }
+}
+
+/**
  * Get a single exercise by ID (without test cases)
  * @param {string} id - Exercise ID
  * @returns {Promise<Object|null>} Exercise or null
@@ -136,6 +173,7 @@ async function getExerciseById(id) {
 		// Get language info and chapter for this exercise
 		let languageId = null;
 		let languageName = null;
+        let chapterId = null;
 		let chapterName = null;
 		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
 
@@ -144,6 +182,7 @@ async function getExerciseById(id) {
 			const chapter = await databaseService.getChapter(exercise.chapter_id);
 			if (chapter) {
 				languageId = chapter.language_id;
+                chapterId = chapter.id;
 				chapterName = chapter.name;
 				const language = await databaseService.getLanguage(chapter.language_id);
 				if (language) {
@@ -158,6 +197,7 @@ async function getExerciseById(id) {
 			id: exercise.id,
 			title: exercise.title,
 			description: exercise.description,
+            chapter_id: chapterId,
 			chapter: chapterName,
 			language_id: languageId,
 			language: languageName,
@@ -192,6 +232,7 @@ async function getExerciseWithTests(id) {
 		let languageId = null;
 		let languageName = null;
 		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
+		let exerciseType = 'programming';
 
 		if (chapter) {
 			languageId = chapter.language_id;
@@ -199,6 +240,7 @@ async function getExerciseWithTests(id) {
 			if (language) {
 				languageName = language.name;
 				codeTemplate = language.code_template || codeTemplate;
+				exerciseType = language.exercise_type || 'programming';
 			}
 		}
 
@@ -207,7 +249,8 @@ async function getExerciseWithTests(id) {
 			chapter: chapter ? chapter.name : 'Unknown',
 			language_id: languageId,
 			language: languageName,
-			code_template: codeTemplate
+			code_template: codeTemplate,
+			exercise_type: exerciseType
 		};
 	} catch (error) {
 		console.error('Error getting exercise with tests from database:', error);
@@ -394,6 +437,7 @@ module.exports = {
 	loadExercisesInternal,
 	getAllExercises,
 	getExerciseById,
+    getExercisesByChapter,
 	getExerciseWithTests,
 	createExercise,
 	updateExercise,
