@@ -174,11 +174,11 @@ class TestResults {
 				<div class="output-comparison">
 					<div class="output-section">
 						<strong>Expected Output:</strong>
-						${result.usedValidation ? this.formatDatabaseOutput(result.expectedOutput) : `<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>`}
+						${result.isDatabaseExercise ? this.formatDatabaseOutput(result.expectedOutput) : `<pre><code>${this.escapeHtml(result.expectedOutput)}</code></pre>`}
 					</div>
 					<div class="output-section">
 						<strong>Actual Output:</strong>
-						${result.usedValidation ? this.formatDatabaseOutput(result.actualOutput) : `<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>`}
+						${result.isDatabaseExercise ? this.formatDatabaseOutput(result.actualOutput) : `<pre><code>${this.escapeHtml(result.actualOutput)}</code></pre>`}
 					</div>
 				</div>
 			</div>

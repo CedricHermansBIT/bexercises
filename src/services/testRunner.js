@@ -391,6 +391,7 @@ async function runTests(exercise, script) {
                 expectedValidationOutput: tc.expectedValidationOutput || null,
                 actualValidationOutput: validationOutput,
                 usedValidation: validationOutput !== null,
+                isDatabaseExercise: isDatabaseExercise,
                 passed
             });
         }
