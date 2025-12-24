@@ -296,11 +296,11 @@ class TestResults {
 		}
 
 		// Check if it's tab-separated (MariaDB default output format)
-		// Even a single tab indicates tab-separated format
 		const firstLine = nonEmptyLines[0];
 		const hasTab = nonEmptyLines.some(line => line.includes('\t'));
 
 		if (hasTab) {
+            console.log("Detected tab-separated output");
 			const headerRow = firstLine.split('\t').map(h => h.trim());
 			const dataRows = nonEmptyLines.slice(1)
 				.map(line => {
@@ -312,40 +312,14 @@ class TestResults {
 					return cells.slice(0, headerRow.length);
 				});
 
-			// Always render as table if we have tabs, even with just 1 column
+			// Always render as table if we have tabs
 			return this.buildTableHtml(headerRow, dataRows);
 		}
 
-		// Try to detect column-aligned output (fixed-width columns)
-		// This works by finding consistent column boundaries across all rows
-		if (nonEmptyLines.length >= 2) {
-			// Find positions where spaces appear in ALL lines (potential column boundaries)
-			const minLength = Math.min(...nonEmptyLines.map(l => l.length));
-			const columnBreaks = [];
-
-			for (let pos = 1; pos < minLength - 1; pos++) {
-				// Check if this position and next are spaces in most lines (column gap)
-				let spaceCount = 0;
-				for (const line of nonEmptyLines) {
-					if (line[pos] === ' ' && line[pos + 1] === ' ') {
-						spaceCount++;
-					}
-				}
-				// If 60%+ of lines have double-space at this position, it's likely a column break
-				if (spaceCount >= nonEmptyLines.length * 0.6) {
-					// Avoid duplicate breaks (must be at least 3 chars apart)
-					if (columnBreaks.length === 0 || pos - columnBreaks[columnBreaks.length - 1] >= 3) {
-						columnBreaks.push(pos);
-					}
-				}
-			}
-		}
-
-			// Check if columns are separated by 2+ spaces (common in SQL output)
-			// This is a heuristic: if first line has multiple segments separated by 2+ spaces
-			const multiSpacePattern = /\s{2,}/;
-			if (multiSpacePattern.test(firstLine) && lines.length >= 1) {
-				const headerRow = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
+		// Check if columns are separated by 2+ spaces (common in SQL output)
+		const multiSpacePattern = /\s{2,}/;
+		if (multiSpacePattern.test(firstLine) && nonEmptyLines.length >= 1) {
+			const headerRow = firstLine.split(multiSpacePattern).map(h => h.trim()).filter(h => h);
 
 			if (headerRow.length > 1) {
 				const dataRows = nonEmptyLines.slice(1)
@@ -361,7 +335,7 @@ class TestResults {
 				return this.buildTableHtml(headerRow, dataRows);
 			}
 		}
-
+        console.log("Output does not match table formats");
 		// Not a table format, return as pre with overflow handling
 		return `<div class="sql-output-wrapper"><pre><code>${this.escapeHtml(output)}</code></pre></div>`;
 	}
