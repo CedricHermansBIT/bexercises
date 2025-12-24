@@ -1615,19 +1615,19 @@ body {
 
 .view-toggle-group {
     display: inline-flex;
-    gap: 0.25rem;
-    background: var(--bg-secondary);
-    padding: 0.2rem;
-    border-radius: 6px;
+    gap: 2px;
+    background: var(--bg-tertiary);
+    padding: 3px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
 }
 
 .view-toggle-btn {
-    padding: 0.3rem 0.5rem;
-    font-size: 1rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.95rem;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
     transition: all 0.15s ease;
     opacity: 0.5;
@@ -1635,13 +1635,15 @@ body {
 }
 
 .view-toggle-btn:hover {
-    opacity: 0.8;
-    background: var(--bg-tertiary);
+    opacity: 0.9;
+    background: var(--surface);
+    transform: scale(1.05);
 }
 
 .view-toggle-btn.active {
     opacity: 1;
     background: var(--surface);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .test-result h4 {
@@ -1688,34 +1690,38 @@ body {
 .result-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
+    gap: 0.5rem;
     margin-bottom: 0.75rem;
-    padding: 0.25rem;
-    background: var(--bg-tertiary);
-    border-radius: 6px;
 }
 
 .result-tab {
-    padding: 0.4rem 0.75rem;
+    padding: 0.5rem 1rem;
     font-size: 0.8rem;
     font-family: inherit;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .result-tab:hover {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
+    background: var(--surface);
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+    transform: translateY(-1px);
 }
 
 .result-tab.active {
-    background: var(--bg-secondary);
+    background: var(--surface);
+    border-color: var(--accent-lavender);
     color: var(--text-primary);
     font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .result-tab-content {
