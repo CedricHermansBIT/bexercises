@@ -1231,7 +1231,6 @@ class DatabaseService {
 
 	/**
 	 * Get achievement points leaderboard
-	 * @param {string|null} languageId - Optional language ID (not used for achievement leaderboard, but kept for consistency)
 	 * @returns {Promise<Array>} Leaderboard data ranked by achievement points
 	 */
 	async getAchievementLeaderboard() {

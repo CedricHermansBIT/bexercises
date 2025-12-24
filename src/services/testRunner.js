@@ -169,7 +169,7 @@ async function runTests(exercise, script) {
             } else if (effectiveLanguageId === 'mongodb') {
                 dbContainer = await startMongoDBContainer(tmpdir, allFixtures);
             }
-
+            if (dbContainer)
             console.log(`[Database] Container ready:`, dbContainer.containerName);
         }
 

@@ -228,7 +228,7 @@ async function checkCodeRules(scriptPath, rules) {
 /**
  * Grade a single student submission
  * @param {string} submissionDir - Directory containing student's scripts
- * @param {Object} config - Grading configuration
+ * @param {Object} gradingConfig - Grading configuration
  * @returns {Promise<Object>} Grading result
  */
 async function gradeSubmission(submissionDir, gradingConfig) {

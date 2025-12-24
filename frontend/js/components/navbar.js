@@ -1,5 +1,4 @@
 // frontend/js/components/navbar.js
-import AuthComponent from './authComponent.js';
 import OnlineUsers from './onlineUsers.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 

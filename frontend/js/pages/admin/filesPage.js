@@ -482,7 +482,7 @@ class FilesPage {
 
     async openFolder(folderName) {
         // Redirect to manageFolderContents
-        this.manageFolderContents(folderName);
+        await this.manageFolderContents(folderName);
     }
 
     getFileUsageCount(filename) {

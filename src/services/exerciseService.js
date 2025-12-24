@@ -288,7 +288,7 @@ async function createExercise(exerciseData) {
 			if (!chapter) {
 				// Create new chapter for the correct language
 				chapterId = `${languageId}-${exerciseData.chapter.toLowerCase().replace(/\s+/g, '-')}`;
-				chapter = await databaseService.createChapter({
+				await databaseService.createChapter({
 					id: chapterId,
 					language_id: languageId,
 					name: exerciseData.chapter,
@@ -347,7 +347,7 @@ async function updateExercise(id, exerciseData) {
 			if (!chapter) {
 				// Create new chapter for the correct language
 				chapterId = `${languageId}-${exerciseData.chapter.toLowerCase().replace(/\s+/g, '-')}`;
-				chapter = await databaseService.createChapter({
+				await databaseService.createChapter({
 					id: chapterId,
 					language_id: languageId,
 					name: exerciseData.chapter,

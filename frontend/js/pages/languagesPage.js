@@ -267,7 +267,6 @@ class LanguagesPage {
         const displayName = isDisabled ? `.${language.name}` : language.name;
 
         // Determine status badge
-        let statusBadge = '';
         if (!hasExercises) {
             // No exercises = always "Coming Soon"
             statusBadge = '<span class="status-badge coming-soon">Coming Soon</span>';
@@ -282,7 +281,6 @@ class LanguagesPage {
         }
 
         // Determine level/meta text
-        let metaText = '';
         if (!hasExercises) {
             // No exercises = always "Coming Soon"
             metaText = '<span class="language-level">Coming Soon</span>';
