@@ -287,21 +287,22 @@ class TestResults {
 
 		let html = '<div class="text-comparison-container">';
 
-		// Summary
+		// Summary and toggle on same line
+		html += '<div class="comparison-header">';
 		if (matches) {
-			html += `<div class="comparison-summary match"><span>✓</span> ${label} matches expected</div>`;
+			html += `<span class="comparison-summary match"><span>✓</span> ${label} matches</span>`;
 		} else {
 			const diff = this.computeTextDiff(expectedStr, actualStr);
-			html += `<div class="comparison-summary mismatch"><span>✗</span> ${label} differs: ${diff.summary}</div>`;
+			html += `<span class="comparison-summary mismatch"><span>✗</span> ${diff.summary}</span>`;
 		}
 
 		// Toggle buttons for view mode
 		html += `
-			<div class="comparison-toggle">
-				<button class="toggle-btn active" data-view="unified">Unified View</button>
-				<button class="toggle-btn" data-view="split">Split View</button>
-			</div>
-		`;
+			<span class="comparison-toggle">
+				<button class="toggle-btn active" data-view="unified">Unified</button>
+				<button class="toggle-btn" data-view="split">Split</button>
+			</span>
+		</div>`;
 
 		// Unified diff view
 		html += '<div class="comparison-view unified-view active">';
@@ -433,33 +434,33 @@ class TestResults {
 
 		let html = '<div class="exit-code-comparison">';
 
-		// Summary with visual indicator
+		// For matches, just show a simple summary
 		if (matches) {
-			html += `<div class="comparison-summary match"><span>✓</span> Exit code matches expected (${expected})</div>`;
+			const hint = this.getExitCodeHintText(expected);
+			html += `<div class="comparison-summary match"><span>✓</span> Exit code: ${expected}${hint ? ` (${hint})` : ''}</div>`;
 		} else {
-			html += `<div class="comparison-summary mismatch"><span>✗</span> Exit code differs</div>`;
-		}
+			// For mismatches, show the visual comparison
+			html += `<div class="comparison-summary mismatch"><span>✗</span> Exit code mismatch</div>`;
 
-		// Visual comparison
-		html += '<div class="exit-code-visual">';
-		html += `<div class="exit-code-box ${matches ? 'match' : 'expected'}">
-			<div class="exit-code-label">Expected</div>
-			<div class="exit-code-value">${expected}</div>
-		</div>`;
-		html += '<div class="exit-code-arrow">' + (matches ? '=' : '≠') + '</div>';
-		html += `<div class="exit-code-box ${matches ? 'match' : 'actual'}">
-			<div class="exit-code-label">Actual</div>
-			<div class="exit-code-value">${actual}</div>
-		</div>`;
-		html += '</div>';
+			// Visual comparison - only show when different
+			html += '<div class="exit-code-visual">';
+			html += `<div class="exit-code-box expected">
+				<div class="exit-code-label">Expected</div>
+				<div class="exit-code-value">${expected}</div>
+			</div>`;
+			html += '<div class="exit-code-arrow">≠</div>';
+			html += `<div class="exit-code-box actual">
+				<div class="exit-code-label">Actual</div>
+				<div class="exit-code-value">${actual}</div>
+			</div>`;
+			html += '</div>';
 
-		// Exit code meaning hints
-		html += '<div class="exit-code-hints">';
-		html += this.getExitCodeHint(expected, 'expected');
-		if (!matches) {
+			// Exit code meaning hints
+			html += '<div class="exit-code-hints">';
+			html += this.getExitCodeHint(expected, 'expected');
 			html += this.getExitCodeHint(actual, 'actual');
+			html += '</div>';
 		}
-		html += '</div>';
 
 		// Error message if present
 		if (error) {
@@ -469,6 +470,27 @@ class TestResults {
 		html += '</div>';
 
 		return html;
+	}
+
+	/**
+	 * Get just the hint text for an exit code (no HTML)
+	 * @param {number} code - Exit code
+	 * @returns {string} Hint text or empty string
+	 */
+	getExitCodeHintText(code) {
+		const hints = {
+			0: 'Success',
+			1: 'General error',
+			2: 'Misuse of shell command',
+			126: 'Command not executable',
+			127: 'Command not found',
+			128: 'Invalid exit argument',
+			130: 'Terminated by Ctrl+C',
+			137: 'Killed',
+			139: 'Segmentation fault',
+			143: 'Terminated'
+		};
+		return hints[code] || '';
 	}
 
 	/**
