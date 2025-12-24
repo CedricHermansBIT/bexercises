@@ -1536,9 +1536,9 @@ body {
 .test-result {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 1rem;
+    border-radius: 8px;
     margin-bottom: 1rem;
+    overflow: hidden;
 }
 
 .test-result.passed {
@@ -1547,6 +1547,101 @@ body {
 
 .test-result.failed {
     border-left: 4px solid var(--accent-red);
+}
+
+/* Test Card Header */
+.test-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.test-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.test-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.test-status-badge.passed {
+    background: rgba(166, 227, 161, 0.2);
+    color: var(--accent-green);
+}
+
+.test-status-badge.failed {
+    background: rgba(243, 139, 168, 0.2);
+    color: var(--accent-red);
+}
+
+.test-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.test-status-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.test-status-text.passed {
+    color: var(--accent-green);
+}
+
+.test-status-text.failed {
+    color: var(--accent-red);
+}
+
+.test-card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.view-toggle-group {
+    display: inline-flex;
+    gap: 0.25rem;
+    background: var(--bg-secondary);
+    padding: 0.2rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.view-toggle-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    opacity: 0.5;
+    line-height: 1;
+}
+
+.view-toggle-btn:hover {
+    opacity: 0.8;
+    background: var(--bg-tertiary);
+}
+
+.view-toggle-btn.active {
+    opacity: 1;
+    background: var(--surface);
 }
 
 .test-result h4 {
@@ -1572,6 +1667,13 @@ body {
 .test-details {
     color: var(--text-secondary);
     font-size: 0.85rem;
+    padding: 1rem;
+}
+
+.test-details .test-arguments {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .test-details p {
@@ -1580,6 +1682,48 @@ body {
 
 .test-details strong {
     color: var(--text-primary);
+}
+
+/* Result Tabs (Output, Stderr, Exit Code) */
+.result-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+    padding: 0.25rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+}
+
+.result-tab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.result-tab:hover {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.result-tab.active {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.result-tab-content {
+    display: none;
+}
+
+.result-tab-content.active {
+    display: block;
 }
 
 .output-comparison {
@@ -3702,7 +3846,44 @@ body.light-mode .sql-result-table tbody tr:hover {
     margin: 0.25rem 0;
 }
 
+/* Diff Legend */
+.diff-legend {
+    display: flex;
+    gap: 1rem;
+    padding: 0.35rem 0.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    font-size: 0.7rem;
+}
+
+.diff-legend-item {
+    color: var(--text-muted);
+}
+
+.diff-legend-item.unchanged {
+    color: var(--text-secondary);
+}
+
+.diff-legend-item.modified {
+    color: var(--accent-yellow);
+}
+
+.diff-legend-item.added {
+    color: var(--accent-green);
+}
+
+.diff-legend-item.removed {
+    color: var(--accent-red);
+}
+
 /* Unified Diff View */
+.diff-legend + .unified-diff {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
 .unified-diff {
     font-family: var(--font-mono);
     font-size: 0.8rem;

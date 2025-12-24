@@ -58,10 +58,32 @@ class TestResults {
 		const testDiv = document.createElement('div');
 		testDiv.className = `test-result ${result.passed ? 'passed' : 'failed'}`;
 
-		const title = document.createElement('h4');
+		// Create card header
+		const header = document.createElement('div');
+		header.className = 'test-card-header';
+
+		const headerLeft = document.createElement('div');
+		headerLeft.className = 'test-card-header-left';
 		const statusIcon = result.passed ? '✓' : '✗';
-		title.innerHTML = `<span class="status-icon">${statusIcon}</span> Test ${result.testNumber}: ${result.passed ? 'PASSED' : 'FAILED'}`;
-		testDiv.appendChild(title);
+		const statusClass = result.passed ? 'passed' : 'failed';
+		headerLeft.innerHTML = `
+			<span class="test-status-badge ${statusClass}">${statusIcon}</span>
+			<span class="test-title">Test ${result.testNumber}</span>
+			<span class="test-status-text ${statusClass}">${result.passed ? 'PASSED' : 'FAILED'}</span>
+		`;
+
+		const headerRight = document.createElement('div');
+		headerRight.className = 'test-card-header-right';
+		headerRight.innerHTML = `
+			<span class="view-toggle-group">
+				<button class="view-toggle-btn active" data-view="unified" title="Unified view">📄</button>
+				<button class="view-toggle-btn" data-view="split" title="Split view">📑</button>
+			</span>
+		`;
+
+		header.appendChild(headerLeft);
+		header.appendChild(headerRight);
+		testDiv.appendChild(header);
 
 		const details = this.createTestDetails(result);
 		testDiv.appendChild(details);
@@ -94,17 +116,6 @@ class TestResults {
 		if (result.outputFiles && result.outputFiles.length > 0) {
 			filesMatch = result.outputFiles.every(f => f.matches) ? '✓' : '✗';
 		}
-
-		// Build tabs HTML
-		let tabsHtml = `
-			<div class="result-tabs">
-				<button class="result-tab active" data-tab="${tabId}-output">Output ${outputMatch}</button>
-				${result.usedValidation && result.validationQuery ? `<button class="result-tab" data-tab="${tabId}-validation">Validation ${validationMatch || ''}</button>` : ''}
-				<button class="result-tab" data-tab="${tabId}-stderr">Stderr ${stderrMatch}</button>
-				${result.outputFiles && result.outputFiles.length > 0 ? `<button class="result-tab" data-tab="${tabId}-files">Files ${filesMatch}</button>` : ''}
-				<button class="result-tab" data-tab="${tabId}-exit">Exit Code ${exitCodeMatch}</button>
-			</div>
-		`;
 
 		// Build file comparison HTML
 		let filesTabHtml = '';
@@ -186,22 +197,15 @@ class TestResults {
 			result.error
 		);
 
-		// Single view toggle for the entire test case
-		const viewToggleHtml = `
-			<div class="test-view-toggle">
-				<span class="comparison-toggle">
-					<button class="toggle-btn active" data-view="unified">Unified</button>
-					<button class="toggle-btn" data-view="split">Split</button>
-				</span>
-			</div>
-		`;
-
 		details.innerHTML = `
-			<p><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
+			<p class="test-arguments"><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
 			
-			<div class="test-header-row">
-				${tabsHtml}
-				${viewToggleHtml}
+			<div class="result-tabs">
+				<button class="result-tab active" data-tab="${tabId}-output">Output ${outputMatch}</button>
+				${result.usedValidation && result.validationQuery ? `<button class="result-tab" data-tab="${tabId}-validation">Validation ${validationMatch || ''}</button>` : ''}
+				<button class="result-tab" data-tab="${tabId}-stderr">Stderr ${stderrMatch}</button>
+				${result.outputFiles && result.outputFiles.length > 0 ? `<button class="result-tab" data-tab="${tabId}-files">Files ${filesMatch}</button>` : ''}
+				<button class="result-tab" data-tab="${tabId}-exit">Exit Code ${exitCodeMatch}</button>
 			</div>
 			
 			<div class="result-tab-content active" id="${tabId}-output">
@@ -228,8 +232,11 @@ class TestResults {
 	 * Setup tab switching for results
 	 */
 	setupTabs() {
+		const container = this.resultsContainer;
+		if (!container) return;
+
 		// Setup main tabs (Output, Stderr, Exit Code, etc.)
-		const tabs = document.querySelectorAll('.result-tab');
+		const tabs = container.querySelectorAll('.result-tab');
 		tabs.forEach(tab => {
 			tab.addEventListener('click', (e) => {
 				const targetId = e.target.dataset.tab;
@@ -245,21 +252,21 @@ class TestResults {
 			});
 		});
 
-		// Setup comparison view toggle buttons (one toggle per test case)
-		const toggleBtns = document.querySelectorAll('.comparison-toggle .toggle-btn');
-		toggleBtns.forEach(btn => {
+		// Setup view toggle buttons in card header (one toggle per test case)
+		const viewToggleBtns = container.querySelectorAll('.view-toggle-btn');
+		viewToggleBtns.forEach(btn => {
 			btn.addEventListener('click', (e) => {
 				const viewType = e.target.dataset.view;
-				const testDetails = e.target.closest('.test-details');
-				if (!testDetails) return;
+				const testResult = e.target.closest('.test-result');
+				if (!testResult) return;
 
-				// Update ALL toggle buttons in this test case
-				testDetails.querySelectorAll('.comparison-toggle .toggle-btn').forEach(b => {
+				// Update toggle buttons in header
+				testResult.querySelectorAll('.view-toggle-btn').forEach(b => {
 					b.classList.toggle('active', b.dataset.view === viewType);
 				});
 
 				// Update ALL comparison views in this test case
-				testDetails.querySelectorAll('.comparison-view').forEach(v => {
+				testResult.querySelectorAll('.comparison-view').forEach(v => {
 					v.classList.remove('active');
 					if (v.classList.contains(`${viewType}-view`)) {
 						v.classList.add('active');
@@ -306,25 +313,36 @@ class TestResults {
 
 		let html = '<div class="text-comparison-container">';
 
-		// Summary only (toggle is now at test level)
+		// Summary badge
 		if (matches) {
 			html += `<span class="comparison-summary match"><span>✓</span> ${label} matches</span>`;
+			// When matching, just show a simple preview
+			if (expectedStr) {
+				html += '<div class="comparison-view unified-view active">';
+				html += '<div class="unified-diff">';
+				const lines = expectedStr.split('\n');
+				lines.forEach((line, i) => {
+					html += `<div class="diff-line unchanged"><span class="line-num">${i + 1}</span><span class="line-content">${this.escapeHtml(line)}</span></div>`;
+				});
+				html += '</div></div>';
+			} else {
+				html += '<div class="comparison-view unified-view active"><div class="unified-diff"><div class="diff-line unchanged"><span class="line-num">-</span><span class="line-content">(empty)</span></div></div></div>';
+			}
 		} else {
 			const diff = this.computeTextDiff(expectedStr, actualStr);
 			html += `<span class="comparison-summary mismatch"><span>✗</span> ${diff.summary}</span>`;
+
+			// Unified diff view
+			html += '<div class="comparison-view unified-view active">';
+			html += this.buildUnifiedDiffView(expectedStr, actualStr);
+			html += '</div>';
+
+			// Split view
+			html += '<div class="comparison-view split-view">';
+			html += `<div class="split-panel"><strong>Expected ${label}:</strong><div class="sql-output-wrapper"><pre><code>${this.escapeHtml(expectedStr) || '(empty)'}</code></pre></div></div>`;
+			html += `<div class="split-panel"><strong>Actual ${label}:</strong><div class="sql-output-wrapper"><pre><code>${this.escapeHtml(actualStr) || '(empty)'}</code></pre></div></div>`;
+			html += '</div>';
 		}
-
-
-		// Unified diff view
-		html += '<div class="comparison-view unified-view active">';
-		html += this.buildUnifiedDiffView(expectedStr, actualStr);
-		html += '</div>';
-
-		// Split view
-		html += '<div class="comparison-view split-view">';
-		html += `<div class="split-panel"><strong>Expected ${label}:</strong><div class="sql-output-wrapper"><pre><code>${this.escapeHtml(expectedStr) || '(empty)'}</code></pre></div></div>`;
-		html += `<div class="split-panel"><strong>Actual ${label}:</strong><div class="sql-output-wrapper"><pre><code>${this.escapeHtml(actualStr) || '(empty)'}</code></pre></div></div>`;
-		html += '</div>';
 
 		html += '</div>';
 
@@ -373,7 +391,15 @@ class TestResults {
 			return '<div class="unified-diff"><div class="diff-line unchanged"><span class="line-num">-</span><span class="line-content">(empty)</span></div></div>';
 		}
 
-		let html = '<div class="unified-diff">';
+		// Add a legend for the diff colors
+		let html = '<div class="diff-legend">';
+		html += '<span class="diff-legend-item unchanged">● match</span>';
+		html += '<span class="diff-legend-item modified">● modified</span>';
+		html += '<span class="diff-legend-item added">● extra</span>';
+		html += '<span class="diff-legend-item removed">● missing</span>';
+		html += '</div>';
+
+		html += '<div class="unified-diff">';
 
 		for (let i = 0; i < maxLines; i++) {
 			const expLine = expectedLines[i];
@@ -493,6 +519,8 @@ class TestResults {
 			0: 'Success',
 			1: 'General error',
 			2: 'Misuse of shell command',
+			42: 'Answer to life, universe and everything',
+			69: 'Nice',
 			126: 'Command not executable',
 			127: 'Command not found',
 			128: 'Invalid exit argument',
