@@ -518,6 +518,50 @@ mongorestore --db=${database} --collection=${collectionName} /docker-entrypoint-
                 return;
             }
 
+            // Manually execute init scripts (MongoDB's automatic init script execution doesn't work reliably)
+            if (fixtures.length > 0) {
+                console.log(`[MongoDB] Executing init.js to load fixtures...`);
+                const initResult = await new Promise((initResolve) => {
+                    const initArgs = [
+                        'exec', containerName,
+                        'mongosh',
+                        database,
+                        '--quiet',
+                        '--file', '/docker-entrypoint-initdb.d/init.js'
+                    ];
+
+                    const initDocker = spawn(containerCmd, initArgs);
+                    let initStdout = '';
+                    let initStderr = '';
+
+                    initDocker.stdout.on('data', (data) => {
+                        initStdout += data.toString();
+                    });
+
+                    initDocker.stderr.on('data', (data) => {
+                        initStderr += data.toString();
+                    });
+
+                    initDocker.on('close', (initCode) => {
+                        initResolve({ stdout: initStdout, stderr: initStderr, exitCode: initCode });
+                    });
+
+                    initDocker.on('error', (err) => {
+                        initResolve({ stdout: '', stderr: err.message, exitCode: -1 });
+                    });
+                });
+
+                if (initResult.exitCode === 0) {
+                    console.log(`[MongoDB] Init script executed successfully`);
+                    if (initResult.stdout && initResult.stdout.trim()) {
+                        console.log(`[MongoDB] Init output: ${initResult.stdout.trim()}`);
+                    }
+                } else {
+                    console.error(`[MongoDB] Init script execution failed with exit code ${initResult.exitCode}`);
+                    console.error(`[MongoDB] Init stderr: ${initResult.stderr}`);
+                }
+            }
+
             // Verify that fixtures were loaded by checking if collections exist
             if (fixtures.length > 0) {
                 console.log(`[MongoDB] Verifying fixture loading...`);
