@@ -165,9 +165,19 @@ router.post('/run-test-case', async (req, res) => {
 		if (isDatabaseExercise && (effectiveLanguageId === 'mariadb' || effectiveLanguageId === 'mongodb')) {
 			const { startMariaDBContainer, startMongoDBContainer, executeMariaDBQuery, executeMongoDBQuery } = require('../services/databaseContainerService');
 			const { removeRecursive } = require('../services/dockerService');
+			const databaseService = require('../services/databaseService');
 			const fs = require('fs').promises;
 			const path = require('path');
 			const config = require('../config');
+
+			// Get language configuration including docker_image
+			const language = await databaseService.getLanguage(languageId);
+			if (!language) {
+				return res.status(400).json({ error: `Language not found: ${languageId}` });
+			}
+
+			// Use docker_image from language config, with fallback defaults
+			const dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? 'mariadb:latest' : 'mongo:latest');
 
 			// Create temp directory for fixtures only (no user script)
 			const tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-admin-db-'));
@@ -184,7 +194,7 @@ router.post('/run-test-case', async (req, res) => {
 
 				// Start database container with fixtures
 				if (effectiveLanguageId === 'mariadb') {
-					dbContainer = await startMariaDBContainer(tmpdir, dbFixtures);
+					dbContainer = await startMariaDBContainer(tmpdir, dbFixtures, dockerImage);
 					// Execute user query
 					result = await executeMariaDBQuery(dbContainer, solution.trim());
 
@@ -194,7 +204,7 @@ router.post('/run-test-case', async (req, res) => {
 						validationOutput = validationResult.stdout;
 					}
 				} else if (effectiveLanguageId === 'mongodb') {
-					dbContainer = await startMongoDBContainer(tmpdir, dbFixtures);
+					dbContainer = await startMongoDBContainer(tmpdir, dbFixtures, dockerImage);
 					result = await executeMongoDBQuery(dbContainer, solution.trim());
 
 					if (validationQuery) {

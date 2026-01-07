@@ -146,6 +146,16 @@ async function runTests(exercise, script) {
     try {
         // Start database container if needed (will be reused across test cases)
         if (needsDatabaseContainer) {
+            // Get language configuration including docker_image
+            const databaseService = require('./databaseService');
+            const language = await databaseService.getLanguage(languageId);
+            if (!language) {
+                throw new Error(`Language not found: ${languageId}`);
+            }
+
+            // Use docker_image from language config, with fallback defaults
+            const dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? 'mariadb:latest' : 'mongo:latest');
+
             // Collect all fixtures from all test cases for initial DB setup
             const allFixtures = [];
             for (const tc of exercise.testCases) {
@@ -165,9 +175,9 @@ async function runTests(exercise, script) {
             console.log(`[Database] Starting ${effectiveLanguageId} container with fixtures:`, allFixtures);
 
             if (effectiveLanguageId === 'mariadb') {
-                dbContainer = await startMariaDBContainer(tmpdir, allFixtures);
+                dbContainer = await startMariaDBContainer(tmpdir, allFixtures, dockerImage);
             } else if (effectiveLanguageId === 'mongodb') {
-                dbContainer = await startMongoDBContainer(tmpdir, allFixtures);
+                dbContainer = await startMongoDBContainer(tmpdir, allFixtures, dockerImage);
             }
             if (dbContainer)
             console.log(`[Database] Container ready:`, dbContainer.containerName);

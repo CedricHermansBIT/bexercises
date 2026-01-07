@@ -10,15 +10,16 @@ const { getContainerCommand } = require('./dockerService');
  * Start a MariaDB container with optional fixture loading
  * @param {string} tmpdir - Temporary directory for database files
  * @param {Array<string>} fixtures - SQL fixture files to load
+ * @param {string} dockerImage - Docker image to use (default: mariadb:latest)
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
-async function startMariaDBContainer(tmpdir, fixtures = []) {
+async function startMariaDBContainer(tmpdir, fixtures = [], dockerImage = 'mariadb:latest') {
     const containerName = `bex-mariadb-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const password = 'testpass';
     const database = 'testdb';
     const containerCmd = getContainerCommand();
 
-    console.log(`[MariaDB] Starting container: ${containerName} using ${containerCmd}`);
+    console.log(`[MariaDB] Starting container: ${containerName} using ${containerCmd} with image ${dockerImage}`);
 
     // Copy fixture files to tmpdir if provided
     const initSqlPath = path.join(tmpdir, 'init.sql');
@@ -48,7 +49,7 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
         '-e', `MYSQL_ROOT_PASSWORD=${password}`,
         '-e', `MYSQL_DATABASE=${database}`,
         '-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
-        'mariadb:latest'
+        dockerImage
     ];
 
     return new Promise((resolve, reject) => {
@@ -320,14 +321,15 @@ async function startMariaDBContainer(tmpdir, fixtures = []) {
  * Start a MongoDB container with optional fixture loading
  * @param {string} tmpdir - Temporary directory for database files
  * @param {Array<string>} fixtures - JavaScript fixture files to load
+ * @param {string} dockerImage - Docker image to use (default: mongo:latest)
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
-async function startMongoDBContainer(tmpdir, fixtures = []) {
+async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo:latest') {
     const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const database = 'testdb';
     const containerCmd = getContainerCommand();
 
-    console.log(`[MongoDB] Starting container: ${containerName} using ${containerCmd}`);
+    console.log(`[MongoDB] Starting container: ${containerName} using ${containerCmd} with image ${dockerImage}`);
 
     // Copy fixture files to tmpdir if provided
     if (fixtures.length > 0) {
@@ -352,7 +354,7 @@ async function startMongoDBContainer(tmpdir, fixtures = []) {
         '--name', containerName,
         '--network', 'none',
         '-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
-        'mongo:latest'
+        dockerImage
     ];
 
     return new Promise((resolve, reject) => {
