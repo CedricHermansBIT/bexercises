@@ -334,7 +334,9 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
     // Copy fixture files to tmpdir if provided
     if (fixtures.length > 0) {
         const initJsPath = path.join(tmpdir, 'init.js');
-        let initJs = `use ${database};\n\n`;
+        // MongoDB init scripts run in the context of MONGO_INITDB_DATABASE
+        // We need to explicitly switch to our test database
+        let initJs = `db = db.getSiblingDB('${database}');\n\n`;
 
         for (const fixtureName of fixtures) {
             const fixturePath = path.join(config.paths.fixtures, fixtureName);
@@ -349,10 +351,12 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
     }
 
     // Start MongoDB container
+    // Note: MONGO_INITDB_DATABASE sets the initial database context for init scripts
     const dockerArgs = [
         'run', '-d',
         '--name', containerName,
         '--network', 'none',
+        '-e', `MONGO_INITDB_DATABASE=${database}`,
         '-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
         dockerImage
     ];
@@ -433,6 +437,60 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
                 });
                 reject(new Error('MongoDB container failed to become ready in time'));
                 return;
+            }
+
+            // Verify that fixtures were loaded by checking if collections exist
+            if (fixtures.length > 0) {
+                console.log(`[MongoDB] Verifying fixture loading...`);
+                const verifyResult = await new Promise((verifyResolve) => {
+                    const verifyArgs = [
+                        'exec', containerName,
+                        'mongosh',
+                        database,
+                        '--quiet',
+                        '--eval', 'db.getCollectionNames()'
+                    ];
+
+                    const verifyDocker = spawn(containerCmd, verifyArgs);
+                    let verifyStdout = '';
+                    let verifyStderr = '';
+
+                    verifyDocker.stdout.on('data', (data) => {
+                        verifyStdout += data.toString();
+                    });
+
+                    verifyDocker.stderr.on('data', (data) => {
+                        verifyStderr += data.toString();
+                    });
+
+                    verifyDocker.on('close', (verifyCode) => {
+                        verifyResolve({ stdout: verifyStdout, stderr: verifyStderr, exitCode: verifyCode });
+                    });
+
+                    verifyDocker.on('error', (err) => {
+                        verifyResolve({ stdout: '', stderr: err.message, exitCode: -1 });
+                    });
+                });
+
+                if (verifyResult.exitCode === 0) {
+                    console.log(`[MongoDB] Collections in database: ${verifyResult.stdout.trim()}`);
+                    if (verifyResult.stdout.trim() === '[]' || verifyResult.stdout.trim() === '') {
+                        console.warn(`[MongoDB] WARNING: No collections found after fixture loading!`);
+                        console.warn(`[MongoDB] This may indicate init scripts didn't run properly.`);
+
+                        // Check container logs for init script execution
+                        const logsResult = await new Promise((logsResolve) => {
+                            const logsDocker = spawn(containerCmd, ['logs', containerName]);
+                            let logs = '';
+                            logsDocker.stdout.on('data', (data) => logs += data.toString());
+                            logsDocker.stderr.on('data', (data) => logs += data.toString());
+                            logsDocker.on('close', () => logsResolve(logs));
+                        });
+                        console.log(`[MongoDB] Container logs:\n${logsResult}`);
+                    }
+                } else {
+                    console.error(`[MongoDB] Verification failed: ${verifyResult.stderr}`);
+                }
             }
 
             resolve({
