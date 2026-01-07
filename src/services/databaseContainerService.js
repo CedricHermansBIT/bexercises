@@ -340,9 +340,69 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
 
         for (const fixtureName of fixtures) {
             const fixturePath = path.join(config.paths.fixtures, fixtureName);
-            if (fsSync.existsSync(fixturePath)) {
+            if (!fsSync.existsSync(fixturePath)) {
+                console.warn(`[MongoDB] Fixture file not found: ${fixtureName}`);
+                continue;
+            }
+
+            const ext = path.extname(fixtureName).toLowerCase();
+
+            if (ext === '.js') {
+                // JavaScript file - include directly
                 const content = await fs.readFile(fixturePath, 'utf8');
                 initJs += `// Fixture: ${fixtureName}\n${content}\n\n`;
+            } else if (ext === '.json') {
+                // JSON file - parse and generate insert commands
+                const content = await fs.readFile(fixturePath, 'utf8');
+                try {
+                    const jsonData = JSON.parse(content);
+
+                    // Check if it's an object with collection names as keys
+                    if (typeof jsonData === 'object' && !Array.isArray(jsonData)) {
+                        // Format: { "collectionName": [ {...}, {...} ], "anotherCollection": [ {...} ] }
+                        for (const [collectionName, documents] of Object.entries(jsonData)) {
+                            if (Array.isArray(documents) && documents.length > 0) {
+                                initJs += `// Fixture: ${fixtureName} - Collection: ${collectionName}\n`;
+                                initJs += `db.${collectionName}.insertMany(${JSON.stringify(documents, null, 2)});\n\n`;
+                            }
+                        }
+                    } else if (Array.isArray(jsonData)) {
+                        // Array of documents - need collection name from filename
+                        const collectionName = path.basename(fixtureName, '.json');
+                        initJs += `// Fixture: ${fixtureName}\n`;
+                        initJs += `db.${collectionName}.insertMany(${JSON.stringify(jsonData, null, 2)});\n\n`;
+                    } else {
+                        console.warn(`[MongoDB] Unsupported JSON format in ${fixtureName}`);
+                    }
+                } catch (err) {
+                    console.error(`[MongoDB] Failed to parse JSON fixture ${fixtureName}: ${err.message}`);
+                }
+            } else if (ext === '.bson') {
+                // BSON file - copy to tmpdir and use mongorestore
+                const bsonDestPath = path.join(tmpdir, fixtureName);
+                await fs.copyFile(fixturePath, bsonDestPath);
+
+                // Extract collection name from filename (e.g., "users.bson" -> "users")
+                const collectionName = path.basename(fixtureName, '.bson');
+
+                initJs += `// Fixture: ${fixtureName}\n`;
+                initJs += `// Note: BSON files are restored using mongorestore in a separate init script\n`;
+                initJs += `// This is a placeholder to maintain fixture ordering\n\n`;
+
+                // Create a separate shell script to run mongorestore
+                // MongoDB init scripts in /docker-entrypoint-initdb.d can be .sh or .js
+                const restoreShPath = path.join(tmpdir, `restore-${collectionName}.sh`);
+                const restoreScript = `#!/bin/bash
+# Restore BSON fixture: ${fixtureName}
+mongorestore --db=${database} --collection=${collectionName} /docker-entrypoint-initdb.d/${fixtureName}
+`;
+                await fs.writeFile(restoreShPath, restoreScript);
+                // Make it executable
+                await fs.chmod(restoreShPath, 0o755);
+
+                console.log(`[MongoDB] Created mongorestore script for BSON fixture: ${fixtureName}`);
+            } else {
+                console.warn(`[MongoDB] Unsupported fixture file type: ${fixtureName} (only .js, .json, and .bson are supported)`);
             }
         }
 
