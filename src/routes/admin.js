@@ -186,10 +186,10 @@ router.post('/run-test-case', async (req, res) => {
 			let dbContainer = null;
 
 			try {
-				// Filter SQL/JS fixtures for database initialization
+				// Filter SQL/JS/JSON/BSON fixtures for database initialization
 				const dbFixtures = fixtures.filter(f =>
 					(effectiveLanguageId === 'mariadb' && f.endsWith('.sql')) ||
-					(effectiveLanguageId === 'mongodb' && f.endsWith('.js'))
+					(effectiveLanguageId === 'mongodb' && (f.endsWith('.js') || f.endsWith('.json') || f.endsWith('.bson')))
 				);
 
 				// Start database container with fixtures
