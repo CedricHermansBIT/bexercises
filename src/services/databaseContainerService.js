@@ -502,7 +502,9 @@ async function executeMariaDBQuery(containerInfo, query) {
             resolve({
                 stdout,
                 stderr,
-                exitCode: code
+                exitCode: code,
+                timedOut: false,
+                error: null
             });
         });
 
@@ -511,7 +513,9 @@ async function executeMariaDBQuery(containerInfo, query) {
             resolve({
                 stdout,
                 stderr: err.message,
-                exitCode: -1
+                exitCode: -1,
+                timedOut: false,
+                error: err.message
             });
         });
     });
@@ -551,7 +555,9 @@ async function executeMongoDBQuery(containerInfo, query) {
             resolve({
                 stdout,
                 stderr,
-                exitCode: code
+                exitCode: code,
+                timedOut: false,
+                error: null
             });
         });
 
@@ -559,7 +565,9 @@ async function executeMongoDBQuery(containerInfo, query) {
             resolve({
                 stdout,
                 stderr: err.message,
-                exitCode: -1
+                exitCode: -1,
+                timedOut: false,
+                error: err.message
             });
         });
     });
