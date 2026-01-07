@@ -402,11 +402,10 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
                 initJs += `// This is a placeholder to maintain fixture ordering\n\n`;
 
                 // Create a separate shell script to run mongorestore
-                // MongoDB init scripts in /docker-entrypoint-initdb.d can be .sh or .js
                 const restoreShPath = path.join(tmpdir, `restore-${collectionName}.sh`);
                 const restoreScript = `#!/bin/bash
 # Restore BSON fixture: ${fixtureName}
-mongorestore --db=${database} --collection=${collectionName} /docker-entrypoint-initdb.d/${fixtureName}
+mongorestore --db=${database} --collection=${collectionName} /fixtures/${fixtureName}
 `;
                 await fs.writeFile(restoreShPath, restoreScript);
                 // Make it executable
@@ -430,13 +429,14 @@ mongorestore --db=${database} --collection=${collectionName} /docker-entrypoint-
     }
 
     // Start MongoDB container
-    // Note: MONGO_INITDB_DATABASE sets the initial database context for init scripts
+    // Note: We mount to /fixtures instead of /docker-entrypoint-initdb.d to prevent
+    // automatic execution (which would cause duplicates when we manually execute)
     const dockerArgs = [
         'run', '-d',
         '--name', containerName,
         '--network', 'none',
         '-e', `MONGO_INITDB_DATABASE=${database}`,
-        '-v', `${tmpdir}:/docker-entrypoint-initdb.d:ro`,
+        '-v', `${tmpdir}:/fixtures:ro`,
         dockerImage
     ];
 
@@ -518,7 +518,7 @@ mongorestore --db=${database} --collection=${collectionName} /docker-entrypoint-
                 return;
             }
 
-            // Manually execute init scripts (MongoDB's automatic init script execution doesn't work reliably)
+            // Manually execute init scripts (prevents duplicate execution from MongoDB's auto-init)
             if (fixtures.length > 0) {
                 console.log(`[MongoDB] Executing init.js to load fixtures...`);
                 const initResult = await new Promise((initResolve) => {
@@ -527,7 +527,7 @@ mongorestore --db=${database} --collection=${collectionName} /docker-entrypoint-
                         'mongosh',
                         database,
                         '--quiet',
-                        '--file', '/docker-entrypoint-initdb.d/init.js'
+                        '--file', '/fixtures/init.js'
                     ];
 
                     const initDocker = spawn(containerCmd, initArgs);
