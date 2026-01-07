@@ -722,6 +722,7 @@ class TestResults {
 
 	/**
 	 * Parse table data from output string
+	 * Supports SQL tab-separated output and MongoDB JSON array output
 	 * @param {string} output - Output string
 	 * @returns {Object|null} Parsed table data {headers, rows} or null
 	 */
@@ -730,7 +731,21 @@ class TestResults {
 			return { headers: [], rows: [] };
 		}
 
-		const lines = output.trim().split('\n').filter(line => line.trim());
+		const trimmed = output.trim();
+
+		// Try to parse as JSON array (MongoDB output)
+		if (trimmed.startsWith('[')) {
+			try {
+				const jsonData = JSON.parse(trimmed);
+				if (Array.isArray(jsonData)) {
+					return this.parseJsonArrayToTable(jsonData);
+				}
+			} catch (e) {
+				// Not valid JSON, continue with other formats
+			}
+		}
+
+		const lines = trimmed.split('\n').filter(line => line.trim());
 		if (lines.length === 0) {
 			return { headers: [], rows: [] };
 		}
@@ -763,6 +778,73 @@ class TestResults {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Parse a JSON array into table format (for MongoDB results)
+	 * @param {Array} jsonArray - Array of JSON objects
+	 * @returns {Object} Table data {headers, rows}
+	 */
+	parseJsonArrayToTable(jsonArray) {
+		if (!Array.isArray(jsonArray) || jsonArray.length === 0) {
+			return { headers: [], rows: [] };
+		}
+
+		// Collect all unique keys from all objects to use as headers
+		const headerSet = new Set();
+		jsonArray.forEach(obj => {
+			if (obj && typeof obj === 'object') {
+				Object.keys(obj).forEach(key => headerSet.add(key));
+			}
+		});
+
+		// Convert to array and sort for consistent ordering
+		// Put _id first if it exists, then sort alphabetically
+		const headers = Array.from(headerSet).sort((a, b) => {
+			if (a === '_id') return -1;
+			if (b === '_id') return 1;
+			return a.localeCompare(b);
+		});
+
+		// Build rows
+		const rows = jsonArray.map(obj => {
+			return headers.map(header => {
+				const value = obj[header];
+				return this.formatJsonValue(value);
+			});
+		});
+
+		return { headers, rows };
+	}
+
+	/**
+	 * Format a JSON value for display in a table cell
+	 * @param {*} value - Any JSON value
+	 * @returns {string} Formatted string representation
+	 */
+	formatJsonValue(value) {
+		if (value === null) return 'null';
+		if (value === undefined) return '';
+		if (typeof value === 'string') return value;
+		if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+		if (Array.isArray(value)) {
+			// For small arrays, show inline; for larger ones, show count
+			if (value.length <= 3 && value.every(v => typeof v !== 'object')) {
+				return `[${value.join(', ')}]`;
+			}
+			return `[${value.length} items]`;
+		}
+		if (typeof value === 'object') {
+			// For ObjectId format
+			if (value.$oid) return value.$oid;
+			// For Date format
+			if (value.$date) return new Date(value.$date).toISOString();
+			// For other objects, show as compact JSON
+			const str = JSON.stringify(value);
+			if (str.length <= 50) return str;
+			return '{...}';
+		}
+		return String(value);
 	}
 
 	/**
@@ -887,6 +969,7 @@ class TestResults {
 
 	/**
 	 * Format SQL/database output as HTML table if it looks like tabular data
+	 * Supports SQL tab-separated output and MongoDB JSON array output
 	 * @param {string} output - Raw text output
 	 * @returns {string} HTML formatted output
 	 */
@@ -895,7 +978,21 @@ class TestResults {
 			return `<pre><code></code></pre>`;
 		}
 
-		const lines = output.trim().split('\n');
+		const trimmed = output.trim();
+
+		// Check if output is JSON array (MongoDB output)
+		if (trimmed.startsWith('[')) {
+			try {
+				const jsonData = JSON.parse(trimmed);
+				if (Array.isArray(jsonData)) {
+					return this.formatJsonArrayOutput(jsonData);
+				}
+			} catch (e) {
+				// Not valid JSON, continue with other formats
+			}
+		}
+
+		const lines = trimmed.split('\n');
 
 		// Skip empty lines at the start
 		const nonEmptyLines = lines.filter(line => line.trim());
@@ -970,6 +1067,27 @@ class TestResults {
         console.log("Output does not match table formats");
 		// Not a table format, return as pre with overflow handling
 		return `<div class="sql-output-wrapper"><pre><code>${this.escapeHtml(output)}</code></pre></div>`;
+	}
+
+	/**
+	 * Format MongoDB JSON array output as an HTML table
+	 * @param {Array} jsonArray - Parsed JSON array
+	 * @returns {string} HTML formatted output
+	 */
+	formatJsonArrayOutput(jsonArray) {
+		if (!Array.isArray(jsonArray) || jsonArray.length === 0) {
+			return `<pre><code>[]</code></pre>`;
+		}
+
+		// Parse to table format
+		const tableData = this.parseJsonArrayToTable(jsonArray);
+
+		if (tableData.headers.length === 0) {
+			// Fallback to formatted JSON if can't parse as table
+			return `<div class="sql-output-wrapper"><pre><code>${this.escapeHtml(JSON.stringify(jsonArray, null, 2))}</code></pre></div>`;
+		}
+
+		return this.buildTableHtml(tableData.headers, tableData.rows);
 	}
 
 	/**
