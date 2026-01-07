@@ -735,13 +735,9 @@ class TestResults {
 
 		// Try to parse as JSON array (MongoDB output)
 		if (trimmed.startsWith('[')) {
-			try {
-				const jsonData = JSON.parse(trimmed);
-				if (Array.isArray(jsonData)) {
-					return this.parseJsonArrayToTable(jsonData);
-				}
-			} catch (e) {
-				// Not valid JSON, continue with other formats
+			const jsonData = this.parseMongoOutput(trimmed);
+			if (jsonData && Array.isArray(jsonData)) {
+				return this.parseJsonArrayToTable(jsonData);
 			}
 		}
 
@@ -778,6 +774,60 @@ class TestResults {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Parse MongoDB output which can be either valid JSON or MongoDB shell format (unquoted keys)
+	 * @param {string} output - The output string to parse
+	 * @returns {Array|null} Parsed array or null if parsing fails
+	 */
+	parseMongoOutput(output) {
+		// First, try standard JSON parse
+		try {
+			return JSON.parse(output);
+		} catch (e) {
+			// Not valid JSON, try to convert MongoDB shell format to JSON
+		}
+
+		try {
+			// MongoDB shell output has unquoted keys and may have special types
+			// Convert to valid JSON by:
+			// 1. Adding quotes around unquoted keys
+			// 2. Handling ObjectId(), ISODate(), etc.
+
+			let jsonStr = output;
+
+			// Replace ObjectId("...") with just the string
+			jsonStr = jsonStr.replace(/ObjectId\s*\(\s*["']([^"']+)["']\s*\)/g, '"$1"');
+
+			// Replace ISODate("...") with the date string
+			jsonStr = jsonStr.replace(/ISODate\s*\(\s*["']([^"']+)["']\s*\)/g, '"$1"');
+
+			// Replace NumberLong(...) with the number
+			jsonStr = jsonStr.replace(/NumberLong\s*\(\s*["']?(-?\d+)["']?\s*\)/g, '$1');
+
+			// Replace NumberInt(...) with the number
+			jsonStr = jsonStr.replace(/NumberInt\s*\(\s*["']?(-?\d+)["']?\s*\)/g, '$1');
+
+			// Replace NumberDecimal("...") with the number
+			jsonStr = jsonStr.replace(/NumberDecimal\s*\(\s*["']([^"']+)["']\s*\)/g, '$1');
+
+			// Replace Timestamp(...) with a string representation
+			jsonStr = jsonStr.replace(/Timestamp\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/g, '"Timestamp($1, $2)"');
+
+			// Add quotes around unquoted keys (handles keys like _id, name, etc.)
+			// This regex finds word characters followed by : that aren't already quoted
+			jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+
+			// Handle single quotes - convert to double quotes for string values
+			// But be careful not to break already valid strings
+			jsonStr = jsonStr.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"');
+
+			return JSON.parse(jsonStr);
+		} catch (e) {
+			console.log('Failed to parse MongoDB output:', e.message);
+			return null;
+		}
 	}
 
 	/**
@@ -982,13 +1032,9 @@ class TestResults {
 
 		// Check if output is JSON array (MongoDB output)
 		if (trimmed.startsWith('[')) {
-			try {
-				const jsonData = JSON.parse(trimmed);
-				if (Array.isArray(jsonData)) {
-					return this.formatJsonArrayOutput(jsonData);
-				}
-			} catch (e) {
-				// Not valid JSON, continue with other formats
+			const jsonData = this.parseMongoOutput(trimmed);
+			if (jsonData && Array.isArray(jsonData)) {
+				return this.formatJsonArrayOutput(jsonData);
 			}
 		}
 
