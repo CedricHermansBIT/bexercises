@@ -354,28 +354,40 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
             } else if (ext === '.json') {
                 // JSON file - parse and generate insert commands
                 const content = await fs.readFile(fixturePath, 'utf8');
+                console.log(`[MongoDB] Processing JSON fixture: ${fixtureName} (${content.length} bytes)`);
                 try {
                     const jsonData = JSON.parse(content);
 
                     // Check if it's an object with collection names as keys
                     if (typeof jsonData === 'object' && !Array.isArray(jsonData)) {
                         // Format: { "collectionName": [ {...}, {...} ], "anotherCollection": [ {...} ] }
+                        let collectionsAdded = 0;
                         for (const [collectionName, documents] of Object.entries(jsonData)) {
                             if (Array.isArray(documents) && documents.length > 0) {
+                                console.log(`[MongoDB] Adding ${documents.length} documents to collection '${collectionName}' from ${fixtureName}`);
                                 initJs += `// Fixture: ${fixtureName} - Collection: ${collectionName}\n`;
                                 initJs += `db.${collectionName}.insertMany(${JSON.stringify(documents, null, 2)});\n\n`;
+                                collectionsAdded++;
                             }
+                        }
+                        if (collectionsAdded === 0) {
+                            console.warn(`[MongoDB] No valid collections found in ${fixtureName}`);
+                        } else {
+                            console.log(`[MongoDB] Successfully processed ${collectionsAdded} collection(s) from ${fixtureName}`);
                         }
                     } else if (Array.isArray(jsonData)) {
                         // Array of documents - need collection name from filename
                         const collectionName = path.basename(fixtureName, '.json');
+                        console.log(`[MongoDB] Adding ${jsonData.length} documents to collection '${collectionName}' from array in ${fixtureName}`);
                         initJs += `// Fixture: ${fixtureName}\n`;
                         initJs += `db.${collectionName}.insertMany(${JSON.stringify(jsonData, null, 2)});\n\n`;
+                        console.log(`[MongoDB] Successfully generated insertMany for collection '${collectionName}'`);
                     } else {
-                        console.warn(`[MongoDB] Unsupported JSON format in ${fixtureName}`);
+                        console.warn(`[MongoDB] Unsupported JSON format in ${fixtureName} - expected array or object with collection arrays`);
                     }
                 } catch (err) {
                     console.error(`[MongoDB] Failed to parse JSON fixture ${fixtureName}: ${err.message}`);
+                    console.error(`[MongoDB] File preview (first 200 chars): ${content.substring(0, 200)}`);
                 }
             } else if (ext === '.bson') {
                 // BSON file - copy to tmpdir and use mongorestore
@@ -407,7 +419,14 @@ mongorestore --db=${database} --collection=${collectionName} /docker-entrypoint-
         }
 
         await fs.writeFile(initJsPath, initJs);
-        console.log(`[MongoDB] Created init.js with ${fixtures.length} fixtures`);
+        console.log(`[MongoDB] Created init.js with ${fixtures.length} fixtures (total size: ${initJs.length} bytes)`);
+        // Show preview of init.js for debugging
+        const lines = initJs.split('\n');
+        const preview = lines.slice(0, 20).join('\n');
+        console.log(`[MongoDB] init.js preview (first 20 lines):\n${preview}`);
+        if (lines.length > 20) {
+            console.log(`[MongoDB] ... and ${lines.length - 20} more lines`);
+        }
     }
 
     // Start MongoDB container
