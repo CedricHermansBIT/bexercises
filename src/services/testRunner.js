@@ -160,10 +160,10 @@ async function runTests(exercise, script) {
             const allFixtures = [];
             for (const tc of exercise.testCases) {
                 if (tc.fixtures && Array.isArray(tc.fixtures)) {
-                    // Only include SQL/JS fixtures for database initialization
+                    // Only include SQL/JS/JSON/BSON fixtures for database initialization
                     tc.fixtures.forEach(f => {
                         if ((effectiveLanguageId === 'mariadb' && f.endsWith('.sql')) ||
-                            (effectiveLanguageId === 'mongodb' && f.endsWith('.js'))) {
+                            (effectiveLanguageId === 'mongodb' && (f.endsWith('.js') || f.endsWith('.json') || f.endsWith('.bson')))) {
                             if (!allFixtures.includes(f)) {
                                 allFixtures.push(f);
                             }
