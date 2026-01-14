@@ -216,10 +216,15 @@ class UsersPage {
         const list = document.getElementById('users-list');
         if (!list) return;
 
-        list.innerHTML = '';
+        // Use document fragment for better performance with many users
+        const fragment = document.createDocumentFragment();
 
         if (this.users.length === 0) {
-            list.innerHTML = '<p class="no-users">No users found</p>';
+            const p = document.createElement('p');
+            p.className = 'no-users';
+            p.textContent = 'No users found';
+            list.innerHTML = '';
+            list.appendChild(p);
             return;
         }
 
@@ -240,53 +245,7 @@ class UsersPage {
 
             // Get the most recent activity (login or test submission, whichever is latest)
             const lastActivityTime = this.getMostRecentActivity(user);
-            let lastActivityText = 'No activity';
-            let activityClass = 'old';
-            let fullActivityDateTime = 'Never';
-
-            if (lastActivityTime) {
-                // Full date and time for tooltip
-                fullActivityDateTime = formatDateTime(lastActivityTime, true);
-
-                // Parse date consistently with formatDateTime logic
-                let activityDate;
-                if (typeof lastActivityTime === 'string') {
-                    const hasTimezone = lastActivityTime.includes('Z') || lastActivityTime.includes('+') || lastActivityTime.match(/-\d{2}:\d{2}$/);
-                    if (!hasTimezone) {
-                        // Add 'Z' to treat as UTC (same as formatDateTime)
-                        const isoString = lastActivityTime.replace(' ', 'T') + 'Z';
-                        activityDate = new Date(isoString);
-                    } else {
-                        activityDate = new Date(lastActivityTime);
-                    }
-                } else {
-                    activityDate = new Date(lastActivityTime);
-                }
-
-                const now = new Date();
-                const diffMs = now - activityDate;
-                const diffMins = Math.floor(diffMs / 60000);
-                const diffHours = Math.floor(diffMs / 3600000);
-                const diffDays = Math.floor(diffMs / 86400000);
-
-                if (diffMins < 5) {
-                    lastActivityText = 'Just now';
-                    activityClass = 'recent';
-                } else if (diffMins < 60) {
-                    lastActivityText = `${diffMins} min ago`;
-                    activityClass = 'recent';
-                } else if (diffHours < 24) {
-                    lastActivityText = `${diffHours}h ago`;
-                    activityClass = diffHours < 6 ? 'recent' : '';
-                } else if (diffDays < 7) {
-                    lastActivityText = `${diffDays}d ago`;
-                    activityClass = '';
-                } else {
-                    // Show full date and time for older activities
-                    lastActivityText = fullActivityDateTime;
-                    activityClass = 'old';
-                }
-            }
+            const { lastActivityText, activityClass, fullActivityDateTime } = this.formatActivityTime(lastActivityTime);
 
             item.innerHTML = `
                 <div class="user-info">
@@ -311,8 +270,70 @@ class UsersPage {
                 this.viewUserDetails(user.id);
             });
 
-            list.appendChild(item);
+            fragment.appendChild(item);
         });
+
+        list.innerHTML = '';
+        list.appendChild(fragment);
+    }
+
+    /**
+     * Format activity time for display
+     * @param {string|null} lastActivityTime - Activity timestamp
+     * @returns {Object} Formatted activity data
+     */
+    formatActivityTime(lastActivityTime) {
+        let lastActivityText = 'No activity';
+        let activityClass = 'old';
+        let fullActivityDateTime = 'Never';
+
+        if (!lastActivityTime) {
+            return { lastActivityText, activityClass, fullActivityDateTime };
+        }
+
+        // Full date and time for tooltip
+        fullActivityDateTime = formatDateTime(lastActivityTime, true);
+
+        // Parse date consistently with formatDateTime logic
+        let activityDate;
+        if (typeof lastActivityTime === 'string') {
+            const hasTimezone = lastActivityTime.includes('Z') || lastActivityTime.includes('+') || lastActivityTime.match(/-\d{2}:\d{2}$/);
+            if (!hasTimezone) {
+                // Add 'Z' to treat as UTC (same as formatDateTime)
+                const isoString = lastActivityTime.replace(' ', 'T') + 'Z';
+                activityDate = new Date(isoString);
+            } else {
+                activityDate = new Date(lastActivityTime);
+            }
+        } else {
+            activityDate = new Date(lastActivityTime);
+        }
+
+        const now = new Date();
+        const diffMs = now - activityDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 5) {
+            lastActivityText = 'Just now';
+            activityClass = 'recent';
+        } else if (diffMins < 60) {
+            lastActivityText = `${diffMins} min ago`;
+            activityClass = 'recent';
+        } else if (diffHours < 24) {
+            lastActivityText = `${diffHours}h ago`;
+            activityClass = diffHours < 6 ? 'recent' : '';
+        } else if (diffDays < 7) {
+            lastActivityText = `${diffDays}d ago`;
+            activityClass = '';
+        } else {
+            // Show full date and time for older activities
+            lastActivityText = fullActivityDateTime;
+            activityClass = 'old';
+        }
+
+        return { lastActivityText, activityClass, fullActivityDateTime };
     }
 
     async viewUserDetails(userId) {

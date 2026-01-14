@@ -14,6 +14,134 @@ class ApiService {
 			}
 		}
 		this.baseUrl = baseUrl;
+		// Simple in-memory cache for GET requests
+		this._cache = new Map();
+		this._cacheTimeout = 30000; // 30 second default cache timeout
+	}
+
+	/**
+	 * Centralized fetch method with error handling
+	 * @param {string} url - URL to fetch
+	 * @param {Object} options - Fetch options
+	 * @returns {Promise<Response>} Response object
+	 */
+	async _fetch(url, options = {}) {
+		const response = await fetch(url, options);
+		return response;
+	}
+
+	/**
+	 * Make a GET request with optional caching
+	 * @param {string} endpoint - API endpoint
+	 * @param {Object} options - Additional options
+	 * @param {boolean} options.cache - Whether to cache the response
+	 * @param {number} options.cacheTTL - Cache TTL in ms
+	 * @returns {Promise<*>} JSON response
+	 */
+	async _get(endpoint, { cache = false, cacheTTL = this._cacheTimeout } = {}) {
+		const url = `${this.baseUrl}${endpoint}`;
+
+		// Check cache
+		if (cache) {
+			const cached = this._cache.get(url);
+			if (cached && Date.now() < cached.expiry) {
+				return cached.data;
+			}
+		}
+
+		const response = await this._fetch(url);
+		if (!response.ok) {
+			if (response.status === 401) {
+				throw new Error('Not authenticated');
+			}
+			throw new Error(`Request failed: ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		// Store in cache
+		if (cache) {
+			this._cache.set(url, { data, expiry: Date.now() + cacheTTL });
+		}
+
+		return data;
+	}
+
+	/**
+	 * Make a POST request
+	 * @param {string} endpoint - API endpoint
+	 * @param {Object} body - Request body
+	 * @returns {Promise<*>} JSON response
+	 */
+	async _post(endpoint, body) {
+		const response = await this._fetch(`${this.baseUrl}${endpoint}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		});
+
+		if (!response.ok) {
+			const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+			const errorMsg = err.detail || err.error || 'Unknown error';
+			throw new Error(`${errorMsg} (${response.status})`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Make a PUT request
+	 * @param {string} endpoint - API endpoint
+	 * @param {Object} body - Request body
+	 * @returns {Promise<*>} JSON response
+	 */
+	async _put(endpoint, body) {
+		const response = await this._fetch(`${this.baseUrl}${endpoint}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		});
+
+		if (!response.ok) {
+			const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+			const errorMsg = err.detail || err.error || 'Unknown error';
+			throw new Error(`${errorMsg} (${response.status})`);
+		}
+
+		return response.json();
+	}
+
+	/**
+	 * Make a DELETE request
+	 * @param {string} endpoint - API endpoint
+	 * @returns {Promise<void>}
+	 */
+	async _delete(endpoint) {
+		const response = await this._fetch(`${this.baseUrl}${endpoint}`, {
+			method: 'DELETE'
+		});
+
+		if (!response.ok) {
+			const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+			const errorMsg = err.detail || err.error || 'Unknown error';
+			throw new Error(`${errorMsg} (${response.status})`);
+		}
+	}
+
+	/**
+	 * Clear the cache
+	 * @param {string} pattern - Optional pattern to match URLs
+	 */
+	clearCache(pattern = null) {
+		if (pattern) {
+			for (const key of this._cache.keys()) {
+				if (key.includes(pattern)) {
+					this._cache.delete(key);
+				}
+			}
+		} else {
+			this._cache.clear();
+		}
 	}
 
 	/**
@@ -23,19 +151,13 @@ class ApiService {
      * @returns {Promise<Array>} Array of exercises
      */
 	async getExercises(language = null, chapter = null) {
-		const url = language
-			? `${this.baseUrl}/api/exercises?language=${encodeURIComponent(language)}`
-			: chapter
-                ? `${this.baseUrl}/api/exercises?chapter=${encodeURIComponent(chapter)}`
-                : `${this.baseUrl}/api/exercises`;
-
-
-
-		const response = await fetch(url);
-		if (!response.ok) {
-			throw new Error(`Failed to fetch exercises: ${response.status}`);
+		let endpoint = '/api/exercises';
+		if (language) {
+			endpoint += `?language=${encodeURIComponent(language)}`;
+		} else if (chapter) {
+			endpoint += `?chapter=${encodeURIComponent(chapter)}`;
 		}
-		return response.json();
+		return this._get(endpoint);
 	}
 
 	/**
@@ -43,11 +165,7 @@ class ApiService {
 	 * @returns {Promise<Array>} Array of languages
 	 */
 	async getLanguages() {
-		const response = await fetch(`${this.baseUrl}/api/languages`);
-		if (!response.ok) {
-			throw new Error(`Failed to fetch languages: ${response.status}`);
-		}
-		return response.json();
+		return this._get('/api/languages', { cache: true, cacheTTL: 60000 });
 	}
 
 	/**
@@ -56,11 +174,7 @@ class ApiService {
 	 * @returns {Promise<Object>} Exercise object
 	 */
 	async getExercise(exerciseId) {
-		const response = await fetch(`${this.baseUrl}/api/exercises/${encodeURIComponent(exerciseId)}`);
-		if (!response.ok) {
-			throw new Error(`Failed to fetch exercise: ${response.status}`);
-		}
-		return response.json();
+		return this._get(`/api/exercises/${encodeURIComponent(exerciseId)}`);
 	}
 
 	/**
@@ -70,22 +184,8 @@ class ApiService {
 	 * @returns {Promise<Object>} Test results and statistics
 	 */
 	async runTests(exerciseId, script) {
-		// Get user's timezone
 		const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-		const response = await fetch(`${this.baseUrl}/api/exercises/${encodeURIComponent(exerciseId)}/run`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ script, timezone })
-		});
-
-		if (!response.ok) {
-			const err = await response.json().catch(() => ({ error: 'unknown' }));
-			const errorMsg = err.detail || err.error || 'Unknown error';
-			throw new Error(`Server error: ${response.status} - ${errorMsg}`);
-		}
-
-		return response.json();
+		return this._post(`/api/exercises/${encodeURIComponent(exerciseId)}/run`, { script, timezone });
 	}
 
 	/**
@@ -94,11 +194,7 @@ class ApiService {
 	 * @returns {Promise<Object>} Statistics object
 	 */
 	async getStatistics(exerciseId) {
-		const response = await fetch(`${this.baseUrl}/api/statistics/${encodeURIComponent(exerciseId)}`);
-		if (!response.ok) {
-			throw new Error(`Failed to fetch statistics: ${response.status}`);
-		}
-		return response.json();
+		return this._get(`/api/statistics/${encodeURIComponent(exerciseId)}`);
 	}
 
 	/**
@@ -106,11 +202,7 @@ class ApiService {
 	 * @returns {Promise<Object>} Object with exercise IDs as keys and stats as values
 	 */
 	async getGlobalExerciseStats() {
-		const response = await fetch(`${this.baseUrl}/api/exercises/stats/global`);
-		if (!response.ok) {
-			throw new Error(`Failed to fetch global exercise statistics: ${response.status}`);
-		}
-		return response.json();
+		return this._get('/api/exercises/stats/global', { cache: true, cacheTTL: 30000 });
 	}
 
 	/**
@@ -118,14 +210,14 @@ class ApiService {
 	 * @returns {Promise<Object>} Object with exercise IDs as keys and progress data as values
 	 */
 	async getUserProgress() {
-		const response = await fetch(`${this.baseUrl}/api/progress`);
-		if (!response.ok) {
-			if (response.status === 401) {
+		try {
+			return await this._get('/api/progress');
+		} catch (e) {
+			if (e.message.includes('401') || e.message.includes('Not authenticated')) {
 				return {}; // Not authenticated, return empty progress
 			}
-			throw new Error(`Failed to fetch user progress: ${response.status}`);
+			throw e;
 		}
-		return response.json();
 	}
 
 	/**
@@ -134,14 +226,14 @@ class ApiService {
 	 * @returns {Promise<Array>} Array of progress records for the language
 	 */
 	async getUserProgressByLanguage(languageId) {
-		const response = await fetch(`${this.baseUrl}/api/progress/language/${encodeURIComponent(languageId)}`);
-		if (!response.ok) {
-			if (response.status === 401) {
+		try {
+			return await this._get(`/api/progress/language/${encodeURIComponent(languageId)}`);
+		} catch (e) {
+			if (e.message.includes('401') || e.message.includes('Not authenticated')) {
 				return []; // Not authenticated, return empty progress
 			}
-			throw new Error(`Failed to fetch user progress: ${response.status}`);
+			throw e;
 		}
-		return response.json();
 	}
 
 	/**
@@ -149,7 +241,7 @@ class ApiService {
 	 * @returns {Promise<Object>} User object
 	 */
 	async getCurrentUser() {
-		const response = await fetch(`${this.baseUrl}/auth/user`);
+		const response = await this._fetch(`${this.baseUrl}/auth/user`);
 		return response.json();
 	}
 

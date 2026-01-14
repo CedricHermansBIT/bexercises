@@ -11,6 +11,7 @@ const { configurePassport } = require('./middleware/auth');
 const SqliteSessionStore = require('./middleware/sessionStore');
 const corsMiddleware = require('./middleware/cors');
 const trackUserActivity = require('./middleware/activityTracker');
+const { errorMiddleware } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
 const adminRoutes = require('./routes/admin');
@@ -21,6 +22,19 @@ const adminRoutes = require('./routes/admin');
 function createApp() {
 	const app = express();
 	const basePath = config.server.basePath || '';
+
+	// Helper function to mount middleware/routes at both basePath and root
+	const mountAtBothPaths = (path, handler) => {
+		app.use(`${basePath}${path}`, handler);
+		if (basePath) {
+			app.use(path, handler);
+		}
+	};
+
+	// Helper for config endpoint
+	const configHandler = (req, res) => {
+		res.json({ basePath });
+	};
 
 	// Logging
 	app.use(morgan('combined'));
@@ -63,54 +77,25 @@ function createApp() {
 	app.use('/', express.static(config.paths.frontend, staticOptions));
 
 	// CORS - applied to API routes
-	app.use(`${basePath}/api`, corsMiddleware);
-	app.use(`${basePath}/auth`, corsMiddleware);
-	if (basePath) {
-		app.use('/api', corsMiddleware);
-		app.use('/auth', corsMiddleware);
-	}
+	mountAtBothPaths('/api', corsMiddleware);
+	mountAtBothPaths('/auth', corsMiddleware);
 
 	// Activity tracking - update last_activity for authenticated users
-	app.use(`${basePath}/api`, trackUserActivity);
-	if (basePath) {
-		app.use('/api', trackUserActivity);
-	}
+	mountAtBothPaths('/api', trackUserActivity);
 
-	// Routes - mount with basePath
-	app.use(`${basePath}/auth`, authRoutes);
-	app.use(`${basePath}/api/admin`, adminRoutes);
-	app.use(`${basePath}/api`, apiRoutes);
-
-	// If basePath is set, also mount at root for reverse proxy scenarios
-	// where the proxy strips the base path
-	if (basePath) {
-		app.use('/auth', authRoutes);
-		app.use('/api/admin', adminRoutes);
-		app.use('/api', apiRoutes);
-	}
+	// Routes - mount with basePath and at root for reverse proxy scenarios
+	mountAtBothPaths('/auth', authRoutes);
+	mountAtBothPaths('/api/admin', adminRoutes);
+	mountAtBothPaths('/api', apiRoutes);
 
 	// Expose config endpoint for frontend (both paths)
-	app.get(`${basePath}/api/config`, (req, res) => {
-		res.json({
-			basePath: basePath
-		});
-	});
+	app.get(`${basePath}/api/config`, configHandler);
 	if (basePath) {
-		app.get('/api/config', (req, res) => {
-			res.json({
-				basePath: basePath
-			});
-		});
+		app.get('/api/config', configHandler);
 	}
 
-	// Error handling middleware
-	app.use((err, req, res, _next) => {
-		console.error('Unhandled error:', err);
-		res.status(500).json({
-			error: 'Internal server error',
-			message: config.server.env === 'development' ? err.message : undefined
-		});
-	});
+	// Centralized error handling middleware
+	app.use(errorMiddleware);
 
 	return app;
 }

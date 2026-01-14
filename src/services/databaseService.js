@@ -3,10 +3,18 @@ const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const path = require('path');
 const fs = require('fs').promises;
+const { globalCache } = require('../utils/cache');
 
 class DatabaseService {
 	constructor() {
 		this.db = null;
+		this.cache = globalCache;
+		// Cache TTL values (in milliseconds)
+		this.CACHE_TTL = {
+			languages: 60000,      // 1 minute
+			achievements: 300000,  // 5 minutes
+			leaderboard: 30000     // 30 seconds
+		};
 	}
 
 	/**
@@ -556,24 +564,34 @@ class DatabaseService {
 	// ============= Language Methods =============
 
 	async getLanguages(includeDisabled = false) {
-		if (includeDisabled) {
-			return this.db.all(`
-				SELECT * FROM languages 
-				ORDER BY order_num, name
-			`);
-		}
-		return this.db.all(`
-			SELECT * FROM languages 
-			WHERE enabled = 1 
-			ORDER BY order_num, name
-		`);
+		const cacheKey = `languages:${includeDisabled}`;
+		const cached = this.cache.get(cacheKey);
+		if (cached) return cached;
+
+		const result = includeDisabled
+			? await this.db.all(`SELECT * FROM languages ORDER BY order_num, name`)
+			: await this.db.all(`SELECT * FROM languages WHERE enabled = 1 ORDER BY order_num, name`);
+
+		this.cache.set(cacheKey, result, this.CACHE_TTL.languages);
+		return result;
 	}
 
 	async getLanguage(id) {
-		return this.db.get('SELECT * FROM languages WHERE id = ?', [id]);
+		const cacheKey = `language:${id}`;
+		const cached = this.cache.get(cacheKey);
+		if (cached) return cached;
+
+		const result = await this.db.get('SELECT * FROM languages WHERE id = ?', [id]);
+		if (result) {
+			this.cache.set(cacheKey, result, this.CACHE_TTL.languages);
+		}
+		return result;
 	}
 
 	async updateLanguage(id, data) {
+		// Invalidate cache when updating
+		this.cache.invalidatePattern(/^language/);
+
 		const { name, description, icon_svg, order_num, enabled, file_extension, interpreter, docker_image, code_template, exercise_type } = data;
 		const updates = [];
 		const values = [];
@@ -1256,10 +1274,16 @@ class DatabaseService {
 	// ============= Achievement Methods =============
 
 	/**
-	 * Get all achievements
+	 * Get all achievements (cached)
 	 */
 	async getAllAchievements() {
-		return this.db.all('SELECT * FROM achievements ORDER BY category, points');
+		const cacheKey = 'achievements:all';
+		const cached = this.cache.get(cacheKey);
+		if (cached) return cached;
+
+		const result = await this.db.all('SELECT * FROM achievements ORDER BY category, points');
+		this.cache.set(cacheKey, result, this.CACHE_TTL.achievements);
+		return result;
 	}
 
 	/**

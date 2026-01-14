@@ -7,104 +7,50 @@ const dockerService = require('../services/dockerService');
 const fs = require('fs').promises;
 const path = require('path');
 const config = require('../config');
+const { expandCommandSubstitution } = require('../utils/commandUtils');
+const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
 // All routes require admin authentication
 router.use(requireAdmin);
 
-/**
- * Expand command substitutions in a string (e.g., $(date +%Y%m%d))
- * @param {string} str - String with potential command substitutions
- * @returns {string} String with substitutions expanded
- */
-function expandCommandSubstitution(str) {
-	if (!str || typeof str !== 'string') {
-		return str;
-	}
-
-	const pattern = /\$\(([^)]+)\)/g;
-
-	return str.replace(pattern, (match, command) => {
-		try {
-			const isWindows = process.platform === 'win32';
-			const shell = isWindows ? process.env.ComSpec || 'cmd.exe' : '/bin/bash';
-
-			const result = execSync(command, {
-				encoding: 'utf8',
-				timeout: 5000,
-				shell: shell
-			});
-			return result.trim();
-		} catch (error) {
-			console.warn(`Failed to expand command substitution: ${command}`, error.message);
-			return match;
-		}
-	});
-}
 
 /**
  * GET /api/admin/exercises
  * Get all exercises with full data including test cases (admin only)
  */
-router.get('/exercises', async (req, res) => {
-	try {
-		const exercises = await exerciseService.loadExercisesInternal();
-		res.json(exercises);
-	} catch (error) {
-		console.error('Error fetching exercises:', error);
-		res.status(500).json({
-			error: 'Failed to load exercises',
-			detail: error.message
-		});
-	}
-});
+router.get('/exercises', asyncHandler(async (req, res) => {
+	const exercises = await exerciseService.loadExercisesInternal();
+	res.json(exercises);
+}));
 
 /**
  * POST /api/admin/exercises/reorder
  * Reorder exercises (must be before :id routes to avoid conflicts)
  */
-router.post('/exercises/reorder', async (req, res) => {
-	try {
-		const { exercises } = req.body;
+router.post('/exercises/reorder', asyncHandler(async (req, res) => {
+	const { exercises } = req.body;
 
-		if (!exercises || !Array.isArray(exercises)) {
-			return res.status(400).json({ error: 'Invalid exercises array' });
-		}
-
-		await exerciseService.reorderExercises(exercises);
-
-		res.json({ success: true });
-	} catch (error) {
-		console.error('Error reordering exercises:', error);
-		res.status(500).json({
-			error: 'Failed to reorder exercises',
-			detail: error.message
-		});
+	if (!exercises || !Array.isArray(exercises)) {
+		throw ApiError.badRequest('Invalid exercises array');
 	}
-});
+
+	await exerciseService.reorderExercises(exercises);
+	res.json({ success: true });
+}));
 
 /**
  * GET /api/admin/exercises/:id/full
  * Get complete exercise with test cases (admin only)
  */
-router.get('/exercises/:id/full', async (req, res) => {
-	try {
-		const exercise = await exerciseService.getExerciseWithTests(req.params.id);
-
-		if (!exercise) {
-			return res.status(404).json({ error: 'Exercise not found' });
-		}
-
-		res.json(exercise);
-	} catch (error) {
-		console.error('Error fetching exercise:', error);
-		res.status(500).json({
-			error: 'Failed to load exercise',
-			detail: error.message
-		});
+router.get('/exercises/:id/full', asyncHandler(async (req, res) => {
+	const exercise = await exerciseService.getExerciseWithTests(req.params.id);
+	if (!exercise) {
+		throw ApiError.notFound('Exercise not found');
 	}
-});
+	res.json(exercise);
+}));
 
 /**
  * POST /api/admin/test-solution
