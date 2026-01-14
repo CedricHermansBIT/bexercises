@@ -48,7 +48,7 @@ class ExamGraderPage {
             navbarContainer.innerHTML = this.navbar.render({
                 showBack: true,
                 backText: 'back',
-                backUrl: 'index.html',
+                backUrl: 'admin/index.html',
                 workspaceIndicator: '[admin]',
                 appTitle: 'Exam Grader',
                 isAdminPage: true

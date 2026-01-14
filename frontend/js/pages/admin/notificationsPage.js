@@ -46,7 +46,7 @@ class NotificationsPage {
             navbarContainer.innerHTML = this.navbar.render({
                 showBack: true,
                 backText: 'back',
-                backUrl: 'index.html',
+                backUrl: 'admin/index.html',
                 workspaceIndicator: '[admin]',
                 appTitle: 'Notifications',
                 isAdminPage: true

@@ -46,7 +46,7 @@ class FilesPage {
             navbarContainer.innerHTML = this.navbar.render({
                 showBack: true,
                 backText: 'back',
-                backUrl: 'index.html',
+                backUrl: 'admin/index.html',
                 workspaceIndicator: '[admin]',
                 appTitle: 'Files',
                 isAdminPage: true
