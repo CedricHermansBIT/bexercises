@@ -34,12 +34,6 @@ class AchievementsPage {
         // Set favicon
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
-
-        // Initialize online users navbar dropdown
-        await this.onlineUsers.init('online-users-dropdown', true);
-
         // Setup admin access
         this.setupAdminAccess();
 
@@ -52,8 +46,12 @@ class AchievementsPage {
         this.setupLogout();
         this.setupThemeToggle();
 
-        // Load achievements
-        await this.loadAchievements();
+        // Initialize components and load data in parallel
+        await Promise.all([
+            this.notificationBanner.init(),
+            this.onlineUsers.init('online-users-dropdown', true),
+            this.loadAchievements()
+        ]);
     }
 
     updateTime() {

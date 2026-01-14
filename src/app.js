@@ -38,8 +38,6 @@ function createApp() {
 		...config.session,
 		store: sessionStore
 	}));
-	// Session configuration
-	app.use(session(config.session));
 
 	// Initialize Passport
 	app.use(passport.initialize());

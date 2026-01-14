@@ -36,21 +36,19 @@ class LanguagesPage {
         // Set favicon
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
-
-        // Initialize online users navbar dropdown
-        await this.onlineUsers.init('online-users-dropdown', true);
-
         // Update time display
         this.updateTime();
         setInterval(() => this.updateTime(), 1000);
 
-        // Load exercises and user progress
-        await this.loadExercises();
-        await this.loadUserProgress();
+        // Initialize components and load data in parallel
+        await Promise.all([
+            this.notificationBanner.init(),
+            this.onlineUsers.init('online-users-dropdown', true),
+            this.loadExercises(),
+            this.loadUserProgress()
+        ]);
 
-        // Populate language cards
+        // Populate language cards (depends on exercises and progress)
         await this.populateLanguageCards();
 
         // Setup toolbar buttons

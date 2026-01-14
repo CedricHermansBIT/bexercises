@@ -10,41 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
 </head>
 <body>
-    <!-- Topbar -->
-    <div class="topbar">
-        <div class="topbar-left">
-            <button class="back-button" id="back-to-languages">
-                <span>󰁍</span> back
-            </button>
-            <span class="workspace-indicator">[admin]</span>
-            <span class="app-title">Dashboard</span>
-        </div>
-
-        <div class="topbar-center">
-            <span id="system-time">--:--</span>
-        </div>
-
-        <div class="topbar-right">
-            <button class="topbar-btn" id="achievements-btn" title="Achievements">
-                <span>🏅</span>
-            </button>
-            <button class="topbar-btn" id="leaderboard-btn" title="Leaderboard">
-                <span>🏆</span>
-            </button>
-            <button class="topbar-btn" id="theme-toggle-btn">
-                <span class="theme-icon">🌙</span>
-            </button>
-            <div class="user-menu" id="user-menu-admin">
-                <span class="user-icon">👤</span>
-                <span id="user-display-name-admin">Admin</span>
-                <div class="user-dropdown">
-                    <button class="dropdown-item" id="logout-btn">
-                        <span>🚪</span> Logout
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Navbar will be rendered by JavaScript -->
+    <div id="navbar-container"></div>
 
     <!-- Admin Dashboard Grid -->
     <div class="admin-dashboard">

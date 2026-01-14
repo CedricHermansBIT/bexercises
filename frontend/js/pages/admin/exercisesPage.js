@@ -2,8 +2,10 @@
 import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
+import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
-import { setupAdminCommon, escapeHtml } from './adminUtils.js';
+import { escapeHtml } from './adminUtils.js';
+import { initializeResizableSidebars } from '../../utils/resizeUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
 
 class ExercisesPage {
@@ -11,6 +13,7 @@ class ExercisesPage {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.navbar = new Navbar();
 
         window.authComponent = this.authComponent;
 
@@ -47,19 +50,35 @@ class ExercisesPage {
 
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
+        // Render navbar
+        const navbarContainer = document.getElementById('navbar-container');
+        if (navbarContainer) {
+            navbarContainer.innerHTML = this.navbar.render({
+                showBack: true,
+                backText: 'back',
+                backUrl: 'index.html',
+                workspaceIndicator: '[admin]',
+                appTitle: 'Exercises',
+                isAdminPage: true
+            });
+        }
 
-        // Setup common admin functionality
-        setupAdminCommon(this.authComponent);
-
-        // Setup code editor
+        // Setup code editor (synchronous, doesn't need to wait)
         this.setupCodeEditor();
 
-        // Load data
-        await this.loadLanguages();
+        // Initialize navbar, notification banner and load data in parallel
+        await Promise.all([
+            this.navbar.init(this.authComponent),
+            this.notificationBanner.init(),
+            this.loadLanguages(),
+            this.loadFiles()
+        ]);
+
+        // Initialize resizable sidebars
+        initializeResizableSidebars();
+
+        // Load exercises (depends on languages being loaded for filtering)
         await this.loadExercises();
-        await this.loadFiles();
 
         // Setup event listeners
         this.setupEventListeners();

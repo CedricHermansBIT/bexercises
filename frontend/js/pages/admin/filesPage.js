@@ -2,8 +2,10 @@
 import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
+import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
-import { setupAdminCommon, formatFileSize, escapeHtml } from './adminUtils.js';
+import { formatFileSize, escapeHtml } from './adminUtils.js';
+import { initializeResizableSidebars } from '../../utils/resizeUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
 
 class FilesPage {
@@ -11,6 +13,7 @@ class FilesPage {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.navbar = new Navbar();
 
         window.authComponent = this.authComponent;
 
@@ -37,17 +40,29 @@ class FilesPage {
 
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
+        // Render navbar
+        const navbarContainer = document.getElementById('navbar-container');
+        if (navbarContainer) {
+            navbarContainer.innerHTML = this.navbar.render({
+                showBack: true,
+                backText: 'back',
+                backUrl: 'index.html',
+                workspaceIndicator: '[admin]',
+                appTitle: 'Files',
+                isAdminPage: true
+            });
+        }
 
-        // Setup common admin functionality
-        setupAdminCommon(this.authComponent);
+        // Initialize navbar, notification banner, exercises and files in parallel
+        await Promise.all([
+            this.navbar.init(this.authComponent),
+            this.notificationBanner.init(),
+            this.loadExercises(),
+            this.loadFiles()
+        ]);
 
-        // Load exercises (needed for usage count)
-        await this.loadExercises();
-
-        // Load files
-        await this.loadFiles();
+        // Initialize resizable sidebars
+        initializeResizableSidebars();
 
         // Setup event listeners
         this.setupEventListeners();

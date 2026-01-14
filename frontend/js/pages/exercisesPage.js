@@ -39,12 +39,6 @@ class ExercisesPage {
         // Set favicon
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
-
-        // Initialize online users navbar dropdown
-        await this.onlineUsers.init('online-users-dropdown', true);
-
         // Setup admin access
         this.setupAdminAccess();
 
@@ -64,9 +58,13 @@ class ExercisesPage {
         // Setup event listeners
         this.setupEventListeners();
 
-        // Load exercises and user progress
-        await this.loadExercises();
-        await this.loadUserProgress();
+        // Initialize components and load data in parallel
+        await Promise.all([
+            this.notificationBanner.init(),
+            this.onlineUsers.init('online-users-dropdown', true),
+            this.loadExercises(),
+            this.loadUserProgress()
+        ]);
 
         // Update progress display
         this.updateProgressDisplay();

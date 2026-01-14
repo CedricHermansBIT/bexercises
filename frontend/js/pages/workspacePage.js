@@ -46,11 +46,11 @@ class WorkspacePage {
             return;
         }
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
-
-        // Initialize online users navbar dropdown
-        await this.onlineUsers.init('online-users-dropdown', true);
+        // Initialize components in parallel (don't block the main flow)
+        const componentInit = Promise.all([
+            this.notificationBanner.init(),
+            this.onlineUsers.init('online-users-dropdown', true)
+        ]);
 
         // Setup admin access
         this.setupAdminAccess();
@@ -94,6 +94,9 @@ class WorkspacePage {
                 editBtn.style.display = 'inline-block';
             }
         }
+
+        // Wait for component initialization to complete
+        await componentInit;
 
         // Get exercise ID from URL or session storage
         const urlParams = new URLSearchParams(window.location.search);

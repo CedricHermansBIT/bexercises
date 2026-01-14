@@ -2,8 +2,8 @@
 import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
+import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
-import { setupAdminCommon } from './adminUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
 
 class AdminIndexPage {
@@ -11,6 +11,7 @@ class AdminIndexPage {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.navbar = new Navbar();
 
         window.authComponent = this.authComponent;
 
@@ -34,37 +35,24 @@ class AdminIndexPage {
 
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
-
-        // Setup common admin functionality
-        setupAdminCommon(this.authComponent);
-
-        // Setup additional event listeners
-        this.setupEventListeners();
-    }
-
-    setupEventListeners() {
-        const backBtn = document.getElementById('back-to-languages');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => {
-                navigateTo('languages.html');
+        // Render navbar
+        const navbarContainer = document.getElementById('navbar-container');
+        if (navbarContainer) {
+            navbarContainer.innerHTML = this.navbar.render({
+                showBack: true,
+                backText: 'back',
+                backUrl: 'languages.html',
+                workspaceIndicator: '[admin]',
+                appTitle: 'Dashboard',
+                isAdminPage: true
             });
         }
 
-        const achievementsBtn = document.getElementById('achievements-btn');
-        if (achievementsBtn) {
-            achievementsBtn.addEventListener('click', () => {
-                navigateTo('achievements.html');
-            });
-        }
-
-        const leaderboardBtn = document.getElementById('leaderboard-btn');
-        if (leaderboardBtn) {
-            leaderboardBtn.addEventListener('click', () => {
-                navigateTo('leaderboard.html');
-            });
-        }
+        // Initialize navbar and notification banner in parallel
+        await Promise.all([
+            this.navbar.init(this.authComponent),
+            this.notificationBanner.init()
+        ]);
     }
 }
 

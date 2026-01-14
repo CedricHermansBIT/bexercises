@@ -2,8 +2,8 @@
 import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
+import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
-import { setupAdminCommon } from './adminUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
 
 class ExamGraderPage {
@@ -11,6 +11,7 @@ class ExamGraderPage {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.navbar = new Navbar();
 
         window.authComponent = this.authComponent;
 
@@ -41,14 +42,25 @@ class ExamGraderPage {
 
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
+        // Render navbar
+        const navbarContainer = document.getElementById('navbar-container');
+        if (navbarContainer) {
+            navbarContainer.innerHTML = this.navbar.render({
+                showBack: true,
+                backText: 'back',
+                backUrl: 'index.html',
+                workspaceIndicator: '[admin]',
+                appTitle: 'Exam Grader',
+                isAdminPage: true
+            });
+        }
 
-        // Setup common admin functionality
-        setupAdminCommon(this.authComponent);
-
-        // Load available fixtures
-        await this.loadAvailableFixtures();
+        // Initialize navbar, notification banner and load fixtures in parallel
+        await Promise.all([
+            this.navbar.init(this.authComponent),
+            this.notificationBanner.init(),
+            this.loadAvailableFixtures()
+        ]);
 
         // Setup event listeners
         this.setupEventListeners();

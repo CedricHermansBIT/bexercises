@@ -2,8 +2,9 @@
 import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
+import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
-import { setupAdminCommon } from './adminUtils.js';
+import { initializeResizableSidebars } from '../../utils/resizeUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
 
 class LanguagesPage {
@@ -11,6 +12,7 @@ class LanguagesPage {
         this.apiService = new ApiService();
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
+        this.navbar = new Navbar();
 
         window.authComponent = this.authComponent;
 
@@ -38,14 +40,28 @@ class LanguagesPage {
 
         setFavicon();
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
+        // Render navbar
+        const navbarContainer = document.getElementById('navbar-container');
+        if (navbarContainer) {
+            navbarContainer.innerHTML = this.navbar.render({
+                showBack: true,
+                backText: 'back',
+                backUrl: 'index.html',
+                workspaceIndicator: '[admin]',
+                appTitle: 'Languages',
+                isAdminPage: true
+            });
+        }
 
-        // Setup common admin functionality
-        setupAdminCommon(this.authComponent);
+        // Initialize navbar, notification banner and load data in parallel
+        await Promise.all([
+            this.navbar.init(this.authComponent),
+            this.notificationBanner.init(),
+            this.loadLanguages()
+        ]);
 
-        // Load data
-        await this.loadLanguages();
+        // Initialize resizable sidebars
+        initializeResizableSidebars();
 
         // Setup event listeners
         this.setupEventListeners();

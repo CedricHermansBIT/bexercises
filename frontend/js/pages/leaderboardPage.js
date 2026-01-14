@@ -45,12 +45,6 @@ class LeaderboardPage {
             return;
         }
 
-        // Initialize notification banner
-        await this.notificationBanner.init();
-
-        // Initialize online users navbar dropdown
-        await this.onlineUsers.init('online-users-dropdown', true);
-
         // Setup admin access
         this.setupAdminAccess();
 
@@ -67,8 +61,14 @@ class LeaderboardPage {
         // Setup logout
         this.setupLogout();
 
-        // Load initial data - languages first, then rankings
-        await this.loadLanguages();
+        // Initialize components and load data in parallel
+        await Promise.all([
+            this.notificationBanner.init(),
+            this.onlineUsers.init('online-users-dropdown', true),
+            this.loadLanguages()
+        ]);
+
+        // Load rankings (may depend on languages for tab selection)
         await this.loadRankings();
     }
 
