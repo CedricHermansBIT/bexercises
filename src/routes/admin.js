@@ -1440,5 +1440,72 @@ router.delete('/chapters/:chapterId', async (req, res) => {
 	}
 });
 
+// ============= Container Management =============
+
+/**
+ * GET /api/admin/containers/status
+ * Get container runtime status and statistics
+ */
+router.get('/containers/status', asyncHandler(async (req, res) => {
+	const containerCleanupService = require('../services/containerCleanupService');
+	const status = await containerCleanupService.getStatus();
+	res.json(status);
+}));
+
+/**
+ * POST /api/admin/containers/cleanup
+ * Manually trigger container cleanup
+ */
+router.post('/containers/cleanup', asyncHandler(async (req, res) => {
+	const containerCleanupService = require('../services/containerCleanupService');
+	console.log('[Admin] Manual container cleanup triggered by:', req.user?.display_name || 'Unknown');
+
+	const result = await containerCleanupService.cleanupOrphanedContainers();
+	res.json({
+		success: true,
+		...result,
+		message: `Cleaned up ${result.removed} containers`
+	});
+}));
+
+/**
+ * POST /api/admin/containers/force-cleanup
+ * Force cleanup all containers (emergency use)
+ */
+router.post('/containers/force-cleanup', asyncHandler(async (req, res) => {
+	const containerCleanupService = require('../services/containerCleanupService');
+	console.log('[Admin] FORCE container cleanup triggered by:', req.user?.display_name || 'Unknown');
+
+	const result = await containerCleanupService.forceCleanupAll();
+	res.json({
+		success: true,
+		...result,
+		message: `Force cleaned up ${result.removed} containers`
+	});
+}));
+
+/**
+ * POST /api/admin/containers/renumber-locks
+ * Renumber Podman locks (fixes "exceeded num_locks" error)
+ */
+router.post('/containers/renumber-locks', asyncHandler(async (req, res) => {
+	const containerCleanupService = require('../services/containerCleanupService');
+
+	if (!containerCleanupService.isPodman) {
+		return res.json({
+			success: true,
+			message: 'Not using Podman - lock renumbering not needed'
+		});
+	}
+
+	console.log('[Admin] Podman lock renumber triggered by:', req.user?.display_name || 'Unknown');
+	await containerCleanupService.podmanRenumberLocks();
+
+	res.json({
+		success: true,
+		message: 'Podman locks renumbered successfully'
+	});
+}));
+
 module.exports = router;
 

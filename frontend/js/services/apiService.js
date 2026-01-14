@@ -969,6 +969,40 @@ class ApiService {
 			throw new Error(error.error || error.detail || `Failed to delete language: ${response.status}`);
 		}
 	}
+
+	// ============= Container Management (Admin) =============
+
+	/**
+	 * Get container runtime status (admin only)
+	 * @returns {Promise<Object>} Container status info
+	 */
+	async getContainerStatus() {
+		return this._get('/api/admin/containers/status');
+	}
+
+	/**
+	 * Trigger container cleanup (admin only)
+	 * @returns {Promise<Object>} Cleanup result
+	 */
+	async cleanupContainers() {
+		return this._post('/api/admin/containers/cleanup', {});
+	}
+
+	/**
+	 * Force cleanup all containers (admin only - emergency use)
+	 * @returns {Promise<Object>} Cleanup result
+	 */
+	async forceCleanupContainers() {
+		return this._post('/api/admin/containers/force-cleanup', {});
+	}
+
+	/**
+	 * Renumber Podman locks (admin only - fixes "exceeded num_locks" error)
+	 * @returns {Promise<Object>} Result
+	 */
+	async renumberPodmanLocks() {
+		return this._post('/api/admin/containers/renumber-locks', {});
+	}
 }
 
 export default ApiService;
