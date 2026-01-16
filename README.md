@@ -78,7 +78,7 @@ For detailed setup instructions, see [QUICKSTART.md](docs/QUICKSTART.md).
 - 30-second timeout per test
 - No network access from containers
 - OAuth 2.0 authentication
-- Session management with secure cookies
+- Session management with secure cookies and caching
 
 ## How It Works
 
