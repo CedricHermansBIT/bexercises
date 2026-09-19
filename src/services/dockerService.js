@@ -567,8 +567,9 @@ async function hashFile(filePath) {
  * @param {string} directoryPath - Directory to inspect
  * @returns {Promise<string>} SHA-256 hash of the directory state
  */
-async function hashDirectoryState(directoryPath) {
+async function inspectDirectoryState(directoryPath) {
 	const hash = crypto.createHash('sha256');
+	const entriesState = [];
 
 	async function visit(currentPath, relativePath = '') {
 		const entries = await fs.readdir(currentPath, { withFileTypes: true });
@@ -582,21 +583,30 @@ async function hashDirectoryState(directoryPath) {
 				: stat.isDirectory() ? 'directory'
 					: stat.isSymbolicLink() ? 'link'
 						: 'other';
+			const entryState = { path: entryRelativePath, type };
 
 			hash.update(`${type}\0${entryRelativePath}\0`);
 			if (type === 'file') {
-				hash.update(await hashFile(entryPath));
+				entryState.sha256 = await hashFile(entryPath);
+				hash.update(entryState.sha256);
 			} else if (type === 'link') {
-				hash.update(await fs.readlink(entryPath));
+				entryState.linkTarget = await fs.readlink(entryPath);
+				hash.update(entryState.linkTarget);
 			} else if (type === 'directory') {
 				await visit(entryPath, entryRelativePath);
 			}
 			hash.update('\0');
+			entriesState.push(entryState);
 		}
 	}
 
 	await visit(directoryPath);
-	return hash.digest('hex');
+	return { sha256: hash.digest('hex'), entries: entriesState };
+}
+
+async function hashDirectoryState(directoryPath) {
+	const state = await inspectDirectoryState(directoryPath);
+	return state.sha256;
 }
 
 /**
@@ -626,7 +636,9 @@ async function hashOutputFiles(tmpdir, filenames = []) {
 			if (type === 'file') {
 				result.sha256 = await hashFile(filePath);
 			} else if (type === 'directory') {
-				result.sha256 = await hashDirectoryState(filePath);
+				const directoryState = await inspectDirectoryState(filePath);
+				result.sha256 = directoryState.sha256;
+				result.entries = directoryState.entries;
 			} else if (type === 'link') {
 				result.linkTarget = await fs.readlink(filePath);
 			}
@@ -657,6 +669,7 @@ module.exports = {
 	runScriptWithTestCase,
 	hashFile,
 	hashDirectoryState,
+	inspectDirectoryState,
 	hashOutputFiles,
 	getLanguageConfig,
 	getLanguageConfigSync,

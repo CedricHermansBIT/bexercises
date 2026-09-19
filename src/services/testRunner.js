@@ -295,7 +295,28 @@ async function runTests(exercise, script) {
 						: expectedType === 'link'
 							? (!expected.linkTarget || actual.linkTarget === expected.linkTarget)
 							: true;
-					const matches = Boolean(expected) && actual.exists && typeMatches && stateMatches;
+					const expectedEntries = expected?.entries || [];
+					const actualEntries = actual.entries || [];
+					const entryPaths = new Set([
+						...expectedEntries.map(entry => entry.path),
+						...actualEntries.map(entry => entry.path)
+					]);
+					const entries = [...entryPaths].sort().map((entryPath) => {
+						const expectedEntry = expectedEntries.find(entry => entry.path === entryPath);
+						const actualEntry = actualEntries.find(entry => entry.path === entryPath);
+						const entryMatches = Boolean(expectedEntry && actualEntry)
+							&& expectedEntry.type === actualEntry.type
+							&& (expectedEntry.type !== 'file' || expectedEntry.sha256 === actualEntry.sha256)
+							&& (expectedEntry.type !== 'link' || expectedEntry.linkTarget === actualEntry.linkTarget);
+						return {
+							path: entryPath,
+							expectedType: expectedEntry?.type || null,
+							actualType: actualEntry?.type || null,
+							matches: entryMatches
+						};
+					});
+					const entriesMatch = expectedEntries.length === 0 || entries.every(entry => entry.matches);
+					const matches = Boolean(expected) && actual.exists && typeMatches && stateMatches && entriesMatch;
 
                     if (!matches) {
                         outputFilesMatch = false;
@@ -309,6 +330,7 @@ async function runTests(exercise, script) {
 						actualHash: actual.sha256,
 						expectedLinkTarget: expected ? expected.linkTarget : null,
 						actualLinkTarget: actual.linkTarget,
+						entries,
                         exists: actual.exists,
                         size: actual.size,
                         error: actual.error,

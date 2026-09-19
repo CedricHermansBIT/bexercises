@@ -700,7 +700,8 @@ class ExercisesPage {
                         filename: fh.filename,
                         sha256: fh.sha256,
                         type: fh.type,
-                        linkTarget: fh.linkTarget
+                        linkTarget: fh.linkTarget,
+                        entries: fh.entries
                     }));
                 }
 

@@ -124,6 +124,18 @@ class TestResults {
 			result.outputFiles.forEach(file => {
 				const statusIcon = file.matches ? '✓' : '✗';
 				const statusColor = file.matches ? 'var(--accent-green)' : 'var(--accent-red)';
+				const treeHtml = file.entries && file.entries.length > 0 ? `
+					<details style="margin-top: 0.6rem;">
+						<summary style="cursor: pointer;">Generated directory tree (${file.entries.length} entries)</summary>
+						<div style="margin-top: 0.4rem; font-family: monospace; font-size: 0.8rem;">
+							${file.entries.map(entry => {
+								const status = entry.matches ? '✓' : entry.expectedType ? '✗' : '•';
+								const color = entry.matches ? 'var(--accent-green)' : entry.expectedType ? 'var(--accent-red)' : 'var(--text-muted)';
+								return `<div style="color: ${color};">${status} ${this.escapeHtml(entry.path)} <span style="color: var(--text-muted);">(${this.escapeHtml(entry.actualType || 'missing')})</span></div>`;
+							}).join('')}
+						</div>
+					</details>
+				` : '';
 
 				filesContent += `
 					<div class="file-result" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid ${statusColor};">
@@ -140,6 +152,7 @@ class TestResults {
 								` : ''}
 								${file.actualType === 'link' ? `<div>Target: expected <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.expectedLinkTarget || 'N/A')}</code>, actual <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.actualLinkTarget || 'N/A')}</code></div>` : ''}
 								<div>Size: ${file.size || 0} bytes</div>
+								${treeHtml}
 							</div>
 						` : `
 							<div style="color: var(--accent-red); font-size: 0.85rem;">${file.error || 'File not found'}</div>
