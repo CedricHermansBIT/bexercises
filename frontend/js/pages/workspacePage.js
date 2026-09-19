@@ -33,6 +33,7 @@ class WorkspacePage {
         this.currentExerciseIndex = -1; // Index in chapterExercises array
         this.isRunning = false;
         this.saveStatusTimer = null;
+        this.nextExerciseCtaTimer = null;
 
         this.init();
     }
@@ -148,6 +149,7 @@ class WorkspacePage {
             if (this.currentExercise) {
                 this.updateSaveStatus('Saving…', 'saving');
                 this.saveProgress();
+                this.hideNextExerciseCta();
             }
         });
 
@@ -606,11 +608,14 @@ class WorkspacePage {
 
         cta.textContent = `✓ Exercise completed — continue to ${nextExercise.title} →`;
         cta.hidden = false;
+        clearTimeout(this.nextExerciseCtaTimer);
+        this.nextExerciseCtaTimer = setTimeout(() => this.hideNextExerciseCta(), 8000);
     }
 
     hideNextExerciseCta() {
         const cta = document.getElementById('next-exercise-cta');
         if (cta) cta.hidden = true;
+        clearTimeout(this.nextExerciseCtaTimer);
     }
 
     navigateToRecommendedExercise() {
