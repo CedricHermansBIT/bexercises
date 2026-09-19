@@ -111,6 +111,15 @@ async function runTests(exercise, script) {
             console.log(`\n=== Test Case ${i + 1}/${exercise.testCases.length} ===`);
             console.log(`Fixtures:`, tc.fixtures);
 
+
+            // Reset protected files to just the script so the PREVIOUS test case's
+            // fixtures are no longer protected and get cleaned up below. Without this,
+            // protectedFiles only ever grows and stale fixtures leak into later test cases.
+            protectedFiles.clear();
+            if (scriptFilename) {
+                protectedFiles.add(scriptFilename);
+            }
+
             // Clean up output files from previous test case (but keep fixtures and script)
             if (i > 0) {
                 try {
@@ -274,23 +283,36 @@ async function runTests(exercise, script) {
 				const filenames = expandedFiles.map(f => f.filename);
 				const actualFileHashes = await hashOutputFiles(tmpdir, filenames);
 
-				// Compare each file's hash
+				// Compare each expected path's type. File contents and directory
+				// trees are hashed; links are compared by their destination.
 				outputFilesResult = actualFileHashes.map((actual) => {
 					const expected = expandedFiles.find(e => e.filename === actual.filename);
-					const hashMatches = expected && actual.sha256 === expected.sha256;
+					// Tests saved before types were recorded only supported files.
+					const expectedType = expected ? (expected.type || 'file') : null;
+					const typeMatches = expectedType === actual.type;
+					const stateMatches = ['file', 'directory'].includes(expectedType)
+						? (!expected.sha256 || actual.sha256 === expected.sha256)
+						: expectedType === 'link'
+							? (!expected.linkTarget || actual.linkTarget === expected.linkTarget)
+							: true;
+					const matches = Boolean(expected) && actual.exists && typeMatches && stateMatches;
 
-                    if (!hashMatches) {
+                    if (!matches) {
                         outputFilesMatch = false;
                     }
 
                     return {
                         filename: actual.filename,
+						expectedType,
+						actualType: actual.type,
                         expectedHash: expected ? expected.sha256 : null,
-                        actualHash: actual.sha256,
+						actualHash: actual.sha256,
+						expectedLinkTarget: expected ? expected.linkTarget : null,
+						actualLinkTarget: actual.linkTarget,
                         exists: actual.exists,
                         size: actual.size,
                         error: actual.error,
-                        matches: hashMatches
+                        matches
                     };
                 });
             }

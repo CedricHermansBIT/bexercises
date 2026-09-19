@@ -133,8 +133,12 @@ class TestResults {
 						</div>
 						${file.exists ? `
 							<div style="font-size: 0.85rem; color: var(--text-muted);">
+								<div>Type: expected <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.expectedType || 'file')}</code>, actual <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.actualType || 'unknown')}</code></div>
+								${['file', 'directory'].includes(file.actualType) ? `
 								<div>Expected: <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.expectedHash || 'N/A')}</code></div>
 								<div>Actual: <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.actualHash || 'N/A')}</code></div>
+								` : ''}
+								${file.actualType === 'link' ? `<div>Target: expected <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.expectedLinkTarget || 'N/A')}</code>, actual <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.actualLinkTarget || 'N/A')}</code></div>` : ''}
 								<div>Size: ${file.size || 0} bytes</div>
 							</div>
 						` : `

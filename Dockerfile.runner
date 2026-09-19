@@ -1,6 +1,8 @@
 # Dockerfile.runner
 FROM debian:bookworm-slim
 
+#RUN mkdir -p /etc && echo "127.0.0.1 localhost" > /etc/hosts
+
 # Create non-root user
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	    bash \

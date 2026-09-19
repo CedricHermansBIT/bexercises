@@ -560,10 +560,52 @@ async function hashFile(filePath) {
 }
 
 /**
- * Hash multiple output files from a directory
+ * Hash a directory's recursive filesystem state. Each nested entry contributes
+ * its relative path, type, and either its file contents or link destination.
+ * This makes empty and non-empty directories distinguishable while avoiding
+ * following symbolic links (and therefore symlink cycles).
+ * @param {string} directoryPath - Directory to inspect
+ * @returns {Promise<string>} SHA-256 hash of the directory state
+ */
+async function hashDirectoryState(directoryPath) {
+	const hash = crypto.createHash('sha256');
+
+	async function visit(currentPath, relativePath = '') {
+		const entries = await fs.readdir(currentPath, { withFileTypes: true });
+		entries.sort((a, b) => a.name.localeCompare(b.name));
+
+		for (const entry of entries) {
+			const entryPath = path.join(currentPath, entry.name);
+			const entryRelativePath = path.join(relativePath, entry.name);
+			const stat = await fs.lstat(entryPath);
+			const type = stat.isFile() ? 'file'
+				: stat.isDirectory() ? 'directory'
+					: stat.isSymbolicLink() ? 'link'
+						: 'other';
+
+			hash.update(`${type}\0${entryRelativePath}\0`);
+			if (type === 'file') {
+				hash.update(await hashFile(entryPath));
+			} else if (type === 'link') {
+				hash.update(await fs.readlink(entryPath));
+			} else if (type === 'directory') {
+				await visit(entryPath, entryRelativePath);
+			}
+			hash.update('\0');
+		}
+	}
+
+	await visit(directoryPath);
+	return hash.digest('hex');
+}
+
+/**
+ * Inspect output paths from a directory. Regular files are hashed; directories
+ * and symbolic links are recorded by type so callers can verify the complete
+ * filesystem state produced by a solution.
  * @param {string} tmpdir - Temporary directory where files were created
  * @param {Array<string>} filenames - Array of filenames to hash
- * @returns {Promise<Array<Object>>} Array of {filename, sha256, exists, error}
+ * @returns {Promise<Array<Object>>} Array of path state objects
  */
 async function hashOutputFiles(tmpdir, filenames = []) {
 	const results = [];
@@ -572,40 +614,31 @@ async function hashOutputFiles(tmpdir, filenames = []) {
 		const filePath = path.join(tmpdir, filename);
 
 		try {
-			if (!fsSync.existsSync(filePath)) {
-				results.push({
-					filename,
-					sha256: null,
-					exists: false,
-					error: 'File not found'
-				});
-				continue;
+			// lstat deliberately does not follow symlinks. A link is a valid
+			// expected output state, including when its target is not present.
+			const stat = await fs.lstat(filePath);
+			const type = stat.isFile() ? 'file'
+				: stat.isDirectory() ? 'directory'
+					: stat.isSymbolicLink() ? 'link'
+						: 'other';
+			const result = { filename, type, sha256: null, exists: true, size: stat.size };
+
+			if (type === 'file') {
+				result.sha256 = await hashFile(filePath);
+			} else if (type === 'directory') {
+				result.sha256 = await hashDirectoryState(filePath);
+			} else if (type === 'link') {
+				result.linkTarget = await fs.readlink(filePath);
 			}
 
-			const stat = await fs.stat(filePath);
-			if (!stat.isFile()) {
-				results.push({
-					filename,
-					sha256: null,
-					exists: false,
-					error: 'Not a file (might be a directory)'
-				});
-				continue;
-			}
-
-			const hash = await hashFile(filePath);
-			results.push({
-				filename,
-				sha256: hash,
-				exists: true,
-				size: stat.size
-			});
+			results.push(result);
 		} catch (error) {
 			results.push({
 				filename,
 				sha256: null,
+				type: null,
 				exists: false,
-				error: error.message
+				error: error.code === 'ENOENT' ? 'Path not found' : error.message
 			});
 		}
 	}
@@ -623,6 +656,7 @@ module.exports = {
 	runScript,
 	runScriptWithTestCase,
 	hashFile,
+	hashDirectoryState,
 	hashOutputFiles,
 	getLanguageConfig,
 	getLanguageConfigSync,

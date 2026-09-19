@@ -698,7 +698,9 @@ class ExercisesPage {
                 if (result.fileHashes && result.fileHashes.length > 0) {
                     this.testCases[i].expectedOutputFiles = result.fileHashes.map(fh => ({
                         filename: fh.filename,
-                        sha256: fh.sha256
+                        sha256: fh.sha256,
+                        type: fh.type,
+                        linkTarget: fh.linkTarget
                     }));
                 }
 
@@ -712,7 +714,9 @@ class ExercisesPage {
                             <div style="margin: 0.5rem 0; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 4px;">
                                 <span style="color: ${color};">${status}</span> <strong>${escapeHtml(fh.filename)}</strong><br>
                                 ${fh.exists ? `
-                                    <small style="color: var(--text-muted);">SHA-256: ${fh.sha256}</small><br>
+                                    <small style="color: var(--text-muted);">Type: ${fh.type}</small><br>
+                                    ${fh.sha256 ? `<small style="color: var(--text-muted);">${fh.type === 'directory' ? 'Tree SHA-256' : 'SHA-256'}: ${fh.sha256}</small><br>` : ''}
+                                    ${fh.type === 'link' ? `<small style="color: var(--text-muted);">Target: ${escapeHtml(fh.linkTarget)}</small><br>` : ''}
                                     <small style="color: var(--text-muted);">Size: ${fh.size} bytes</small>
                                 ` : `<small style="color: var(--accent-red);">${fh.error || 'File not found'}</small>`}
                             </div>
@@ -922,7 +926,11 @@ class ExercisesPage {
 
     formatOutputFiles(files) {
         if (!files || files.length === 0) return '';
-        return files.map(f => `${f.filename}: ${f.sha256 ? f.sha256.substring(0, 16) + '...' : 'N/A'}`).join('\n');
+        return files.map(f => {
+            const type = f.type || 'file';
+            const hash = f.sha256 ? `: ${f.sha256.substring(0, 16)}...` : '';
+            return `${f.filename} (${type})${hash}`;
+        }).join('\n');
     }
 
     modifyProceed() {
@@ -1052,10 +1060,10 @@ class ExercisesPage {
                     ` : ''}
                     ${!isDatabaseExercise ? `
                     <div class="form-group-inline">
-                        <label>Expected Output Files (comma-separated filenames to verify)</label>
+                        <label>Expected Output Paths (comma-separated names to verify)</label>
                         <input type="text" class="form-input" data-field="outputFiles" data-index="${index}"
                                 value="${(testCase.outputFiles || []).join(', ')}" placeholder="output.txt, result.tar.gz">
-                        <small style="color: var(--text-muted); font-size: 0.85rem;">Files created by script that will be hash-verified</small>
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">Files are hash-verified; directories and symbolic links are verified by type</small>
                     </div>
                     ` : ''}
                     <div class="form-group-inline">
@@ -1071,7 +1079,7 @@ class ExercisesPage {
                                    rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedStderr || ''}</textarea>
                     </div>
                     <div class="form-group-inline">
-                        <label>Expected File Hashes (auto-filled when testing)</label>
+                        <label>Expected Output Path State (auto-filled when testing)</label>
                         <textarea class="form-input" data-field="expectedOutputFiles" data-index="${index}"
                                    rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${this.formatOutputFiles(testCase.expectedOutputFiles || [])}</textarea>
                     </div>

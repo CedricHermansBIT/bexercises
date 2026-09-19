@@ -102,7 +102,7 @@ class DatabaseService {
 				expected_output TEXT,
 				expected_stderr TEXT DEFAULT '',
 				expected_exit_code INTEGER DEFAULT 0,
-				expected_output_files TEXT DEFAULT '[]', -- JSON array of {filename, sha256}
+				expected_output_files TEXT DEFAULT '[]', -- JSON array of {filename, type, sha256, linkTarget}; hashes cover files and directory trees
 				use_dynamic_output INTEGER DEFAULT 0, -- If 1, run exercise solution to get expected output
 				validation_query TEXT, -- For database exercises: query to validate database state
 				expected_validation_output TEXT, -- Expected output of validation query
