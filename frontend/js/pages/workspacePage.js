@@ -620,7 +620,10 @@ class WorkspacePage {
 
     navigateToRecommendedExercise() {
         const nextExercise = this.getRecommendedNextExercise();
-        if (nextExercise) this.navigateToExercise(nextExercise);
+        if (nextExercise) {
+            this.hideNextExerciseCta();
+            this.navigateToExercise(nextExercise);
+        }
     }
 
     async resetCode() {
