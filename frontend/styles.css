@@ -1503,6 +1503,10 @@ body {
     filter: brightness(1.08);
 }
 
+.next-exercise-cta[hidden] {
+    display: none;
+}
+
 .action-btn {
     background: var(--surface-light);
     border: 1px solid var(--border-color);
