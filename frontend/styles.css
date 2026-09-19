@@ -1231,6 +1231,47 @@ body {
     padding: 0 0.5rem; /* Add padding to prevent content touching edges */
 }
 
+.fixture-header {
+    margin-top: 1.75rem;
+}
+
+.fixture-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.fixture-tree-empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.fixture-tree-entry {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.fixture-tree-icon {
+    color: var(--accent-lavender);
+    flex: 0 0 auto;
+}
+
+.fixture-tree-name {
+    overflow-wrap: anywhere;
+}
+
+.fixture-tree-permissions {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
 .section-content h1,
 .section-content h2,
 .section-content h3 {
@@ -1416,6 +1457,50 @@ body {
 .editor-actions {
     display: flex;
     gap: 0.75rem;
+}
+
+.save-status {
+    align-self: center;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.save-status.saving {
+    color: var(--accent-yellow);
+}
+
+.save-status.saved {
+    color: var(--accent-green);
+}
+
+.editor-actions kbd {
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.67rem;
+    line-height: 1;
+    opacity: 0.8;
+    padding: 0.15rem 0.25rem;
+}
+
+.next-exercise-cta {
+    display: block;
+    width: calc(100% - 2rem);
+    margin: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--accent-green);
+    border: 0;
+    border-radius: 6px;
+    color: var(--bg-primary);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+}
+
+.next-exercise-cta:hover {
+    filter: brightness(1.08);
 }
 
 .action-btn {

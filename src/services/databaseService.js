@@ -1098,6 +1098,21 @@ class DatabaseService {
 		return this.db.get('SELECT * FROM fixture_files WHERE filename = ?', [filename]);
 	}
 
+	/**
+	 * Return the fixture paths used by an exercise without exposing their content.
+	 * Students need these names to understand the workspace supplied to their code.
+	 */
+	async getExerciseFixtures(exerciseId) {
+		return this.db.all(`
+			SELECT DISTINCT f.filename, f.type, f.permissions
+			FROM fixture_files f
+			JOIN test_case_fixtures tcf ON tcf.fixture_id = f.id
+			JOIN test_cases tc ON tc.id = tcf.test_case_id
+			WHERE tc.exercise_id = ?
+			ORDER BY f.filename
+		`, [exerciseId]);
+	}
+
 	async createFixtureFile(filename, content, type = 'file', permissions = 'rwxr-xr-x') {
 		const size = type === 'file' ? Buffer.byteLength(content || '', 'utf8') : 0;
 		await this.db.run(`

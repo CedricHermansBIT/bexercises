@@ -81,6 +81,10 @@
                     <div class="section-content" id="exercise-description">
                         <!-- Description will be loaded here -->
                     </div>
+                    <div class="section-header fixture-header">workspace files</div>
+                    <div class="fixture-tree" id="fixture-tree" aria-live="polite">
+                        <span class="fixture-tree-empty">No fixture files for this exercise.</span>
+                    </div>
                 </div>
             </div>
 
@@ -89,8 +93,9 @@
                     <div class="editor-header">
                         <span class="editor-title">solution.sh</span>
                         <div class="editor-actions">
+                            <span id="save-status" class="save-status" role="status">Saved</span>
                             <button id="run-tests" class="action-btn primary">
-                                <span>󰐊</span> run tests
+                                <span>󰐊</span> run tests <kbd>Ctrl↵</kbd>
                             </button>
                             <button id="reset-code" class="action-btn">
                                 <span>󰑓</span> reset
@@ -112,6 +117,7 @@
                         <div id="test-results">
                             <p class="no-results">$ ./solution.sh - waiting for execution...</p>
                         </div>
+                        <button id="next-exercise-cta" class="next-exercise-cta" hidden></button>
                         <div id="statistics-panel" class="statistics-panel">
                             <!-- Statistics will be populated here after running tests -->
                         </div>

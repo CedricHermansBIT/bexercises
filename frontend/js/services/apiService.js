@@ -178,6 +178,15 @@ class ApiService {
 	}
 
 	/**
+	 * List the read-only fixture paths available for an exercise.
+	 * @param {string} exerciseId - Exercise identifier
+	 * @returns {Promise<Array>} Fixture path metadata
+	 */
+	async getExerciseFixtures(exerciseId) {
+		return this._get(`/api/exercises/${encodeURIComponent(exerciseId)}/fixtures`);
+	}
+
+	/**
 	 * Run tests for an exercise
 	 * @param {string} exerciseId - Exercise ID
 	 * @param {string} script - User's script code

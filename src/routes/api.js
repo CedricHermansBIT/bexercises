@@ -52,6 +52,25 @@ router.get('/exercises/:id', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * GET /api/exercises/:id/fixtures
+ * List the read-only fixture paths made available while running an exercise.
+ * Contents are deliberately not exposed through the student API.
+ */
+router.get('/exercises/:id/fixtures', asyncHandler(async (req, res) => {
+	const exercise = await exerciseService.getExerciseById(req.params.id);
+	if (!exercise) {
+		throw ApiError.notFound('Exercise not found');
+	}
+
+	const fixtures = await databaseService.getExerciseFixtures(req.params.id);
+	res.json(fixtures.map(fixture => ({
+		filename: fixture.filename,
+		type: fixture.type === 'folder' ? 'directory' : 'file',
+		permissions: fixture.permissions
+	})));
+}));
+
+/**
  * POST /api/exercises/:id/run
  * Run tests for an exercise
  */

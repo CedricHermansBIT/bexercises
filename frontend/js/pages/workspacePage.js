@@ -31,6 +31,8 @@ class WorkspacePage {
         this.codeEditor = null;
         this.chapterExercises = []; // All exercises in current chapter
         this.currentExerciseIndex = -1; // Index in chapterExercises array
+        this.isRunning = false;
+        this.saveStatusTimer = null;
 
         this.init();
     }
@@ -144,6 +146,7 @@ class WorkspacePage {
         // Auto-save code changes
         this.codeEditor.on('change', () => {
             if (this.currentExercise) {
+                this.updateSaveStatus('Saving…', 'saving');
                 this.saveProgress();
             }
         });
@@ -216,6 +219,23 @@ class WorkspacePage {
         if (nextExerciseBtn) {
             nextExerciseBtn.addEventListener('click', () => this.navigateToNextExercise());
         }
+
+        const nextExerciseCta = document.getElementById('next-exercise-cta');
+        if (nextExerciseCta) {
+            nextExerciseCta.addEventListener('click', () => this.navigateToRecommendedExercise());
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+
+            if (event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                this.saveProgress(true);
+            } else if (event.key === 'Enter' && !this.isRunning) {
+                event.preventDefault();
+                this.runTests();
+            }
+        });
     }
 
     setupLogout() {
@@ -342,6 +362,8 @@ class WorkspacePage {
             const descriptionDiv = document.getElementById('exercise-description');
             descriptionDiv.innerHTML = marked.parse(exercise.description);
 
+            await this.loadFixtures(exercise.id);
+
             // Set CodeMirror mode based on exercise language
             if (this.codeEditor) {
                 const languageMode = this.getCodeMirrorMode(exercise.language_id || 'bash');
@@ -364,6 +386,7 @@ class WorkspacePage {
             // Update completion status
             this.updateCompletionStatus(exerciseId);
             this.testResults.displayNoResults();
+            this.hideNextExerciseCta();
 
             // Load chapter exercises and update navigation
             await this.loadChapterExercises(exercise);
@@ -432,6 +455,46 @@ class WorkspacePage {
         }
     }
 
+    async loadFixtures(exerciseId) {
+        const tree = document.getElementById('fixture-tree');
+        if (!tree) return;
+
+        tree.replaceChildren();
+        try {
+            const fixtures = await this.apiService.getExerciseFixtures(exerciseId);
+            if (fixtures.length === 0) {
+                tree.innerHTML = '<span class="fixture-tree-empty">No fixture files for this exercise.</span>';
+                return;
+            }
+
+            fixtures.forEach((fixture) => {
+                const entry = document.createElement('div');
+                entry.className = 'fixture-tree-entry';
+                entry.style.paddingLeft = `${Math.max(0, fixture.filename.split('/').length - 1) * 0.8}rem`;
+
+                const icon = document.createElement('span');
+                icon.className = 'fixture-tree-icon';
+                icon.textContent = fixture.type === 'directory' ? '▸' : '·';
+
+                const name = document.createElement('span');
+                name.className = 'fixture-tree-name';
+                name.textContent = fixture.filename;
+
+                entry.append(icon, name);
+                if (fixture.permissions) {
+                    const permissions = document.createElement('span');
+                    permissions.className = 'fixture-tree-permissions';
+                    permissions.textContent = fixture.permissions;
+                    entry.appendChild(permissions);
+                }
+                tree.appendChild(entry);
+            });
+        } catch (error) {
+            console.error('Failed to load exercise fixtures:', error);
+            tree.innerHTML = '<span class="fixture-tree-empty">Fixture list unavailable.</span>';
+        }
+    }
+
     async runTests() {
         if (!this.currentExercise) return;
 
@@ -441,6 +504,7 @@ class WorkspacePage {
         // Show loading state
         runButton.innerHTML = '<span>⟳</span> running...';
         runButton.disabled = true;
+        this.isRunning = true;
 
         try {
             const data = await this.apiService.runTests(this.currentExercise.id, code);
@@ -482,6 +546,7 @@ class WorkspacePage {
             // Update progress
             const allPassed = data.results.length > 0 && data.results.every(r => r.passed);
             this.updateProgress(this.currentExercise.id, code, allPassed);
+            this.updateNextExerciseCta(allPassed);
         } catch (error) {
             this.testResults.displayError('Error running tests: ' + error.message);
             if (error.message.includes('403')) {
@@ -490,6 +555,7 @@ class WorkspacePage {
         } finally {
             runButton.innerHTML = '<span>󰐊</span> run tests';
             runButton.disabled = false;
+            this.isRunning = false;
         }
     }
 
@@ -498,12 +564,58 @@ class WorkspacePage {
         this.updateCompletionStatus(exerciseId);
     }
 
-    saveProgress() {
+    saveProgress(manual = false) {
         if (!this.currentExercise) return;
         const code = this.codeEditor.getValue();
         const progress = this.storageService.getExerciseProgress(this.currentExercise.id);
         const completed = progress?.completed || false;
         this.storageService.updateExerciseProgress(this.currentExercise.id, code, completed);
+        this.updateSaveStatus(manual ? 'Saved manually' : 'Saved just now', 'saved');
+    }
+
+    updateSaveStatus(message, state = '') {
+        const status = document.getElementById('save-status');
+        if (!status) return;
+
+        status.textContent = message;
+        status.className = `save-status ${state}`;
+        clearTimeout(this.saveStatusTimer);
+        if (state === 'saved' && message !== 'Saved') {
+            this.saveStatusTimer = setTimeout(() => {
+                status.textContent = 'Saved';
+                status.className = 'save-status saved';
+            }, 2500);
+        }
+    }
+
+    getRecommendedNextExercise() {
+        return this.chapterExercises
+            .slice(this.currentExerciseIndex + 1)
+            .find(exercise => !this.storageService.getExerciseProgress(exercise.id)?.completed);
+    }
+
+    updateNextExerciseCta(allPassed) {
+        const cta = document.getElementById('next-exercise-cta');
+        if (!cta) return;
+
+        const nextExercise = allPassed ? this.getRecommendedNextExercise() : null;
+        if (!nextExercise) {
+            this.hideNextExerciseCta();
+            return;
+        }
+
+        cta.textContent = `✓ Exercise completed — continue to ${nextExercise.title} →`;
+        cta.hidden = false;
+    }
+
+    hideNextExerciseCta() {
+        const cta = document.getElementById('next-exercise-cta');
+        if (cta) cta.hidden = true;
+    }
+
+    navigateToRecommendedExercise() {
+        const nextExercise = this.getRecommendedNextExercise();
+        if (nextExercise) this.navigateToExercise(nextExercise);
     }
 
     async resetCode() {
@@ -604,23 +716,20 @@ class WorkspacePage {
     navigateToPreviousExercise() {
         if (this.currentExerciseIndex > 0) {
             const prevExercise = this.chapterExercises[this.currentExerciseIndex - 1];
-            this.loadExercise(prevExercise.id);
-
-            // Update URL
-            const newUrl = `./workspace.html?exercise=${prevExercise.id}`;
-            window.history.pushState({}, '', newUrl);
+            this.navigateToExercise(prevExercise);
         }
     }
 
     navigateToNextExercise() {
         if (this.currentExerciseIndex < this.chapterExercises.length - 1) {
             const nextExercise = this.chapterExercises[this.currentExerciseIndex + 1];
-            this.loadExercise(nextExercise.id);
-
-            // Update URL
-            const newUrl = `./workspace.html?exercise=${nextExercise.id}`;
-            window.history.pushState({}, '', newUrl);
+            this.navigateToExercise(nextExercise);
         }
+    }
+
+    navigateToExercise(exercise) {
+        this.loadExercise(exercise.id);
+        window.history.pushState({}, '', `./workspace.html?exercise=${exercise.id}`);
     }
 
     showVPNNotification() {
