@@ -329,6 +329,12 @@ body {
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
+    border: 1px solid var(--border-color);
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: var(--transition);
     position: relative;
 }

@@ -1208,7 +1208,7 @@ class DatabaseService {
 	 * @param {string|null} languageId - Optional language ID to filter by
 	 * @returns {Promise<Array>} Leaderboard data
 	 */
-	async getLeaderboard(languageId = null) {
+	async getLeaderboard(languageId = null, includeAdmins = false) {
 		let query;
 		const params = [];
 
@@ -1223,12 +1223,14 @@ class DatabaseService {
 				JOIN user_progress up ON u.id = up.user_id
 				JOIN exercises e ON up.exercise_id = e.id
 				JOIN chapters c ON e.chapter_id = c.id
-				WHERE c.language_id = ? AND COALESCE(u.is_archived, 0) = 0
+				WHERE c.language_id = ?
+					AND COALESCE(u.is_archived, 0) = 0
+					AND (? = 1 OR COALESCE(u.is_admin, 0) = 0)
 				GROUP BY u.id, u.display_name
 				ORDER BY completed_count DESC, total_attempts ASC
 				LIMIT 100
 			`;
-			params.push(languageId);
+			params.push(languageId, includeAdmins ? 1 : 0);
 		} else {
 			query = `
 				SELECT
@@ -1239,10 +1241,12 @@ class DatabaseService {
 				FROM users u
 				JOIN user_progress up ON u.id = up.user_id
 				WHERE COALESCE(u.is_archived, 0) = 0
+					AND (? = 1 OR COALESCE(u.is_admin, 0) = 0)
 				GROUP BY u.id, u.display_name
 				ORDER BY completed_count DESC, total_attempts ASC
 				LIMIT 100
 			`;
+			params.push(includeAdmins ? 1 : 0);
 		}
 
 		return this.db.all(query, params);
@@ -1279,7 +1283,7 @@ class DatabaseService {
 	 * Get achievement points leaderboard
 	 * @returns {Promise<Array>} Leaderboard data ranked by achievement points
 	 */
-	async getAchievementLeaderboard() {
+	async getAchievementLeaderboard(includeAdmins = false) {
 		const query = `
 			SELECT
 				u.id,
@@ -1291,13 +1295,14 @@ class DatabaseService {
 			LEFT JOIN user_achievements ua ON u.id = ua.user_id
 			LEFT JOIN achievements a ON ua.achievement_id = a.id
 			WHERE COALESCE(u.is_archived, 0) = 0
+				AND (? = 1 OR COALESCE(u.is_admin, 0) = 0)
 			GROUP BY u.id, u.display_name
 			HAVING total_points > 0
 			ORDER BY total_points DESC, achievements_earned DESC
 			LIMIT 100
 		`;
 
-		return this.db.all(query);
+		return this.db.all(query, [includeAdmins ? 1 : 0]);
 	}
 
 	// ============= Achievement Methods =============

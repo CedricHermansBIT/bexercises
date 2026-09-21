@@ -752,10 +752,10 @@ class ApiService {
 	 * @param {string|null} languageId - Optional language ID to filter by
 	 * @returns {Promise<Array>} Leaderboard rankings
 	 */
-	async getLeaderboard(languageId = null) {
+	async getLeaderboard(languageId = null, includeAdmins = false) {
 		const endpoint = languageId
-			? `${this.baseUrl}/api/leaderboard/${encodeURIComponent(languageId)}`
-			: `${this.baseUrl}/api/leaderboard`;
+			? `${this.baseUrl}/api/leaderboard/${encodeURIComponent(languageId)}?includeAdmins=${includeAdmins}`
+			: `${this.baseUrl}/api/leaderboard?includeAdmins=${includeAdmins}`;
 
 		const response = await fetch(endpoint);
 		if (!response.ok) {
@@ -768,8 +768,8 @@ class ApiService {
 	 * Get achievement points leaderboard
 	 * @returns {Promise<Array>} Achievement leaderboard rankings
 	 */
-	async getAchievementLeaderboard() {
-		const response = await fetch(`${this.baseUrl}/api/leaderboard-achievements`);
+	async getAchievementLeaderboard(includeAdmins = false) {
+		const response = await fetch(`${this.baseUrl}/api/leaderboard-achievements?includeAdmins=${includeAdmins}`);
 		if (!response.ok) {
 			throw new Error(`Failed to fetch achievement leaderboard: ${response.status}`);
 		}

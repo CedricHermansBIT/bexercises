@@ -157,7 +157,8 @@ router.get('/statistics/:id?', asyncHandler(async (req, res) => {
  * Get leaderboard data, optionally filtered by language
  */
 router.get('/leaderboard/:languageId?', asyncHandler(async (req, res) => {
-	const leaderboard = await databaseService.getLeaderboard(req.params.languageId);
+	const includeAdmins = req.query.includeAdmins === 'true' && req.user?.isAdmin === true;
+	const leaderboard = await databaseService.getLeaderboard(req.params.languageId, includeAdmins);
 	res.json(leaderboard);
 }));
 
@@ -166,7 +167,8 @@ router.get('/leaderboard/:languageId?', asyncHandler(async (req, res) => {
  * Get achievement points leaderboard
  */
 router.get('/leaderboard-achievements', asyncHandler(async (req, res) => {
-	const leaderboard = await databaseService.getAchievementLeaderboard();
+	const includeAdmins = req.query.includeAdmins === 'true' && req.user?.isAdmin === true;
+	const leaderboard = await databaseService.getAchievementLeaderboard(includeAdmins);
 	res.json(leaderboard);
 }));
 

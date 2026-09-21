@@ -30,6 +30,7 @@ class LeaderboardPage {
         this.autoRefreshProgressInterval = null;
         this.lastUpdated = null;
         this.autoRefreshProgress = 0; // 0-100 representing progress through interval
+        this.showAdmins = false;
 
         this.init();
     }
@@ -129,6 +130,15 @@ class LeaderboardPage {
         if (autoRefreshToggle) {
             autoRefreshToggle.addEventListener('change', (e) => {
                 this.toggleAutoRefresh(e.target.checked);
+            });
+        }
+
+        const includeAdminsToggle = document.getElementById('include-admins-checkbox');
+        if (includeAdminsToggle) {
+            includeAdminsToggle.addEventListener('change', async (event) => {
+                this.showAdmins = event.target.checked;
+                Object.keys(this.rankings).forEach(tab => { this.rankings[tab] = []; });
+                await this.refreshCurrentTab();
             });
         }
 
@@ -487,9 +497,9 @@ class LeaderboardPage {
 
             let rankings;
             if (tabName === 'achievements') {
-                rankings = await this.apiService.getAchievementLeaderboard();
+                rankings = await this.apiService.getAchievementLeaderboard(this.showAdmins);
             } else {
-                rankings = await this.apiService.getLeaderboard(languageId);
+                rankings = await this.apiService.getLeaderboard(languageId, this.showAdmins);
             }
 
             this.rankings[tabName] = rankings;
