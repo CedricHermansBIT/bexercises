@@ -1381,6 +1381,25 @@ body[data-theme="solarized"] {
 
 .database-schema-header {
     margin-top: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.database-schema-refresh {
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    line-height: 1;
+    padding: 0.15rem 0.35rem;
+}
+
+.database-schema-refresh:hover {
+    background: var(--surface);
+    color: var(--text-primary);
 }
 
 .fixture-tree {

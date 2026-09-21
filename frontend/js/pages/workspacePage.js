@@ -205,6 +205,13 @@ class WorkspacePage {
             resetCodeBtn.addEventListener('click', () => this.resetCode());
         }
 
+        const refreshDatabaseSchemaBtn = document.getElementById('refresh-database-schema');
+        if (refreshDatabaseSchemaBtn) {
+            refreshDatabaseSchemaBtn.addEventListener('click', () => {
+                if (this.currentExercise) this.loadDatabaseSchema(this.currentExercise);
+            });
+        }
+
         // Edit exercise button (admin only)
         const editExerciseBtn = document.getElementById('edit-exercise');
         if (editExerciseBtn) {
@@ -510,6 +517,7 @@ class WorkspacePage {
         if (!isDatabaseExercise) return;
 
         try {
+            container.innerHTML = '<span class="fixture-tree-empty">Loading database structure…</span>';
             const schema = await this.apiService.getExerciseDatabaseSchema(exercise.id);
             if (schema.length === 0) {
                 container.innerHTML = '<span class="fixture-tree-empty">No tables or collections found in the database fixtures.</span>';
