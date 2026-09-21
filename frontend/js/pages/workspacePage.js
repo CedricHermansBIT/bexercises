@@ -132,7 +132,7 @@ class WorkspacePage {
 
         // Determine initial theme based on current mode
         const currentTheme = themeManager.getTheme();
-        const editorTheme = currentTheme === 'dark' ? 'dracula' : 'default';
+        const editorTheme = currentTheme === 'light' ? 'default' : 'dracula';
 
         this.codeEditor = CodeMirror.fromTextArea(textarea, {
             mode: 'shell',
@@ -155,7 +155,7 @@ class WorkspacePage {
 
         // Listen for theme changes and update CodeMirror theme
         window.addEventListener('themechange', (e) => {
-            const newTheme = e.detail.theme === 'dark' ? 'dracula' : 'default';
+            const newTheme = e.detail.theme === 'light' ? 'default' : 'dracula';
             this.codeEditor.setOption('theme', newTheme);
         });
     }
@@ -555,7 +555,7 @@ class WorkspacePage {
                 this.showVPNNotification();
             }
         } finally {
-            runButton.innerHTML = '<span>󰐊</span> run tests';
+            runButton.innerHTML = '<span aria-hidden="true">▶</span> run tests';
             runButton.disabled = false;
             this.isRunning = false;
         }

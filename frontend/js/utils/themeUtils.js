@@ -1,12 +1,19 @@
 // frontend/js/utils/themeUtils.js
 
 /**
- * Theme utility for managing light/dark mode
+ * Theme utility for managing the available colour themes.
  */
 class ThemeManager {
     constructor() {
         this.STORAGE_KEY = 'bitlab-theme';
         this.LIGHT_MODE_CLASS = 'light-mode';
+        this.HIGH_CONTRAST_MODE_CLASS = 'high-contrast-mode';
+        this.THEMES = ['dark', 'light', 'high-contrast'];
+        this.THEME_DETAILS = {
+            dark: { label: 'Dark', icon: '🌙' },
+            light: { label: 'Light', icon: '☀️' },
+            'high-contrast': { label: 'High contrast', icon: '◐' }
+        };
     }
 
     /**
@@ -34,36 +41,52 @@ class ThemeManager {
 
     /**
      * Get current theme
-     * @returns {string} 'light' or 'dark'
+     * @returns {string} Current theme identifier
      */
     getTheme() {
+        if (document.body.classList.contains(this.HIGH_CONTRAST_MODE_CLASS)) return 'high-contrast';
         return document.body.classList.contains(this.LIGHT_MODE_CLASS) ? 'light' : 'dark';
     }
 
     /**
      * Set theme
-     * @param {string} theme - 'light' or 'dark'
+     * @param {string} theme - A supported theme identifier
      */
     setTheme(theme) {
-        if (theme === 'light') {
-            document.body.classList.add(this.LIGHT_MODE_CLASS);
-        } else {
-            document.body.classList.remove(this.LIGHT_MODE_CLASS);
-        }
+        const selectedTheme = this.THEMES.includes(theme) ? theme : 'dark';
+        document.body.classList.toggle(this.LIGHT_MODE_CLASS, selectedTheme === 'light');
+        document.body.classList.toggle(this.HIGH_CONTRAST_MODE_CLASS, selectedTheme === 'high-contrast');
 
         // Save preference
-        localStorage.setItem(this.STORAGE_KEY, theme);
+        localStorage.setItem(this.STORAGE_KEY, selectedTheme);
 
         // Dispatch event for components that need to react to theme changes
-        window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
+        window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: selectedTheme } }));
+        queueMicrotask(() => this.refreshThemeControls());
+    }
+
+    getNextTheme() {
+        const currentIndex = this.THEMES.indexOf(this.getTheme());
+        return this.THEMES[(currentIndex + 1) % this.THEMES.length];
+    }
+
+    refreshThemeControls() {
+        const nextTheme = this.getNextTheme();
+        const details = this.THEME_DETAILS[nextTheme];
+        document.querySelectorAll('#theme-toggle-btn').forEach((button) => {
+            const icon = button.querySelector('.theme-icon');
+            const text = button.querySelector('.theme-text');
+            if (icon) icon.textContent = details.icon;
+            if (text) text.textContent = `Theme: ${details.label}`;
+            button.title = `Switch to ${details.label} theme`;
+        });
     }
 
     /**
-     * Toggle between light and dark mode
+     * Cycle through available themes
      */
     toggle() {
-        const currentTheme = this.getTheme();
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        const newTheme = this.getNextTheme();
         this.setTheme(newTheme);
         return newTheme;
     }

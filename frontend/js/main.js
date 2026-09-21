@@ -356,7 +356,7 @@ class ExerciseApp {
 				this.showVPNNotification();
 			}
 		} finally {
-			runButton.innerHTML = '<span>󰐊</span> run tests';
+			runButton.innerHTML = '<span aria-hidden="true">▶</span> run tests';
 			runButton.disabled = false;
 		}
 	}

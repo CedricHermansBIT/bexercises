@@ -40,7 +40,7 @@ class Navbar {
                 <div class="topbar-left">
                     ${showBack ? `
                         <button class="back-button" id="back-button" data-url="${backUrl}">
-                            <span>󰁍</span> ${backText}
+                            <span aria-hidden="true">←</span> ${backText}
                         </button>
                     ` : ''}
                     ${workspaceIndicator ? `<span class="workspace-indicator">${workspaceIndicator}</span>` : ''}
@@ -69,18 +69,18 @@ class Navbar {
                     </div>
                     ${!isAdminPage ? `
                         <button class="topbar-btn admin-only" id="admin-btn" title="Admin Panel" style="display: none;">
-                            <span>⚙️</span>
+                            <span aria-hidden="true">⚙</span>
                         </button>
                     ` : ''}
                     <span class="system-time" id="system-time">00:00</span>
                     <div class="user-menu" id="user-menu">
-                        <span class="user-icon">󰀄</span>
+                        <span class="user-icon" aria-label="Account">👤</span>
                         <div class="user-dropdown">
                             <button class="dropdown-item" id="theme-toggle-btn">
                                 <span class="theme-icon">🌙</span> <span class="theme-text">Dark Mode</span>
                             </button>
                             <button class="dropdown-item" id="logout-btn">
-                                <span>󰗼</span> Logout
+                                <span aria-hidden="true">↪</span> Logout
                             </button>
                         </div>
                     </div>
@@ -196,6 +196,7 @@ class Navbar {
             };
 
             updateThemeButton();
+            themeManager.refreshThemeControls();
 
             themeToggleBtn.addEventListener('click', () => {
                 themeManager.toggle();
@@ -239,4 +240,3 @@ class Navbar {
 }
 
 export default Navbar;
-

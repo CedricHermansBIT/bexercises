@@ -1231,6 +1231,31 @@ body {
     padding: 0 0.5rem; /* Add padding to prevent content touching edges */
 }
 
+/* High-contrast dark theme for improved readability and accessibility. */
+body.high-contrast-mode {
+    --bg-primary: #000000;
+    --bg-secondary: #080808;
+    --bg-tertiary: #111111;
+    --surface: #1e1e1e;
+    --surface-light: #303030;
+
+    --text-primary: #ffffff;
+    --text-secondary: #f0f0f0;
+    --text-muted: #bdbdbd;
+
+    --accent-blue: #7dd3fc;
+    --accent-lavender: #c4b5fd;
+    --accent-green: #86efac;
+    --accent-red: #fca5a5;
+    --accent-yellow: #fde047;
+    --accent-pink: #f9a8d4;
+
+    --border-color: #8a8a8a;
+    --shadow-sm: 0 2px 8px rgba(255, 255, 255, 0.12);
+    --shadow-md: 0 4px 16px rgba(255, 255, 255, 0.16);
+    --shadow-lg: 0 8px 32px rgba(255, 255, 255, 0.2);
+}
+
 .fixture-header {
     margin-top: 1.75rem;
 }

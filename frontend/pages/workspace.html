@@ -17,7 +17,7 @@
         <div class="topbar">
             <div class="topbar-left">
                 <button class="back-button" id="back-to-selection">
-                    <span>󰁍</span> back
+                    <span aria-hidden="true">←</span> back
                 </button>
                 <span class="workspace-indicator">[3]</span>
                 <span class="app-title" id="exercise-title-topbar">exercise</span>
@@ -45,20 +45,20 @@
                     </div>
                 </div>
                 <button class="topbar-btn admin-only" id="admin-btn-workspace" title="Admin Panel" style="display: none;">
-                    <span>⚙️</span>
+                    <span aria-hidden="true">⚙</span>
                 </button>
                 <button class="topbar-btn admin-only" id="edit-exercise" title="Edit Exercise" style="display: none;">
                     <span>✏️</span>
                 </button>
                 <span class="system-time" id="system-time-workspace">00:00</span>
                 <div class="user-menu" id="user-menu-workspace">
-                    <span class="user-icon">󰀄</span>
+                    <span class="user-icon" aria-label="Account">👤</span>
                     <div class="user-dropdown">
                         <button class="dropdown-item" id="theme-toggle-btn">
                             <span class="theme-icon">☀️</span> <span class="theme-text">Light Mode</span>
                         </button>
                         <button class="dropdown-item" id="logout-btn">
-                            <span>󰗼</span> Logout
+                            <span aria-hidden="true">↪</span> Logout
                         </button>
                     </div>
                 </div>
@@ -95,10 +95,10 @@
                         <div class="editor-actions">
                             <span id="save-status" class="save-status" role="status">Saved</span>
                             <button id="run-tests" class="action-btn primary">
-                                <span>󰐊</span> run tests <kbd>Ctrl↵</kbd>
+                                <span aria-hidden="true">▶</span> run tests <kbd>Ctrl↵</kbd>
                             </button>
                             <button id="reset-code" class="action-btn">
-                                <span>󰑓</span> reset
+                                <span aria-hidden="true">↺</span> reset
                             </button>
                         </div>
                     </div>

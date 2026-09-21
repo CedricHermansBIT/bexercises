@@ -190,7 +190,7 @@ class ExercisesPage {
         if (textarea && window.CodeMirror) {
             // Determine initial theme based on current mode
             const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
-            const editorTheme = currentTheme === 'dark' ? 'dracula' : 'default';
+            const editorTheme = currentTheme === 'light' ? 'default' : 'dracula';
 
             this.solutionEditor = CodeMirror.fromTextArea(textarea, {
                 mode: 'shell',
@@ -205,7 +205,7 @@ class ExercisesPage {
 
             // Listen for theme changes and update CodeMirror theme
             window.addEventListener('themechange', (e) => {
-                const newTheme = e.detail.theme === 'dark' ? 'dracula' : 'default';
+                const newTheme = e.detail.theme === 'light' ? 'default' : 'dracula';
                 this.solutionEditor.setOption('theme', newTheme);
             });
         }

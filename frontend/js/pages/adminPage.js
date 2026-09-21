@@ -94,7 +94,7 @@ class AdminPage {
 
         // Determine initial theme based on current mode
         const currentTheme = themeManager.getTheme();
-        const editorTheme = currentTheme === 'dark' ? 'dracula' : 'default';
+        const editorTheme = currentTheme === 'light' ? 'default' : 'dracula';
 
         this.solutionEditor = CodeMirror.fromTextArea(textarea, {
             mode: 'shell',
@@ -106,7 +106,7 @@ class AdminPage {
 
         // Listen for theme changes and update CodeMirror theme
         window.addEventListener('themechange', (e) => {
-            const newTheme = e.detail.theme === 'dark' ? 'dracula' : 'default';
+            const newTheme = e.detail.theme === 'light' ? 'default' : 'dracula';
             this.solutionEditor.setOption('theme', newTheme);
         });
     }
@@ -639,7 +639,7 @@ class AdminPage {
         } catch (error) {
             alert('Failed to test solution: ' + error.message);
         } finally {
-            testBtn.innerHTML = '<span>󰐊</span> Test Solution';
+            testBtn.innerHTML = '<span aria-hidden="true">▶</span> Test Solution';
             testBtn.disabled = false;
         }
     }
