@@ -79,7 +79,7 @@ class ThemeManager {
     }
 
     isLightTheme(theme = this.getTheme()) {
-        return ['light', 'paper'].includes(theme);
+        return ['light', 'paper', 'pink', 'nord'].includes(theme);
     }
 
     refreshThemeControls() {

@@ -1271,21 +1271,24 @@ body.high-contrast-mode {
 
 /* Additional palettes, selected through the account menu. */
 body[data-theme="pink"] {
-    --bg-primary: #19111b;
-    --bg-secondary: #241521;
-    --bg-tertiary: #120d14;
-    --surface: #3b2437;
-    --surface-light: #54304d;
-    --text-primary: #f8e9f4;
-    --text-secondary: #e8cddd;
-    --text-muted: #b792aa;
-    --accent-blue: #8ecae6;
-    --accent-lavender: #cba6f7;
-    --accent-green: #a6e3a1;
-    --accent-red: #ff8fab;
-    --accent-yellow: #ffd166;
-    --accent-pink: #ff9ecd;
-    --border-color: #6c3e62;
+    --bg-primary: #fff0f7;
+    --bg-secondary: #fff9fc;
+    --bg-tertiary: #fde5f0;
+    --surface: #f8cfe2;
+    --surface-light: #edb5d0;
+    --text-primary: #4d243b;
+    --text-secondary: #70435b;
+    --text-muted: #9d6f86;
+    --accent-blue: #5d8fd1;
+    --accent-lavender: #9571d3;
+    --accent-green: #4d9b70;
+    --accent-red: #d95378;
+    --accent-yellow: #b87915;
+    --accent-pink: #d75a9b;
+    --border-color: #e5a9c7;
+    --shadow-sm: 0 2px 8px rgba(155, 75, 113, 0.12);
+    --shadow-md: 0 4px 16px rgba(155, 75, 113, 0.16);
+    --shadow-lg: 0 8px 32px rgba(155, 75, 113, 0.2);
 }
 
 body[data-theme="dracula"] {
@@ -1328,21 +1331,24 @@ body[data-theme="paper"] {
 }
 
 body[data-theme="nord"] {
-    --bg-primary: #2e3440;
-    --bg-secondary: #272c36;
-    --bg-tertiary: #222730;
-    --surface: #3b4252;
-    --surface-light: #4c566a;
-    --text-primary: #eceff4;
-    --text-secondary: #d8dee9;
-    --text-muted: #9aa7bd;
-    --accent-blue: #88c0d0;
-    --accent-lavender: #81a1c1;
-    --accent-green: #a3be8c;
-    --accent-red: #bf616a;
-    --accent-yellow: #ebcb8b;
-    --accent-pink: #b48ead;
-    --border-color: #4c566a;
+    --bg-primary: #edf6fb;
+    --bg-secondary: #f8fcff;
+    --bg-tertiary: #e2f0f8;
+    --surface: #c9e2f1;
+    --surface-light: #afd2e8;
+    --text-primary: #203b52;
+    --text-secondary: #385b73;
+    --text-muted: #6c8ba1;
+    --accent-blue: #287ca7;
+    --accent-lavender: #5d75b5;
+    --accent-green: #4e8b70;
+    --accent-red: #bd5e68;
+    --accent-yellow: #a67822;
+    --accent-pink: #a56892;
+    --border-color: #9cc8df;
+    --shadow-sm: 0 2px 8px rgba(47, 105, 137, 0.12);
+    --shadow-md: 0 4px 16px rgba(47, 105, 137, 0.16);
+    --shadow-lg: 0 8px 32px rgba(47, 105, 137, 0.2);
 }
 
 body[data-theme="solarized"] {

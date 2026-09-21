@@ -95,7 +95,7 @@ class AdminPage {
 
         // Determine initial theme based on current mode
         const currentTheme = themeManager.getTheme();
-        const editorTheme = ['light', 'paper'].includes(currentTheme) ? 'default' : 'dracula';
+        const editorTheme = ['light', 'paper', 'pink', 'nord'].includes(currentTheme) ? 'default' : 'dracula';
 
         this.solutionEditor = CodeMirror.fromTextArea(textarea, {
             mode: 'shell',
@@ -107,7 +107,7 @@ class AdminPage {
 
         // Listen for theme changes and update CodeMirror theme
         window.addEventListener('themechange', (e) => {
-            const newTheme = ['light', 'paper'].includes(e.detail.theme) ? 'default' : 'dracula';
+            const newTheme = ['light', 'paper', 'pink', 'nord'].includes(e.detail.theme) ? 'default' : 'dracula';
             this.solutionEditor.setOption('theme', newTheme);
         });
     }

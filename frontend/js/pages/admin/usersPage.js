@@ -586,7 +586,7 @@ class UsersPage {
 
                 // Determine theme based on current mode
                 const currentTheme = document.body.dataset.theme || (document.body.classList.contains('light-mode') ? 'light' : 'dark');
-                const editorTheme = ['light', 'paper'].includes(currentTheme) ? 'default' : 'dracula';
+                const editorTheme = ['light', 'paper', 'pink', 'nord'].includes(currentTheme) ? 'default' : 'dracula';
 
                 try {
                     const editor = CodeMirror.fromTextArea(textarea, {
@@ -603,7 +603,7 @@ class UsersPage {
 
                     // Listen for theme changes
                     window.addEventListener('themechange', (e) => {
-                        const newTheme = ['light', 'paper'].includes(e.detail.theme) ? 'default' : 'dracula';
+                        const newTheme = ['light', 'paper', 'pink', 'nord'].includes(e.detail.theme) ? 'default' : 'dracula';
                         editor.setOption('theme', newTheme);
                     });
                 } catch (error) {
