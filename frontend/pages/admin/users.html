@@ -69,6 +69,42 @@
         .user-stats .stat-badge.last-activity.old {
             color: var(--text-secondary);
         }
+
+        .user-archive-controls {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-view-toggle {
+            display: flex;
+            gap: 0.35rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .user-view-btn {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.8rem;
+            padding: 0.35rem 0.5rem;
+        }
+
+        .user-view-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        .archive-all-btn {
+            justify-content: center;
+            width: 100%;
+            border-color: var(--accent-yellow);
+            color: var(--accent-yellow);
+        }
     </style>
 </head>
 <body>
@@ -88,6 +124,15 @@
                     <input type="checkbox" id="auto-refresh-toggle">
                     <span>Auto-refresh</span>
                 </label>
+            </div>
+            <div class="user-archive-controls">
+                <div class="user-view-toggle" role="group" aria-label="User list view">
+                    <button class="user-view-btn active" id="show-active-users-btn">Active</button>
+                    <button class="user-view-btn" id="show-archived-users-btn">Archived</button>
+                </div>
+                <button class="action-btn archive-all-btn" id="archive-active-users-btn" title="Archive all active non-admin users">
+                    Archive active students
+                </button>
             </div>
             <div class="users-list" id="users-list">
                 <!-- Users will be populated here -->

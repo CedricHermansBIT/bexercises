@@ -119,6 +119,8 @@ class DatabaseService {
 				email TEXT,
 				display_name TEXT,
 				is_admin BOOLEAN DEFAULT 0,
+				is_archived BOOLEAN DEFAULT 0,
+				archived_at DATETIME,
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				last_login DATETIME,
 				last_activity DATETIME
@@ -128,6 +130,16 @@ class DatabaseService {
 		// Add last_activity column if it doesn't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE users ADD COLUMN last_activity DATETIME`);
+		} catch (e) {
+			// Column already exists
+		}
+		try {
+			await this.db.exec(`ALTER TABLE users ADD COLUMN is_archived BOOLEAN DEFAULT 0`);
+		} catch (e) {
+			// Column already exists
+		}
+		try {
+			await this.db.exec(`ALTER TABLE users ADD COLUMN archived_at DATETIME`);
 		} catch (e) {
 			// Column already exists
 		}
@@ -1211,7 +1223,7 @@ class DatabaseService {
 				JOIN user_progress up ON u.id = up.user_id
 				JOIN exercises e ON up.exercise_id = e.id
 				JOIN chapters c ON e.chapter_id = c.id
-				WHERE c.language_id = ?
+				WHERE c.language_id = ? AND COALESCE(u.is_archived, 0) = 0
 				GROUP BY u.id, u.display_name
 				ORDER BY completed_count DESC, total_attempts ASC
 				LIMIT 100
@@ -1226,6 +1238,7 @@ class DatabaseService {
 					SUM(up.attempts) as total_attempts
 				FROM users u
 				JOIN user_progress up ON u.id = up.user_id
+				WHERE COALESCE(u.is_archived, 0) = 0
 				GROUP BY u.id, u.display_name
 				ORDER BY completed_count DESC, total_attempts ASC
 				LIMIT 100
@@ -1277,6 +1290,7 @@ class DatabaseService {
 			FROM users u
 			LEFT JOIN user_achievements ua ON u.id = ua.user_id
 			LEFT JOIN achievements a ON ua.achievement_id = a.id
+			WHERE COALESCE(u.is_archived, 0) = 0
 			GROUP BY u.id, u.display_name
 			HAVING total_points > 0
 			ORDER BY total_points DESC, achievements_earned DESC

@@ -33,6 +33,16 @@ function configurePassport() {
 					});
 					console.log(`New user created: ${displayName} (${email})`);
 				} else {
+					// Archiving is for cohort management, not a login ban. A returning
+					// student becomes active again after a successful Google sign-in.
+					if (dbUser.is_archived) {
+						await databaseService.db.run(
+							'UPDATE users SET is_archived = 0, archived_at = NULL WHERE id = ?',
+							[dbUser.id]
+						);
+						dbUser.is_archived = 0;
+						dbUser.archived_at = null;
+					}
 					// Update last login
 					await databaseService.updateUserLogin(dbUser.id);
 				}

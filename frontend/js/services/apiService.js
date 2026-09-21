@@ -581,10 +581,25 @@ class ApiService {
 	 * Get all users (admin only)
 	 * @returns {Promise<Array>} List of users with statistics
 	 */
-	async getUsers() {
-		const response = await fetch(`${this.baseUrl}/api/admin/users`);
+	async getUsers(archived = false) {
+		const response = await fetch(`${this.baseUrl}/api/admin/users?archived=${archived}`);
 		if (!response.ok) {
 			throw new Error(`Failed to fetch users: ${response.status}`);
+		}
+		return response.json();
+	}
+
+	/**
+	 * Archive all active non-admin users (admin only).
+	 * @returns {Promise<{success: boolean, archivedCount: number}>}
+	 */
+	async archiveActiveUsers() {
+		const response = await fetch(`${this.baseUrl}/api/admin/users/archive-active`, {
+			method: 'POST'
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to archive users: ${response.status}`);
 		}
 		return response.json();
 	}

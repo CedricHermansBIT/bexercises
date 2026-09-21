@@ -23,6 +23,7 @@ class UsersPage {
         this.autoRefreshProgressInterval = null;
         this.isRefreshing = false;
         this.autoRefreshProgress = 0; // 0-100 representing progress through interval
+        this.showArchived = false;
 
         this.init();
     }
@@ -94,6 +95,10 @@ class UsersPage {
                 }
             });
         }
+
+        document.getElementById('show-active-users-btn')?.addEventListener('click', () => this.setUserView(false));
+        document.getElementById('show-archived-users-btn')?.addEventListener('click', () => this.setUserView(true));
+        document.getElementById('archive-active-users-btn')?.addEventListener('click', () => this.archiveAllActiveUsers());
     }
 
     async refreshUsers() {
@@ -185,11 +190,23 @@ class UsersPage {
 
     async loadUsers() {
         try {
-            this.users = await this.apiService.getUsers();
+            this.users = await this.apiService.getUsers(this.showArchived);
             this.renderUsersList();
         } catch (error) {
             console.error('Failed to load users:', error);
         }
+    }
+
+    async setUserView(showArchived) {
+        if (this.showArchived === showArchived) return;
+        this.showArchived = showArchived;
+        this.currentUser = null;
+        document.getElementById('admin-welcome').style.display = 'flex';
+        document.getElementById('user-details').style.display = 'none';
+        document.getElementById('show-active-users-btn')?.classList.toggle('active', !showArchived);
+        document.getElementById('show-archived-users-btn')?.classList.toggle('active', showArchived);
+        document.getElementById('archive-active-users-btn').style.display = showArchived ? 'none' : 'flex';
+        await this.loadUsers();
     }
 
     /**
@@ -222,7 +239,7 @@ class UsersPage {
         if (this.users.length === 0) {
             const p = document.createElement('p');
             p.className = 'no-users';
-            p.textContent = 'No users found';
+            p.textContent = this.showArchived ? 'No archived users found' : 'No active users found';
             list.innerHTML = '';
             list.appendChild(p);
             return;
@@ -242,6 +259,7 @@ class UsersPage {
             item.style.cursor = 'pointer';
 
             const adminBadge = user.is_admin ? '<span class="admin-badge">👑 Admin</span>' : '';
+            const archivedBadge = user.is_archived ? '<span class="admin-badge">📦 Archived</span>' : '';
 
             // Get the most recent activity (login or test submission, whichever is latest)
             const lastActivityTime = this.getMostRecentActivity(user);
@@ -250,7 +268,7 @@ class UsersPage {
             item.innerHTML = `
                 <div class="user-info">
                     <div class="user-name">
-                        ${user.display_name || 'Unknown'} ${adminBadge}
+                        ${user.display_name || 'Unknown'} ${adminBadge} ${archivedBadge}
                     </div>
                     <div class="user-email">${user.email || ''}</div>
                     <div class="user-stats">
@@ -383,6 +401,10 @@ class UsersPage {
                     <span>${data.user.is_admin ? '👑 Admin' : 'User'}</span>
                 </div>
                 <div class="info-item">
+                    <label>Account Status</label>
+                    <span>${data.user.is_archived ? `📦 Archived${data.user.archived_at ? ` on ${formatDateTime(data.user.archived_at)}` : ''}` : '✓ Active'}</span>
+                </div>
+                <div class="info-item">
                     <label>Member Since</label>
                     <span>${formatDateTime(data.user.created_at)}</span>
                 </div>
@@ -396,6 +418,9 @@ class UsersPage {
                 <button class="action-btn ${data.user.is_admin ? '' : 'primary'}" id="toggle-admin-detail" title="${data.user.is_admin ? 'Remove Admin Status' : 'Grant Admin Status'}">
                     <span>${data.user.is_admin ? '👤' : '👑'}</span> ${data.user.is_admin ? 'Remove Admin' : 'Make Admin'}
                 </button>
+                <button class="action-btn" id="toggle-archive-detail" title="${data.user.is_archived ? 'Restore User' : 'Archive User'}">
+                    <span>${data.user.is_archived ? '↩' : '📦'}</span> ${data.user.is_archived ? 'Restore User' : 'Archive User'}
+                </button>
                 <button class="action-btn danger" id="delete-user-detail" title="Delete User">
                     <span>🗑</span> Delete User
                 </button>
@@ -408,6 +433,14 @@ class UsersPage {
             toggleAdminBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleUserAdmin(data.user.id);
+            });
+        }
+
+        const toggleArchiveBtn = document.getElementById('toggle-archive-detail');
+        if (toggleArchiveBtn) {
+            toggleArchiveBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.setUserArchived(data.user.id, !data.user.is_archived);
             });
         }
 
@@ -648,6 +681,52 @@ class UsersPage {
         } catch (error) {
             console.error('Error toggling admin status:', error);
             alert('Failed to update user admin status: ' + error.message);
+        }
+    }
+
+    async setUserArchived(userId, archived) {
+        const user = this.users.find(u => u.id === userId) || this.currentUser?.user;
+        if (!user) return;
+
+        const action = archived ? 'archive' : 'restore';
+        const message = archived
+            ? `Archive "${user.display_name}"? Their progress and achievements will be kept. Their account automatically becomes active again if they log in.`
+            : `Restore "${user.display_name}" to the active user list?`;
+        if (!confirm(message)) return;
+
+        try {
+            await this.apiService.updateUser(userId, { is_archived: archived });
+            alert(`User "${user.display_name}" has been ${archived ? 'archived' : 'restored'}.`);
+            this.currentUser = null;
+            document.getElementById('admin-welcome').style.display = 'flex';
+            document.getElementById('user-details').style.display = 'none';
+            await this.loadUsers();
+        } catch (error) {
+            console.error(`Failed to ${action} user:`, error);
+            alert(`Failed to ${action} user: ${error.message}`);
+        }
+    }
+
+    async archiveAllActiveUsers() {
+        const students = this.users.filter(user => !user.is_admin);
+        if (students.length === 0) {
+            alert('There are no active non-admin users to archive.');
+            return;
+        }
+
+        const message = `Archive all ${students.length} active student account${students.length === 1 ? '' : 's'}?\n\nTheir progress and achievements will be preserved. Admin accounts are not affected. Any archived student who signs in again is restored automatically.`;
+        if (!confirm(message)) return;
+
+        try {
+            const result = await this.apiService.archiveActiveUsers();
+            alert(`Archived ${result.archivedCount} student account${result.archivedCount === 1 ? '' : 's'}.`);
+            this.currentUser = null;
+            document.getElementById('admin-welcome').style.display = 'flex';
+            document.getElementById('user-details').style.display = 'none';
+            await this.loadUsers();
+        } catch (error) {
+            console.error('Failed to archive active users:', error);
+            alert(`Failed to archive active users: ${error.message}`);
         }
     }
 

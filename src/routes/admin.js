@@ -821,6 +821,7 @@ router.delete('/fixtures/:foldername/files/:filename', async (req, res) => {
 router.get('/users', async (req, res) => {
 	try {
 		const databaseService = require('../services/databaseService');
+		const archived = req.query.archived === 'true';
 
         // Get all users with enhanced statistics
         const users = await databaseService.db.all(`
@@ -830,6 +831,8 @@ router.get('/users', async (req, res) => {
                 u.email,
                 u.display_name,
                 u.is_admin,
+				u.is_archived,
+				u.archived_at,
                 u.created_at,
                 u.last_login,
                 COALESCE(p.exercises_attempted, 0) as exercises_attempted,
@@ -855,8 +858,9 @@ router.get('/users', async (req, res) => {
                 FROM user_achievements
                 GROUP BY user_id
             ) a ON u.id = a.user_id
+			WHERE COALESCE(u.is_archived, 0) = ?
             ORDER BY u.last_login DESC
-        `);
+        `, [archived ? 1 : 0]);
 
 		res.json(users);
 	} catch (error) {
@@ -865,6 +869,25 @@ router.get('/users', async (req, res) => {
 			error: 'Failed to fetch users',
 			detail: error.message
 		});
+	}
+});
+
+/**
+ * POST /api/admin/users/archive-active
+ * Archive every active non-admin account for end-of-year cleanup.
+ */
+router.post('/users/archive-active', async (req, res) => {
+	try {
+		const databaseService = require('../services/databaseService');
+		const result = await databaseService.db.run(`
+			UPDATE users
+			SET is_archived = 1, archived_at = CURRENT_TIMESTAMP
+			WHERE COALESCE(is_archived, 0) = 0 AND COALESCE(is_admin, 0) = 0
+		`);
+		res.json({ success: true, archivedCount: result.changes || 0 });
+	} catch (error) {
+		console.error('Error archiving active users:', error);
+		res.status(500).json({ error: 'Failed to archive active users', detail: error.message });
 	}
 });
 
@@ -952,13 +975,22 @@ router.get('/users/:id', async (req, res) => {
 router.put('/users/:id', async (req, res) => {
 	try {
 		const userId = parseInt(req.params.id);
-		const { is_admin } = req.body;
+		const { is_admin, is_archived } = req.body;
 		const databaseService = require('../services/databaseService');
 
-		await databaseService.db.run(
-			'UPDATE users SET is_admin = ? WHERE id = ?',
-			[is_admin ? 1 : 0, userId]
-		);
+		if (typeof is_archived === 'boolean') {
+			await databaseService.db.run(
+				'UPDATE users SET is_archived = ?, archived_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END WHERE id = ?',
+				[is_archived ? 1 : 0, is_archived ? 1 : 0, userId]
+			);
+		} else if (typeof is_admin === 'boolean') {
+			await databaseService.db.run(
+				'UPDATE users SET is_admin = ? WHERE id = ?',
+				[is_admin ? 1 : 0, userId]
+			);
+		} else {
+			return res.status(400).json({ error: 'No supported user update supplied' });
+		}
 
 		const user = await databaseService.db.get('SELECT * FROM users WHERE id = ?', [userId]);
 
