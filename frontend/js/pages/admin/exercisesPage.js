@@ -1052,9 +1052,8 @@ class ExercisesPage {
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Validation Output (auto-filled when testing)</label>
-                        <textarea class="form-input" data-field="expectedValidationOutput" data-index="${index}"
+                        <textarea class="form-input readonly-result" data-field="expectedValidationOutput" data-index="${index}"
                                    rows="3" placeholder="Run tests to populate..." readonly 
-                                   style="background: #2a2a2a;" 
                                    data-has-value="${!!testCase.expectedValidationOutput}">${escapeHtml(testCase.expectedValidationOutput || '')}</textarea>
                         <small style="color: var(--text-muted); font-size: 0.85rem;">Expected result from the validation query - used for pass/fail comparison</small>
                     </div>
@@ -1069,25 +1068,25 @@ class ExercisesPage {
                     ` : ''}
                     <div class="form-group-inline">
                         <label>Expected Output ${isDatabaseExercise ? '(Database Query Result)' : '(auto-filled when testing)'}</label>
-                        <textarea class="form-input" data-field="expectedOutput" data-index="${index}"
-                                   rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
+                        <textarea class="form-input readonly-result" data-field="expectedOutput" data-index="${index}"
+                                   rows="3" placeholder="Run tests to populate..." readonly>${testCase.expectedOutput || ''}</textarea>
                         ${isDatabaseExercise ? '<small style="color: var(--text-muted); font-size: 0.85rem;">Expected output from the validation query</small>' : ''}
                     </div>
                     ${!isDatabaseExercise ? `
                     <div class="form-group-inline">
                         <label>Expected STDERR (auto-filled when testing)</label>
-                        <textarea class="form-input" data-field="expectedStderr" data-index="${index}"
-                                   rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedStderr || ''}</textarea>
+                        <textarea class="form-input readonly-result" data-field="expectedStderr" data-index="${index}"
+                                   rows="2" placeholder="Run tests to populate..." readonly>${testCase.expectedStderr || ''}</textarea>
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Output Path State (auto-filled when testing)</label>
-                        <textarea class="form-input" data-field="expectedOutputFiles" data-index="${index}"
-                                   rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${this.formatOutputFiles(testCase.expectedOutputFiles || [])}</textarea>
+                        <textarea class="form-input readonly-result" data-field="expectedOutputFiles" data-index="${index}"
+                                   rows="2" placeholder="Run tests to populate..." readonly>${this.formatOutputFiles(testCase.expectedOutputFiles || [])}</textarea>
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Exit Code (auto-filled when testing)</label>
-                        <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}"
-                                value="${testCase.expectedExitCode || 0}" readonly style="background: #2a2a2a;">
+                        <input type="number" class="form-input readonly-result" data-field="expectedExitCode" data-index="${index}"
+                                value="${testCase.expectedExitCode || 0}" readonly>
                     </div>
                     ` : ''}
                     <div class="form-group-inline">

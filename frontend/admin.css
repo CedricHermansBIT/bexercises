@@ -536,6 +536,14 @@
     border-color: var(--accent-blue);
 }
 
+/* Auto-generated test expectations remain readable in every colour theme. */
+.form-input.readonly-result {
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: default;
+    opacity: 1;
+}
+
 .form-textarea {
     resize: vertical;
     min-height: 100px;

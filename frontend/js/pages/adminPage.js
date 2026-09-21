@@ -799,18 +799,18 @@ class AdminPage {
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Output (auto-filled when testing)</label>
-                        <textarea class="form-input" data-field="expectedOutput" data-index="${index}" 
-                                  rows="3" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedOutput || ''}</textarea>
+                        <textarea class="form-input readonly-result" data-field="expectedOutput" data-index="${index}" 
+                                  rows="3" placeholder="Run tests to populate..." readonly>${testCase.expectedOutput || ''}</textarea>
                     </div>
                     <div class="form-group-inline">
                         <label>Expected STDERR (auto-filled when testing)</label>
-                        <textarea class="form-input" data-field="expectedStderr" data-index="${index}" 
-                                  rows="2" placeholder="Run tests to populate..." readonly style="background: #2a2a2a;">${testCase.expectedStderr || ''}</textarea>
+                        <textarea class="form-input readonly-result" data-field="expectedStderr" data-index="${index}" 
+                                  rows="2" placeholder="Run tests to populate..." readonly>${testCase.expectedStderr || ''}</textarea>
                     </div>
                     <div class="form-group-inline">
                         <label>Expected Exit Code (auto-filled when testing)</label>
-                        <input type="number" class="form-input" data-field="expectedExitCode" data-index="${index}" 
-                               value="${testCase.expectedExitCode || 0}" readonly style="background: #2a2a2a;">
+                        <input type="number" class="form-input readonly-result" data-field="expectedExitCode" data-index="${index}" 
+                               value="${testCase.expectedExitCode || 0}" readonly>
                     </div>
                 </div>
             `;
