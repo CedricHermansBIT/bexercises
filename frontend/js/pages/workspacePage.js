@@ -365,6 +365,7 @@ class WorkspacePage {
             descriptionDiv.innerHTML = marked.parse(exercise.description);
 
             await this.loadFixtures(exercise.id);
+            await this.loadDatabaseSchema(exercise);
 
             // Set CodeMirror mode based on exercise language
             if (this.codeEditor) {
@@ -494,6 +495,54 @@ class WorkspacePage {
         } catch (error) {
             console.error('Failed to load exercise fixtures:', error);
             tree.innerHTML = '<span class="fixture-tree-empty">Fixture list unavailable.</span>';
+        }
+    }
+
+    async loadDatabaseSchema(exercise) {
+        const header = document.getElementById('database-schema-header');
+        const container = document.getElementById('database-schema');
+        if (!header || !container) return;
+
+        const isDatabaseExercise = exercise.exercise_type === 'database';
+        header.hidden = !isDatabaseExercise;
+        container.hidden = !isDatabaseExercise;
+        container.replaceChildren();
+        if (!isDatabaseExercise) return;
+
+        try {
+            const schema = await this.apiService.getExerciseDatabaseSchema(exercise.id);
+            if (schema.length === 0) {
+                container.innerHTML = '<span class="fixture-tree-empty">No tables or collections found in the database fixtures.</span>';
+                return;
+            }
+
+            schema.forEach((source) => {
+                const table = document.createElement('details');
+                table.className = 'database-schema-table';
+                table.open = true;
+
+                const summary = document.createElement('summary');
+                summary.textContent = `${source.kind === 'collection' ? 'collection' : 'table'}: ${source.name}`;
+                table.appendChild(summary);
+
+                const columns = document.createElement('ul');
+                columns.className = 'database-schema-columns';
+                source.columns.forEach((column) => {
+                    const item = document.createElement('li');
+                    item.textContent = column.type ? `${column.name} (${column.type})` : column.name;
+                    columns.appendChild(item);
+                });
+                if (source.columns.length === 0) {
+                    const item = document.createElement('li');
+                    item.textContent = 'Fields could not be determined';
+                    columns.appendChild(item);
+                }
+                table.appendChild(columns);
+                container.appendChild(table);
+            });
+        } catch (error) {
+            console.error('Failed to load database schema:', error);
+            container.innerHTML = '<span class="fixture-tree-empty">Database structure unavailable.</span>';
         }
     }
 

@@ -68,6 +68,24 @@ router.get('/exercises/:id/fixtures', asyncHandler(async (req, res) => {
 		type: fixture.type === 'folder' ? 'directory' : 'file',
 		permissions: fixture.permissions
 	})));
+	}));
+
+/**
+ * GET /api/exercises/:id/database-schema
+ * Return the table/collection structure for a database exercise, without data.
+ */
+router.get('/exercises/:id/database-schema', asyncHandler(async (req, res) => {
+	const exercise = await exerciseService.getExerciseById(req.params.id);
+	if (!exercise) {
+		throw ApiError.notFound('Exercise not found');
+	}
+	if (exercise.exercise_type !== 'database') {
+		return res.json([]);
+	}
+
+	const languageId = exercise.language_id === 'sql' ? 'mariadb' : exercise.language_id;
+	const schema = await databaseService.getExerciseDatabaseSchema(exercise.id, languageId);
+	res.json(schema);
 }));
 
 /**

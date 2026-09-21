@@ -187,6 +187,15 @@ class ApiService {
 	}
 
 	/**
+	 * Get tables/collections and their fields for a database exercise.
+	 * @param {string} exerciseId - Exercise identifier
+	 * @returns {Promise<Array>} Database schema summary
+	 */
+	async getExerciseDatabaseSchema(exerciseId) {
+		return this._get(`/api/exercises/${encodeURIComponent(exerciseId)}/database-schema`);
+	}
+
+	/**
 	 * Run tests for an exercise
 	 * @param {string} exerciseId - Exercise ID
 	 * @param {string} script - User's script code

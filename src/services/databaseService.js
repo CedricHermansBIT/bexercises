@@ -1125,6 +1125,24 @@ class DatabaseService {
 		`, [exerciseId]);
 	}
 
+	/**
+	 * Return a schema-only view of the database fixtures attached to an exercise.
+	 * Fixture content is deliberately kept on the server.
+	 */
+	async getExerciseDatabaseSchema(exerciseId, languageId) {
+		const fixtures = await this.db.all(`
+			SELECT DISTINCT f.filename, f.content
+			FROM fixture_files f
+			JOIN test_case_fixtures tcf ON tcf.fixture_id = f.id
+			JOIN test_cases tc ON tc.id = tcf.test_case_id
+			WHERE tc.exercise_id = ? AND f.type = 'file'
+			ORDER BY f.filename
+		`, [exerciseId]);
+
+		const { getDatabaseSchema } = require('../utils/databaseSchemaUtils');
+		return getDatabaseSchema(fixtures, languageId);
+	}
+
 	async createFixtureFile(filename, content, type = 'file', permissions = 'rwxr-xr-x') {
 		const size = type === 'file' ? Buffer.byteLength(content || '', 'utf8') : 0;
 		await this.db.run(`

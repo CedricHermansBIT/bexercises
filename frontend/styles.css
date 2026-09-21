@@ -1379,6 +1379,10 @@ body[data-theme="solarized"] {
     margin-top: 1.75rem;
 }
 
+.database-schema-header {
+    margin-top: 1.75rem;
+}
+
 .fixture-tree {
     display: flex;
     flex-direction: column;
@@ -1414,6 +1418,34 @@ body[data-theme="solarized"] {
     color: var(--text-muted);
     font-size: 0.72rem;
     white-space: nowrap;
+}
+
+.database-schema {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.database-schema-table {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.database-schema-table summary {
+    cursor: pointer;
+    padding: 0.35rem 0.5rem;
+    color: var(--accent-lavender);
+    font-weight: 600;
+}
+
+.database-schema-columns {
+    margin: 0;
+    padding: 0 0.75rem 0.5rem 1.8rem;
+    color: var(--text-secondary);
 }
 
 .section-content h1,
