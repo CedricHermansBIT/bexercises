@@ -3,6 +3,7 @@ import AuthComponent from '../components/authComponent.js';
 import NotificationBanner from '../components/notificationBanner.js';
 import { initializeResizableSidebars } from '../utils/resizeUtils.js';
 import { navigateTo } from '../utils/navigationUtils.js';
+import themeManager from '../utils/themeUtils.js';
 
 class AdminPage {
     constructor() {
@@ -94,7 +95,7 @@ class AdminPage {
 
         // Determine initial theme based on current mode
         const currentTheme = themeManager.getTheme();
-        const editorTheme = currentTheme === 'light' ? 'default' : 'dracula';
+        const editorTheme = ['light', 'paper'].includes(currentTheme) ? 'default' : 'dracula';
 
         this.solutionEditor = CodeMirror.fromTextArea(textarea, {
             mode: 'shell',
@@ -106,7 +107,7 @@ class AdminPage {
 
         // Listen for theme changes and update CodeMirror theme
         window.addEventListener('themechange', (e) => {
-            const newTheme = e.detail.theme === 'light' ? 'default' : 'dracula';
+            const newTheme = ['light', 'paper'].includes(e.detail.theme) ? 'default' : 'dracula';
             this.solutionEditor.setOption('theme', newTheme);
         });
     }

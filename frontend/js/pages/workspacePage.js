@@ -132,7 +132,7 @@ class WorkspacePage {
 
         // Determine initial theme based on current mode
         const currentTheme = themeManager.getTheme();
-        const editorTheme = currentTheme === 'light' ? 'default' : 'dracula';
+        const editorTheme = themeManager.isLightTheme(currentTheme) ? 'default' : 'dracula';
 
         this.codeEditor = CodeMirror.fromTextArea(textarea, {
             mode: 'shell',
@@ -155,7 +155,7 @@ class WorkspacePage {
 
         // Listen for theme changes and update CodeMirror theme
         window.addEventListener('themechange', (e) => {
-            const newTheme = e.detail.theme === 'light' ? 'default' : 'dracula';
+            const newTheme = themeManager.isLightTheme(e.detail.theme) ? 'default' : 'dracula';
             this.codeEditor.setOption('theme', newTheme);
         });
     }

@@ -8,11 +8,16 @@ class ThemeManager {
         this.STORAGE_KEY = 'bitlab-theme';
         this.LIGHT_MODE_CLASS = 'light-mode';
         this.HIGH_CONTRAST_MODE_CLASS = 'high-contrast-mode';
-        this.THEMES = ['dark', 'light', 'high-contrast'];
+        this.THEMES = ['dark', 'light', 'high-contrast', 'pink', 'dracula', 'paper', 'nord', 'solarized'];
         this.THEME_DETAILS = {
             dark: { label: 'Dark', icon: '🌙' },
             light: { label: 'Light', icon: '☀️' },
-            'high-contrast': { label: 'High contrast', icon: '◐' }
+            'high-contrast': { label: 'High contrast', icon: '◐' },
+            pink: { label: 'Pink', icon: '🌸' },
+            dracula: { label: 'Dracula', icon: '🧛' },
+            paper: { label: 'Paper', icon: '📜' },
+            nord: { label: 'Nord', icon: '❄️' },
+            solarized: { label: 'Solarized', icon: '🌤️' }
         };
     }
 
@@ -44,6 +49,8 @@ class ThemeManager {
      * @returns {string} Current theme identifier
      */
     getTheme() {
+        const selectedTheme = document.body.dataset.theme;
+        if (this.THEMES.includes(selectedTheme)) return selectedTheme;
         if (document.body.classList.contains(this.HIGH_CONTRAST_MODE_CLASS)) return 'high-contrast';
         return document.body.classList.contains(this.LIGHT_MODE_CLASS) ? 'light' : 'dark';
     }
@@ -56,6 +63,7 @@ class ThemeManager {
         const selectedTheme = this.THEMES.includes(theme) ? theme : 'dark';
         document.body.classList.toggle(this.LIGHT_MODE_CLASS, selectedTheme === 'light');
         document.body.classList.toggle(this.HIGH_CONTRAST_MODE_CLASS, selectedTheme === 'high-contrast');
+        document.body.dataset.theme = selectedTheme;
 
         // Save preference
         localStorage.setItem(this.STORAGE_KEY, selectedTheme);
@@ -70,6 +78,10 @@ class ThemeManager {
         return this.THEMES[(currentIndex + 1) % this.THEMES.length];
     }
 
+    isLightTheme(theme = this.getTheme()) {
+        return ['light', 'paper'].includes(theme);
+    }
+
     refreshThemeControls() {
         const currentTheme = this.getTheme();
         const details = this.THEME_DETAILS[currentTheme];
@@ -79,6 +91,23 @@ class ThemeManager {
             if (icon) icon.textContent = details.icon;
             if (text) text.textContent = `Theme: ${details.label}`;
             button.title = `Current theme: ${details.label}. Click to change it.`;
+
+            let selector = button.parentElement.querySelector('.theme-select');
+            if (!selector) {
+                selector = document.createElement('select');
+                selector.className = 'theme-select';
+                selector.setAttribute('aria-label', 'Choose colour theme');
+                this.THEMES.forEach((theme) => {
+                    const option = document.createElement('option');
+                    option.value = theme;
+                    option.textContent = `${this.THEME_DETAILS[theme].icon} ${this.THEME_DETAILS[theme].label}`;
+                    selector.appendChild(option);
+                });
+                selector.addEventListener('click', (event) => event.stopPropagation());
+                selector.addEventListener('change', (event) => this.setTheme(event.target.value));
+                button.insertAdjacentElement('afterend', selector);
+            }
+            selector.value = currentTheme;
         });
     }
 
