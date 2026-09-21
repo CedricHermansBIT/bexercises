@@ -71,14 +71,14 @@ class ThemeManager {
     }
 
     refreshThemeControls() {
-        const nextTheme = this.getNextTheme();
-        const details = this.THEME_DETAILS[nextTheme];
+        const currentTheme = this.getTheme();
+        const details = this.THEME_DETAILS[currentTheme];
         document.querySelectorAll('#theme-toggle-btn').forEach((button) => {
             const icon = button.querySelector('.theme-icon');
             const text = button.querySelector('.theme-text');
             if (icon) icon.textContent = details.icon;
             if (text) text.textContent = `Theme: ${details.label}`;
-            button.title = `Switch to ${details.label} theme`;
+            button.title = `Current theme: ${details.label}. Click to change it.`;
         });
     }
 
