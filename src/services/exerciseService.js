@@ -176,6 +176,7 @@ async function getExerciseById(id) {
         let chapterId = null;
 		let chapterName = null;
 		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
+		let exerciseType = 'programming';
 
 		if (exercise.chapter_id) {
 			// Get chapter to find language and chapter name
@@ -189,6 +190,7 @@ async function getExerciseById(id) {
 					languageName = language.name;
 					// Include code template so workspace doesn't need extra API call
 					codeTemplate = language.code_template || codeTemplate;
+					exerciseType = language.exercise_type || exerciseType;
 				}
 			}
 		}
@@ -201,7 +203,8 @@ async function getExerciseById(id) {
 			chapter: chapterName,
 			language_id: languageId,
 			language: languageName,
-			code_template: codeTemplate
+			code_template: codeTemplate,
+			exercise_type: exerciseType
 		};
 	} catch (error) {
 		console.error('Error getting exercise from database:', error);
