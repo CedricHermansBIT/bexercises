@@ -132,16 +132,17 @@ async function getExercisesByChapter(chapterID) {
     try {
         const exercises = await databaseService.getExercisesByChapter(chapterID);
 
-        const language = await databaseService.getChapter(chapterID);
+		const chapter = await databaseService.getChapter(chapterID);
+		const language = chapter ? await databaseService.getLanguage(chapter.language_id) : null;
 
         return exercises.map(ex => ({
             id: ex.id,
             title: ex.title,
             description: ex.description,
-            chapter: ex.chapter_name,
+			chapter: chapter?.name || ex.chapter_id,
             order: ex.order_num,
-            language_id: language?.language_id || ex.language_id,
-            language: language?.name || ex.language_id
+			language_id: chapter?.language_id || ex.language_id,
+			language: language?.name || chapter?.language_id || ex.language_id
         }));
     } catch (error) {
         console.error('Error loading exercises from database:', error);
