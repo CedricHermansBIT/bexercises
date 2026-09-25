@@ -5,6 +5,23 @@ const express = require('express');
 const { isAdmin } = require('../middleware/adminRole');
 const { resolveSessionUser } = require('../middleware/auth');
 const databaseService = require('../services/databaseService');
+const sqlite3 = require('sqlite3');
+const { open } = require('sqlite');
+
+test('returning OAuth users refresh stored email and display name', async () => {
+	const db = await open({ filename: ':memory:', driver: sqlite3.Database });
+	const original = databaseService.db;
+	try {
+		await db.exec("CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, display_name TEXT); INSERT INTO users VALUES (1, 'old@example.org', 'Old name')");
+		databaseService.db = db;
+		const user = await databaseService.updateUserProfile(1, 'new@school.example', 'New name');
+		assert.equal(user.email, 'new@school.example');
+		assert.equal(user.display_name, 'New name');
+	} finally {
+		databaseService.db = original;
+		await db.close();
+	}
+});
 
 test('admin resolution applies the configured email and domain rules', () => {
 	const oldEmails = process.env.ADMIN_EMAILS;

@@ -1094,6 +1094,14 @@ class DatabaseService {
 		);
 	}
 
+	async updateUserProfile(userId, email, displayName) {
+		await this.db.run(`
+			UPDATE users SET email = COALESCE(?, email), display_name = COALESCE(?, display_name)
+			WHERE id = ?
+		`, [email || null, displayName || null, userId]);
+		return this.getUserById(userId);
+	}
+
 	async saveUserDraft(userId, exerciseId, code) {
 		await this.db.run(`
 			INSERT INTO user_drafts (user_id, exercise_id, code, updated_at)

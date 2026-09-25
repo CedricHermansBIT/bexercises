@@ -61,14 +61,15 @@ function configurePassport() {
 					}
 					// Update last login
 					await databaseService.updateUserLogin(dbUser.id);
+					dbUser = await databaseService.updateUserProfile(dbUser.id, email, displayName);
 				}
 
 				// Return user object for session
 				const user = {
 					id: dbUser.id,
 					googleId: googleId,
-					email: email,
-					name: displayName,
+					email: dbUser.email,
+					name: dbUser.display_name,
 					picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
 					isAdmin: isAdmin(dbUser)
 				};
