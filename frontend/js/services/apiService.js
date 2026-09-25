@@ -177,6 +177,14 @@ class ApiService {
 		return this._get(`/api/exercises/${encodeURIComponent(exerciseId)}`);
 	}
 
+	async getExerciseDraft(exerciseId) {
+		return this._get(`/api/exercises/${encodeURIComponent(exerciseId)}/draft`);
+	}
+
+	async saveExerciseDraft(exerciseId, code) {
+		return this._put(`/api/exercises/${encodeURIComponent(exerciseId)}/draft`, { code });
+	}
+
 	/**
 	 * List the read-only fixture paths available for an exercise.
 	 * @param {string} exerciseId - Exercise identifier

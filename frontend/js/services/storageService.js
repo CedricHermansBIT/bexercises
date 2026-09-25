@@ -46,6 +46,17 @@ class StorageService {
 		return progress;
 	}
 
+	syncExerciseProgress(exerciseId, code, completed, updatedAt) {
+		const progress = this.loadProgress();
+		progress[exerciseId] = {
+			...progress[exerciseId], code,
+			completed: Boolean(progress[exerciseId]?.completed || completed),
+			lastModified: updatedAt || new Date().toISOString()
+		};
+		this.saveProgress(progress);
+		return progress[exerciseId];
+	}
+
 	/**
 	 * Get progress for a specific exercise
 	 * @param {string} exerciseId - Exercise ID

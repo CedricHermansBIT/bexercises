@@ -53,6 +53,28 @@ router.get('/exercises/:id', asyncHandler(async (req, res) => {
 	res.json(exercise);
 }));
 
+router.get('/exercises/:id/draft', ensureAuthenticated, asyncHandler(async (req, res) => {
+	const exercise = await exerciseService.getExerciseById(req.params.id);
+	if (!exercise) throw ApiError.notFound('Exercise not found');
+	const [draft, progress] = await Promise.all([
+		databaseService.getUserDraft(req.user.id, req.params.id),
+		databaseService.getUserProgress(req.user.id, req.params.id)
+	]);
+	res.json({ code: draft?.code ?? progress?.last_submission ?? null,
+		updatedAt: draft?.updatedAt ?? progress?.last_submission_at ?? null,
+		completed: Boolean(progress?.completed) });
+}));
+
+router.put('/exercises/:id/draft', ensureAuthenticated, asyncHandler(async (req, res) => {
+	const code = req.body?.code;
+	if (typeof code !== 'string' || Buffer.byteLength(code, 'utf8') > 65536) {
+		throw ApiError.badRequest('Draft must be text of at most 64 KiB');
+	}
+	const exercise = await exerciseService.getExerciseById(req.params.id);
+	if (!exercise) throw ApiError.notFound('Exercise not found');
+	res.json(await databaseService.saveUserDraft(req.user.id, req.params.id, code));
+}));
+
 /**
  * GET /api/exercises/:id/fixtures
  * List the read-only fixture paths made available while running an exercise.

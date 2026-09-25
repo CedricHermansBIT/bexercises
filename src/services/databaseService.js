@@ -163,6 +163,19 @@ class DatabaseService {
 			)
 		`);
 
+		// Server-backed drafts are independent of graded attempts.
+		await this.db.exec(`
+			CREATE TABLE IF NOT EXISTS user_drafts (
+				user_id INTEGER NOT NULL,
+				exercise_id TEXT NOT NULL,
+				code TEXT NOT NULL,
+				updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				PRIMARY KEY (user_id, exercise_id),
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
+			)
+		`);
+
 		// Add new columns if they don't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE user_progress ADD COLUMN successful_attempts INTEGER DEFAULT 0`);
@@ -1048,6 +1061,23 @@ class DatabaseService {
 			JOIN chapters c ON e.chapter_id = c.id
 			WHERE up.user_id = ? AND c.language_id = ?
 		`, [userId, languageId]);
+	}
+
+	async getUserDraft(userId, exerciseId) {
+		return this.db.get(
+			"SELECT code, strftime('%Y-%m-%dT%H:%M:%fZ', updated_at) AS updatedAt FROM user_drafts WHERE user_id = ? AND exercise_id = ?",
+			[userId, exerciseId]
+		);
+	}
+
+	async saveUserDraft(userId, exerciseId, code) {
+		await this.db.run(`
+			INSERT INTO user_drafts (user_id, exercise_id, code, updated_at)
+			VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+			ON CONFLICT(user_id, exercise_id) DO UPDATE SET
+				code = excluded.code, updated_at = CURRENT_TIMESTAMP
+		`, [userId, exerciseId, code]);
+		return this.getUserDraft(userId, exerciseId);
 	}
 
 	async saveUserProgress(userId, exerciseId, data) {

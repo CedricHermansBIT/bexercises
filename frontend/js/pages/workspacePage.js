@@ -34,6 +34,10 @@ class WorkspacePage {
         this.isRunning = false;
         this.saveStatusTimer = null;
         this.nextExerciseCtaTimer = null;
+		this.draftSaveTimer = null;
+		this.pendingDraft = null;
+		this.loadingExerciseId = null;
+		this.draftSaveChain = Promise.resolve();
 
         this.init();
     }
@@ -146,7 +150,7 @@ class WorkspacePage {
 
         // Auto-save code changes
         this.codeEditor.on('change', () => {
-            if (this.currentExercise) {
+            if (this.currentExercise && this.loadingExerciseId !== this.currentExercise.id) {
                 this.updateSaveStatus('Saving…', 'saving');
                 this.saveProgress();
                 this.hideNextExerciseCta();
@@ -356,6 +360,7 @@ class WorkspacePage {
         try {
             const exercise = await this.apiService.getExercise(exerciseId);
             this.currentExercise = exercise;
+			this.loadingExerciseId = exerciseId;
 
             // Update URL
             const newUrl = `./workspace.html?exercise=${exerciseId}`;
@@ -386,9 +391,23 @@ class WorkspacePage {
             const defaultTemplate = exercise.code_template || '#!/bin/bash\n\n# Write your solution here\n';
 
             // Load saved code or default template
-            const savedCode = this.storageService.getExerciseProgress(exerciseId)?.code;
-            const startingCode = savedCode ?? defaultTemplate;
+			const localProgress = this.storageService.getExerciseProgress(exerciseId);
+			let serverDraft = null;
+			try {
+				serverDraft = await this.apiService.getExerciseDraft(exerciseId);
+			} catch (error) {
+				console.warn('Draft server unavailable; using this device:', error);
+			}
+			if (this.currentExercise?.id !== exerciseId) return;
+			const localIsNewer = localProgress?.lastModified &&
+				(!serverDraft?.updatedAt || Date.parse(localProgress.lastModified) > Date.parse(serverDraft.updatedAt));
+			const startingCode = (localIsNewer ? localProgress?.code : serverDraft?.code ?? localProgress?.code)
+				?? defaultTemplate;
+			this.storageService.syncExerciseProgress(exerciseId, startingCode, serverDraft?.completed,
+				localIsNewer ? localProgress.lastModified : serverDraft?.updatedAt);
             this.codeEditor.setValue(startingCode);
+			this.loadingExerciseId = null;
+			if (localIsNewer) this.queueDraftSave(exerciseId, startingCode);
 
             // Refresh CodeMirror
             setTimeout(() => {
@@ -623,6 +642,7 @@ class WorkspacePage {
     updateProgress(exerciseId, code, completed) {
         this.storageService.updateExerciseProgress(exerciseId, code, completed);
         this.updateCompletionStatus(exerciseId);
+		this.queueDraftSave(exerciseId, code);
     }
 
     saveProgress(manual = false) {
@@ -631,8 +651,37 @@ class WorkspacePage {
         const progress = this.storageService.getExerciseProgress(this.currentExercise.id);
         const completed = progress?.completed || false;
         this.storageService.updateExerciseProgress(this.currentExercise.id, code, completed);
-        this.updateSaveStatus(manual ? 'Saved manually' : 'Saved just now', 'saved');
+		this.updateSaveStatus('Saved on this device', 'saved');
+		this.queueDraftSave(this.currentExercise.id, code, manual);
     }
+
+	queueDraftSave(exerciseId, code, immediate = false) {
+		this.pendingDraft = { exerciseId, code };
+		clearTimeout(this.draftSaveTimer);
+		if (immediate) this.flushDraftSave();
+		else this.draftSaveTimer = setTimeout(() => this.flushDraftSave(), 750);
+	}
+
+	flushDraftSave() {
+		clearTimeout(this.draftSaveTimer);
+		const pending = this.pendingDraft;
+		this.pendingDraft = null;
+		if (!pending) return this.draftSaveChain;
+		this.draftSaveChain = this.draftSaveChain.then(async () => {
+			try {
+				const saved = await this.apiService.saveExerciseDraft(pending.exerciseId, pending.code);
+				if (this.currentExercise?.id === pending.exerciseId && this.codeEditor.getValue() === pending.code) {
+					this.storageService.syncExerciseProgress(pending.exerciseId, pending.code,
+						this.storageService.getExerciseProgress(pending.exerciseId)?.completed, saved.updatedAt);
+					this.updateSaveStatus('Saved to your account', 'saved');
+				}
+			} catch (error) {
+				console.warn('Draft server unavailable; code remains on this device:', error);
+				if (this.currentExercise?.id === pending.exerciseId) this.updateSaveStatus('Saved on this device', 'saved');
+			}
+		});
+		return this.draftSaveChain;
+	}
 
     updateSaveStatus(message, state = '') {
         const status = document.getElementById('save-status');
@@ -796,6 +845,7 @@ class WorkspacePage {
     }
 
     navigateToExercise(exercise) {
+		this.flushDraftSave();
         this.loadExercise(exercise.id);
         window.history.pushState({}, '', `./workspace.html?exercise=${exercise.id}`);
     }
