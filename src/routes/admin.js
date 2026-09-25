@@ -7,6 +7,7 @@ const dockerService = require('../services/dockerService');
 const fs = require('fs').promises;
 const path = require('path');
 const config = require('../config');
+const { createTempDirectory } = require('../utils/tempDirectory');
 const { expandCommandSubstitution } = require('../utils/commandUtils');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
@@ -126,7 +127,7 @@ router.post('/run-test-case', async (req, res) => {
 			const dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? 'mariadb:latest' : 'mongo:latest');
 
 			// Create temp directory for fixtures only (no user script)
-			const tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-admin-db-'));
+			const tmpdir = await createTempDirectory('bex-admin-db-');
 			await fs.chmod(tmpdir, 0o777);
 
 			let dbContainer = null;
@@ -1205,7 +1206,7 @@ router.post('/exam-grader/test-single', async (req, res) => {
 		const os = require('os');
 
 		// Create temp files for both scripts
-		const tempDir = await fs.mkdtemp(path.join(config.paths.temp, 'exam-test-'));
+		const tempDir = await createTempDirectory('exam-test-');
 
 		try {
 			const studentPath = path.join(tempDir, 'student.sh');

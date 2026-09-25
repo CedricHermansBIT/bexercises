@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const config = require('../config');
+const { createTempDirectory } = require('../utils/tempDirectory');
 const { createTempScript, runScriptInContainer, removeRecursive, normalizeOutput, copyFixtures, hashOutputFiles } = require('./dockerService');
 const { compareRunnerResults, compareOutputState } = require('./gradingComparison');
 
@@ -527,7 +528,7 @@ async function gradeScriptFile(scriptPath, studentId, scriptFilename, gradingCon
  * @returns {Promise<Object>} Grading results for all submissions
  */
 async function gradeExamSubmissions(zipBuffer, gradingConfig) {
-	const tempDir = await fs.mkdtemp(path.join(config.paths.temp, 'exam-grading-'));
+	const tempDir = await createTempDirectory('exam-grading-');
 	const solutionScripts = {};
 
 	try {

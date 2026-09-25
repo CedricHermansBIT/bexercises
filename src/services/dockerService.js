@@ -5,6 +5,7 @@ const fsSync = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const config = require('../config');
+const { createTempDirectory } = require('../utils/tempDirectory');
 
 /**
  * Detect whether to use docker or podman
@@ -236,7 +237,7 @@ async function chmodRecursive(targetPath, mode) {
 async function createTempScript(scriptContents, languageId = 'bash') {
 	const langConfig = await getLanguageConfig(languageId);
 	const normalized = String(scriptContents).replace(/\r\n/g, '\n');
-	const tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-'));
+	const tmpdir = await createTempDirectory('bex-');
 
 	await fs.chmod(tmpdir, 0o777);
 

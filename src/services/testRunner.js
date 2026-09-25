@@ -16,6 +16,7 @@ const {
     executeMongoDBQuery
 } = require('./databaseContainerService');
 const config = require('../config');
+const { createTempDirectory } = require('../utils/tempDirectory');
 const { expandCommandSubstitution } = require('../utils/commandUtils');
 const { compareRunnerResults, compareOutputState } = require('./gradingComparison');
 
@@ -45,7 +46,7 @@ async function runTests(exercise, script) {
 
     if (isDatabaseExercise && (effectiveLanguageId === 'mariadb' || effectiveLanguageId === 'mongodb')) {
         // Create a temp directory without the user script (to avoid it being executed during DB init)
-        tmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-db-'));
+        tmpdir = await createTempDirectory('bex-db-');
         await fs.chmod(tmpdir, 0o777);
         scriptFilename = null; // No script file for database exercises
         languageConfig = null;
@@ -232,7 +233,7 @@ async function runTests(exercise, script) {
                 try {
                     let solutionResult;
                     if (needsDatabaseContainer) {
-                        solutionTmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-reference-db-'));
+                        solutionTmpdir = await createTempDirectory('bex-reference-db-');
                         await fs.chmod(solutionTmpdir, 0o777);
                         const dbFixtures = (tc.fixtures || []).filter(f =>
                             effectiveLanguageId === 'mariadb' ? f.endsWith('.sql') : /\.(js|json|bson)$/.test(f));
