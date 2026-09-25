@@ -479,6 +479,7 @@ class DatabaseService {
 			{ id: 'dedicated', name: 'Dedicated', description: 'Complete 10 exercises', icon: '💪', category: 'progress', points: 50, requirement_type: 'exercises_completed', requirement_value: 10 },
 			{ id: 'master', name: 'Master', description: 'Complete 25 exercises', icon: '🏆', category: 'progress', points: 100, requirement_type: 'exercises_completed', requirement_value: 25 },
 			{ id: 'legendary', name: 'Legendary', description: 'Complete 50 exercises', icon: '👑', category: 'progress', points: 250, requirement_type: 'exercises_completed', requirement_value: 50 },
+			{ id: 'six-seven', name: 'Six Seven', description: 'Complete 67 exercises. Six, seven! 🙌', icon: '🙌', category: 'progress', points: 67, requirement_type: 'exercises_completed', requirement_value: 67 },
 
 			// Perfect Scores
 			{ id: 'perfectionist', name: 'Perfectionist', description: 'Complete an exercise on the first try', icon: '✨', category: 'skill', points: 20, requirement_type: 'first_try_completions', requirement_value: 1 },
