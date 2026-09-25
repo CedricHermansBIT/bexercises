@@ -1,91 +1,40 @@
-// src/utils/commandUtils.js
-const { execSync } = require('child_process');
+// Output filename templates are expanded in the server process. Never pass
+// exercise-authored text to a shell or a host command.
+const DATE_FORMAT = /^(?:%[YmdHMS%]|[._-])+$/;
+const LEGACY_DATE = /^date \+(.+)$/;
 
-/**
- * Whitelist of allowed commands for command substitution
- * Only these commands can be executed for security
- */
-const ALLOWED_COMMANDS = [
-	'date',
-	'whoami',
-	'hostname',
-	'pwd',
-	'echo'
-];
-
-/**
- * Validate and sanitize command for substitution
- * @param {string} command - Command to validate
- * @returns {boolean} Whether command is allowed
- */
 function isCommandAllowed(command) {
-	const trimmed = command.trim();
-
-	// Check if command starts with one of the allowed commands
-	for (const allowed of ALLOWED_COMMANDS) {
-		if (trimmed === allowed || trimmed.startsWith(`${allowed} `)) {
-			return true;
-		}
-	}
-
-	return false;
+	const match = typeof command === 'string' && command.trim().match(LEGACY_DATE);
+	return Boolean(match && DATE_FORMAT.test(match[1]));
 }
 
-/**
- * Expand command substitutions in a string
- * Supports $(command) syntax for dynamic values
- * SECURITY: Only whitelisted commands are allowed
- * @param {string} str - String with potential command substitutions
- * @param {Object} options - Optional configuration
- * @param {boolean} options.enforceWhitelist - Whether to enforce whitelist (default: true)
- * @param {number} options.timeout - Command timeout in ms (default: 5000)
- * @returns {string} String with substitutions expanded
- */
-function expandCommandSubstitution(str, options = {}) {
-	const { enforceWhitelist = true, timeout = 5000 } = options;
-
-	if (!str || typeof str !== 'string') {
-		return str;
-	}
-
-	// Match $(command) patterns
-	const pattern = /\$\(([^)]+)\)/g;
-
-	return str.replace(pattern, (match, command) => {
-		try {
-			// SECURITY: Check if command is whitelisted
-			if (enforceWhitelist && !isCommandAllowed(command)) {
-				console.warn(`[SECURITY] Blocked non-whitelisted command substitution: ${command}`);
-				console.warn(`[SECURITY] Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`);
-				// Return placeholder instead of executing
-				return '[BLOCKED_COMMAND]';
-			}
-
-			// Execute the command and get output
-			// On Windows, use cmd.exe if bash is not available
-			const isWindows = process.platform === 'win32';
-			const shell = isWindows ? process.env.ComSpec || 'cmd.exe' : '/bin/bash';
-
-			// Log command execution for audit trail
-			console.log(`[AUDIT] Executing whitelisted command substitution: ${command}`);
-
-			const result = execSync(command, {
-				encoding: 'utf8',
-				timeout,
-				shell
-			});
-			return result.trim();
-		} catch (error) {
-			console.warn(`Failed to expand command substitution: ${command}`, error.message);
-			// Return the original match if execution fails
-			return match;
-		}
-	});
+function formatDate(format, now) {
+	const values = {
+		Y: String(now.getFullYear()).padStart(4, '0'),
+		m: String(now.getMonth() + 1).padStart(2, '0'),
+		d: String(now.getDate()).padStart(2, '0'),
+		H: String(now.getHours()).padStart(2, '0'),
+		M: String(now.getMinutes()).padStart(2, '0'),
+		S: String(now.getSeconds()).padStart(2, '0'),
+		'%': '%'
+	};
+	return format.replace(/%([YmdHMS%])/g, (_match, part) => values[part]);
 }
 
-module.exports = {
-	expandCommandSubstitution,
-	isCommandAllowed,
-	ALLOWED_COMMANDS
-};
+function expandCommandSubstitution(value, options = {}) {
+	if (typeof value !== 'string') return value;
+	const now = options.now || new Date();
+	const expand = (format) => DATE_FORMAT.test(format)
+		? formatDate(format, now)
+		: '[BLOCKED_COMMAND]';
+	// Keep the existing date syntax for saved exercises while supporting an
+	// explicit template for newly authored filenames.
+	return value
+		.replace(/\$\(([^)]*)\)/g, (_match, command) => {
+			const match = command.trim().match(LEGACY_DATE);
+			return match ? expand(match[1]) : '[BLOCKED_COMMAND]';
+		})
+		.replace(/\{date:([^}]*)\}/g, (_match, format) => expand(format));
+}
 
+module.exports = { expandCommandSubstitution, isCommandAllowed };
