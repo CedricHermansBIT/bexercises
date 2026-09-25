@@ -188,7 +188,11 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 		}
 
 		return {
-			passed: outputMatch && exitCodeMatch && outputFilesMatch,
+			passed: outputMatch && exitCodeMatch && outputFilesMatch
+				&& studentResult.exitCode !== null && solutionResult.exitCode !== null
+				&& !studentResult.timedOut && !solutionResult.timedOut
+				&& !studentResult.outputLimited && !solutionResult.outputLimited
+				&& !studentResult.error && !solutionResult.error,
 			studentOutput: studentOut,
 			solutionOutput: solutionOut,
 			studentStderr: studentErr,

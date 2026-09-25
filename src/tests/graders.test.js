@@ -10,6 +10,7 @@ test('exam comparison passes the current runner arguments', async () => {
 	require(dockerPath);
 	const original = require.cache[dockerPath].exports;
 	const calls = [];
+	let runResult = { stdout: 'same', stderr: '', exitCode: 0 };
 	require.cache[dockerPath].exports = {
 		...original,
 		createTempScript: async () => {
@@ -18,7 +19,7 @@ test('exam comparison passes the current runner arguments', async () => {
 		},
 		runScriptInContainer: async (...args) => {
 			calls.push(args);
-			return { stdout: 'same', stderr: '', exitCode: 0 };
+			return runResult;
 		}
 	};
 	delete require.cache[graderPath];
@@ -39,6 +40,8 @@ test('exam comparison passes the current runner arguments', async () => {
 			assert.deepEqual(args[3], ['arg']);
 			assert.deepEqual(args[4], ['input']);
 		}
+		runResult = { stdout: '', stderr: '', exitCode: -1, timedOut: true };
+		assert.equal((await grader.compareScriptOutputs(student, solution)).passed, false);
 	} finally {
 		require.cache[dockerPath].exports = original;
 		delete require.cache[graderPath];
