@@ -269,9 +269,9 @@ class UsersPage {
             item.innerHTML = `
                 <div class="user-info">
                     <div class="user-name">
-                        ${user.display_name || 'Unknown'} ${adminBadge} ${archivedBadge}
+                        ${escapeHtml(user.display_name || 'Unknown')} ${adminBadge} ${archivedBadge}
                     </div>
-                    <div class="user-email">${user.email || ''}</div>
+                    <div class="user-email">${escapeHtml(user.email || '')}</div>
                     <div class="user-stats">
                         <span class="stat-badge last-activity ${activityClass}" title="Last activity: ${fullActivityDateTime}">
                             🕒 ${lastActivityText}
