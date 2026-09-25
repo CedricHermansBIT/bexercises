@@ -4,6 +4,92 @@ const fsSync = require('fs');
 const path = require('path');
 const config = require('../config');
 const { createTempScript, runScriptInContainer, removeRecursive, normalizeOutput, copyFixtures, hashOutputFiles } = require('./dockerService');
+const { compareRunnerResults, compareOutputState } = require('./gradingComparison');
+
+function inspectZip(zipBuffer) {
+	if (!Buffer.isBuffer(zipBuffer) || zipBuffer.length > config.docker.maxExamArchiveBytes) {
+		throw new Error('Exam ZIP exceeds the compressed size limit');
+	}
+	let end = -1;
+	for (let offset = zipBuffer.length - 22; offset >= Math.max(0, zipBuffer.length - 65557); offset--) {
+		if (zipBuffer.readUInt32LE(offset) === 0x06054b50) { end = offset; break; }
+	}
+	if (end < 0) throw new Error('Invalid ZIP archive');
+	const count = zipBuffer.readUInt16LE(end + 10);
+	const centralSize = zipBuffer.readUInt32LE(end + 12);
+	let cursor = zipBuffer.readUInt32LE(end + 16);
+	if (count === 0xffff || cursor === 0xffffffff || cursor + centralSize > end) {
+		throw new Error('Unsupported ZIP directory');
+	}
+	if (count > config.docker.maxExamFiles) throw new Error('Exam ZIP contains too many entries');
+	const seen = new Set();
+	let uncompressed = 0;
+	for (let i = 0; i < count; i++) {
+		if (cursor + 46 > end || zipBuffer.readUInt32LE(cursor) !== 0x02014b50) {
+			throw new Error('Invalid ZIP directory entry');
+		}
+		const filenameLength = zipBuffer.readUInt16LE(cursor + 28);
+		const extraLength = zipBuffer.readUInt16LE(cursor + 30);
+		const commentLength = zipBuffer.readUInt16LE(cursor + 32);
+		const next = cursor + 46 + filenameLength + extraLength + commentLength;
+		if (next > end) throw new Error('Invalid ZIP directory entry length');
+		const filename = zipBuffer.subarray(cursor + 46, cursor + 46 + filenameLength).toString('utf8');
+		const parts = filename.split('/').filter(Boolean);
+		if (!filename || filename.startsWith('/') || filename.includes('\\') || filename.includes('\0')
+			|| parts.some(part => part === '.' || part === '..')
+			|| (parts.length === 1 && filename.startsWith('solution_'))
+			|| parts.length > config.docker.maxExamDepth || seen.has(filename)) {
+			throw new Error(`Unsafe ZIP entry: ${filename}`);
+		}
+		seen.add(filename);
+		const unixMode = zipBuffer.readUInt32LE(cursor + 38) >>> 16;
+		if ((unixMode & 0xf000) === 0xa000) throw new Error(`ZIP symlink is not allowed: ${filename}`);
+		uncompressed += zipBuffer.readUInt32LE(cursor + 24);
+		if (uncompressed > config.docker.maxExamUncompressedBytes) {
+			throw new Error('Exam ZIP exceeds the uncompressed size limit');
+		}
+		cursor = next;
+	}
+	if (cursor !== zipBuffer.readUInt32LE(end + 16) + centralSize) {
+		throw new Error('Invalid ZIP directory size');
+	}
+}
+
+async function scanSubmissionFiles(root, excludeSolutions = false) {
+	const canonicalRoot = await fs.realpath(root);
+	const scripts = [];
+	let count = 0;
+	let bytes = 0;
+	async function visit(directory, depth) {
+		if (depth > config.docker.maxExamDepth) throw new Error('Exam ZIP nesting is too deep');
+		for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+			const fullPath = path.join(directory, entry.name);
+			const stat = await fs.lstat(fullPath);
+			if (stat.isSymbolicLink() || (!stat.isFile() && !stat.isDirectory())) {
+				throw new Error(`Unsafe extracted file: ${fullPath}`);
+			}
+			const real = await fs.realpath(fullPath);
+			if (!real.startsWith(`${canonicalRoot}${path.sep}`)) {
+				throw new Error(`Extracted file escapes archive directory: ${fullPath}`);
+			}
+			count++;
+			if (count > config.docker.maxExamFiles) throw new Error('Exam ZIP contains too many files');
+			if (stat.isDirectory()) await visit(fullPath, depth + 1);
+			else {
+				bytes += stat.size;
+				if (bytes > config.docker.maxExamUncompressedBytes) {
+					throw new Error('Exam ZIP exceeds the uncompressed size limit');
+				}
+				const relative = path.relative(root, fullPath);
+				if (relative.endsWith('.sh') && !(excludeSolutions && path.basename(relative).startsWith('solution_'))) {
+					scripts.push({ filename: relative, path: fullPath });
+				}
+			}
+		}
+	}
+	await visit(root, 0);
+	return scripts.sort((a, b) => a.filename.localeCompare(b.filename));
+}
 
 /**
  * Extract a zip file to a directory using the existing Docker infrastructure
@@ -12,94 +98,48 @@ const { createTempScript, runScriptInContainer, removeRecursive, normalizeOutput
  * @returns {Promise<string[]>} List of extracted file names
  */
 async function extractZip(zipBuffer, targetDir) {
-	const zipPath = path.join(targetDir, 'upload.zip');
-	await fs.writeFile(zipPath, zipBuffer);
-
-	// Create a simple script to unzip and list files with details
+	inspectZip(zipBuffer);
 	const unzipScript = `#!/bin/bash
 set -e
-echo "Unzipping file..."
-unzip -o upload.zip 2>&1
-echo "Files extracted:"
-find . -type f -name "*.sh" 2>&1
-ls -la
+mkdir extracted
+unzip -oq upload.zip -d extracted
 `;
-
 	const { tmpdir, scriptFilename, languageConfig } = await createTempScript(unzipScript);
-
 	try {
-		// Copy the zip file to the temp directory
-		const zipDestPath = path.join(tmpdir, 'upload.zip');
-		await fs.copyFile(zipPath, zipDestPath);
-
-		console.log('[ExamGrader] Running unzip in Docker container...');
-		// Run the unzip script using existing Docker infrastructure
+		await fs.writeFile(path.join(tmpdir, 'upload.zip'), zipBuffer);
 		const result = await runScriptInContainer(tmpdir, scriptFilename,
 			{ ...languageConfig, dockerImage: config.docker.image, interpreter: 'bash' },
 			[], [], config.docker.timeout);
-
-		console.log('[ExamGrader] Unzip output:', result.stdout);
-		console.log('[ExamGrader] Unzip stderr:', result.stderr);
-
-		if (result.exitCode !== 0) {
-			throw new Error(`Unzip failed with exit code ${result.exitCode}: ${result.stderr}`);
+		if (result.exitCode !== 0 || result.timedOut || result.outputLimited || result.error) {
+			throw new Error(`Unzip failed: ${result.error || result.stderr || result.exitCode}`);
 		}
-
-		// Copy all extracted files from tmpdir to targetDir
-		console.log('[ExamGrader] Copying files from tmpdir to targetDir...');
-		const entries = await fs.readdir(tmpdir);
-		console.log('[ExamGrader] Entries in tmpdir:', entries);
-
-		let copiedCount = 0;
-		for (const entry of entries) {
-			if (entry !== 'script.sh' && entry !== 'upload.zip') {
-				const srcPath = path.join(tmpdir, entry);
-				const destPath = path.join(targetDir, entry);
-				const stat = await fs.stat(srcPath);
-
-				if (stat.isDirectory()) {
-					// Recursively copy directory
-					console.log('[ExamGrader] Copying directory:', entry);
-					await copyDirectory(srcPath, destPath);
-				} else {
-					console.log('[ExamGrader] Copying file:', entry);
-					await fs.copyFile(srcPath, destPath);
-					copiedCount++;
-				}
-			}
-		}
-
-		console.log('[ExamGrader] Copied', copiedCount, 'files to', targetDir);
-
-		// Remove the original zip file from target directory
-		await fs.unlink(zipPath).catch(() => {});
-
-		// List files in the target directory to verify
-		const finalFiles = await fs.readdir(targetDir);
-		console.log('[ExamGrader] Files in targetDir after extraction:', finalFiles);
-
-		return finalFiles.filter(f => f.endsWith('.sh') && !f.startsWith('solution_'));
+		const extractedRoot = path.join(tmpdir, 'extracted');
+		const scripts = await scanSubmissionFiles(extractedRoot);
+		await copyDirectory(extractedRoot, targetDir, extractedRoot);
+		return scripts.map(script => script.filename);
 	} finally {
 		await removeRecursive(tmpdir);
 	}
 }
 
-/**
- * Recursively copy a directory
- */
-async function copyDirectory(src, dest) {
+async function copyDirectory(src, dest, root = src) {
 	await fs.mkdir(dest, { recursive: true });
-	const entries = await fs.readdir(src, { withFileTypes: true });
-
-	for (const entry of entries) {
+	const realRoot = await fs.realpath(root);
+	for (const entry of await fs.readdir(src, { withFileTypes: true })) {
 		const srcPath = path.join(src, entry.name);
 		const destPath = path.join(dest, entry.name);
-
-		if (entry.isDirectory()) {
-			await copyDirectory(srcPath, destPath);
-		} else {
-			await fs.copyFile(srcPath, destPath);
+		const stat = await fs.lstat(srcPath);
+		if (stat.isSymbolicLink() || (!stat.isFile() && !stat.isDirectory())
+			|| !(await fs.realpath(srcPath)).startsWith(`${realRoot}${path.sep}`)) {
+			throw new Error(`Unsafe extracted file: ${srcPath}`);
 		}
+		const existing = await fs.lstat(destPath).catch(error => {
+			if (error.code === 'ENOENT') return null;
+			throw error;
+		});
+		if (existing) throw new Error(`Exam ZIP would overwrite an existing file: ${entry.name}`);
+		if (stat.isDirectory()) await copyDirectory(srcPath, destPath, root);
+		else await fs.copyFile(srcPath, destPath);
 	}
 }
 
@@ -148,8 +188,7 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 		const studentErr = normalizeOutput(studentResult.stderr).trim();
 		const solutionErr = normalizeOutput(solutionResult.stderr).trim();
 
-		const outputMatch = studentOut === solutionOut;
-		const exitCodeMatch = studentResult.exitCode === solutionResult.exitCode;
+		const runnerComparison = compareRunnerResults(studentResult, solutionResult);
 
 		// Check output files if specified
 		let outputFilesResult = [];
@@ -166,8 +205,7 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 			// Compare file hashes
 			outputFilesResult = studentFileHashes.map((studentFile) => {
 				const solutionFile = solutionFileHashes.find(f => f.filename === studentFile.filename);
-				const hashMatches = studentFile.exists && solutionFile.exists &&
-								   studentFile.sha256 === solutionFile.sha256;
+				const { matches: hashMatches, entries } = compareOutputState(studentFile, solutionFile);
 
 				if (!hashMatches) {
 					outputFilesMatch = false;
@@ -179,6 +217,11 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 					solutionExists: solutionFile ? solutionFile.exists : false,
 					studentHash: studentFile.sha256,
 					solutionHash: solutionFile ? solutionFile.sha256 : null,
+					studentType: studentFile.type,
+					solutionType: solutionFile ? solutionFile.type : null,
+					studentLinkTarget: studentFile.linkTarget,
+					solutionLinkTarget: solutionFile ? solutionFile.linkTarget : null,
+					entries,
 					hashMatches,
 					studentSize: studentFile.size,
 					solutionSize: solutionFile ? solutionFile.size : null,
@@ -188,19 +231,16 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 		}
 
 		return {
-			passed: outputMatch && exitCodeMatch && outputFilesMatch
-				&& studentResult.exitCode !== null && solutionResult.exitCode !== null
-				&& !studentResult.timedOut && !solutionResult.timedOut
-				&& !studentResult.outputLimited && !solutionResult.outputLimited
-				&& !studentResult.error && !solutionResult.error,
+			passed: runnerComparison.passed && outputFilesMatch,
 			studentOutput: studentOut,
 			solutionOutput: solutionOut,
 			studentStderr: studentErr,
 			solutionStderr: solutionErr,
 			studentExitCode: studentResult.exitCode,
 			solutionExitCode: solutionResult.exitCode,
-			outputMatch,
-			exitCodeMatch,
+			outputMatch: runnerComparison.outputMatch,
+			stderrMatch: runnerComparison.stderrMatch,
+			exitCodeMatch: runnerComparison.exitCodeMatch,
 			outputFiles: outputFilesResult,
 			outputFilesMatch
 		};
@@ -513,68 +553,11 @@ async function gradeExamSubmissions(zipBuffer, gradingConfig) {
 		console.log('[ExamGrader] Extracting ZIP file to:', tempDir);
 		await extractZip(zipBuffer, tempDir);
 
-		// Find all .sh script files in the extracted directory (each file = one student)
-		console.log('[ExamGrader] Looking for .sh files in:', tempDir);
-		const entries = await fs.readdir(tempDir);
-		console.log('[ExamGrader] Entries found:', entries);
-		const scriptFiles = [];
-
-		for (const entry of entries) {
-			const fullPath = path.join(tempDir, entry);
-
-			// Skip solution script files
-			if (entry.startsWith('solution_')) {
-				console.log('[ExamGrader] Skipping solution file:', entry);
-				continue;
-			}
-
-			const stat = await fs.stat(fullPath);
-
-			// Look for .sh files (each file is a student submission)
-			if (stat.isFile() && entry.endsWith('.sh')) {
-				console.log('[ExamGrader] Found script file:', entry);
-				scriptFiles.push({
-					filename: entry,
-					path: fullPath
-				});
-			}
-		}
-
-		console.log('[ExamGrader] Found', scriptFiles.length, '.sh files at root level');
-
-		// If no .sh files found directly, check subdirectories
-		if (scriptFiles.length === 0) {
-			console.log('[ExamGrader] No .sh files at root, checking subdirectories...');
-			for (const entry of entries) {
-				const fullPath = path.join(tempDir, entry);
-
-				// Skip solution script files
-				if (entry.startsWith('solution_')) {
-					continue;
-				}
-
-				const stat = await fs.stat(fullPath);
-				if (stat.isDirectory()) {
-					console.log('[ExamGrader] Checking subdirectory:', entry);
-					const subEntries = await fs.readdir(fullPath);
-					console.log('[ExamGrader] Files in', entry, ':', subEntries);
-					for (const subEntry of subEntries) {
-						if (subEntry.endsWith('.sh')) {
-							console.log('[ExamGrader] Found script in subdirectory:', `${entry}/${subEntry}`);
-							scriptFiles.push({
-								filename: `${entry}/${subEntry}`,
-								path: path.join(fullPath, subEntry)
-							});
-						}
-					}
-				}
-			}
-		}
-
-		console.log('[ExamGrader] Total script files found:', scriptFiles.length);
+		// Scan every directory, including mixed root and nested submissions.
+		const scriptFiles = await scanSubmissionFiles(tempDir, true);
 
 		if (scriptFiles.length === 0) {
-			throw new Error('No .sh script files found in the ZIP file. Extracted files: ' + entries.join(', '));
+			throw new Error('No .sh script files found in the ZIP file');
 		}
 
 		// Grade each script file
@@ -618,6 +601,8 @@ async function gradeExamSubmissions(zipBuffer, gradingConfig) {
 
 module.exports = {
 	extractZip,
+	inspectZip,
+	scanSubmissionFiles,
 	compareScriptOutputs,
 	checkCodeRules,
 	gradeSubmission,

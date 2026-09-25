@@ -17,6 +17,7 @@ const {
 } = require('./databaseContainerService');
 const config = require('../config');
 const { expandCommandSubstitution } = require('../utils/commandUtils');
+const { compareRunnerResults, compareOutputState } = require('./gradingComparison');
 
 /**
  * Run all tests for an exercise
@@ -265,40 +266,9 @@ async function runTests(exercise, script) {
 				const filenames = expandedFiles.map(f => f.filename);
 				const actualFileHashes = await hashOutputFiles(tmpdir, filenames);
 
-				// Compare each expected path's type. File contents and directory
-				// trees are hashed; links are compared by their destination.
 				outputFilesResult = actualFileHashes.map((actual) => {
 					const expected = expandedFiles.find(e => e.filename === actual.filename);
-					// Tests saved before types were recorded only supported files.
-					const expectedType = expected ? (expected.type || 'file') : null;
-					const typeMatches = expectedType === actual.type;
-					const stateMatches = ['file', 'directory'].includes(expectedType)
-						? (!expected.sha256 || actual.sha256 === expected.sha256)
-						: expectedType === 'link'
-							? (!expected.linkTarget || actual.linkTarget === expected.linkTarget)
-							: true;
-					const expectedEntries = expected?.entries || [];
-					const actualEntries = actual.entries || [];
-					const entryPaths = new Set([
-						...expectedEntries.map(entry => entry.path),
-						...actualEntries.map(entry => entry.path)
-					]);
-					const entries = [...entryPaths].sort().map((entryPath) => {
-						const expectedEntry = expectedEntries.find(entry => entry.path === entryPath);
-						const actualEntry = actualEntries.find(entry => entry.path === entryPath);
-						const entryMatches = Boolean(expectedEntry && actualEntry)
-							&& expectedEntry.type === actualEntry.type
-							&& (expectedEntry.type !== 'file' || expectedEntry.sha256 === actualEntry.sha256)
-							&& (expectedEntry.type !== 'link' || expectedEntry.linkTarget === actualEntry.linkTarget);
-						return {
-							path: entryPath,
-							expectedType: expectedEntry?.type || null,
-							actualType: actualEntry?.type || null,
-							matches: entryMatches
-						};
-					});
-					const entriesMatch = expectedEntries.length === 0 || entries.every(entry => entry.matches);
-					const matches = Boolean(expected) && actual.exists && typeMatches && stateMatches && entriesMatch;
+					const { matches, expectedType, entries } = compareOutputState(actual, expected);
 
                     if (!matches) {
                         outputFilesMatch = false;
@@ -345,12 +315,9 @@ async function runTests(exercise, script) {
                     && outputFilesMatch;
             } else {
                 // Programming exercises: check all outputs including stderr and exit codes
-                passed = (!r.timedOut)
-                    && (r.exitCode !== null)
-                    && (String(r.exitCode) === String(expectedExitCode))
-                    && (actualForComparison === expected)
-                    && (actualStderr === expectedStderr)
-                    && outputFilesMatch;
+				passed = compareRunnerResults(r, {
+					stdout: expected, stderr: expectedStderr, exitCode: expectedExitCode
+				}).passed && outputFilesMatch;
             }
 
             results.push({
