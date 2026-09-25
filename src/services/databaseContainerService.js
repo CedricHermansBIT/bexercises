@@ -337,6 +337,7 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
     const database = 'testdb';
     const containerCmd = getContainerCommand();
     const bsonFixtures = [];
+    const largeJsonImports = [];
 
     console.log(`[MongoDB] Starting container: ${containerName} using ${containerCmd} with image ${dockerImage}`);
 
@@ -366,6 +367,19 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
                 console.log(`[MongoDB] Processing JSON fixture: ${fixtureName} (${content.length} bytes)`);
                 try {
                     const jsonData = JSON.parse(content);
+					if (content.length > 1024 * 1024) {
+						const collections = Array.isArray(jsonData)
+							? [[path.basename(fixtureName, '.json'), jsonData]]
+							: Object.entries(jsonData || {}).filter(([, documents]) => Array.isArray(documents));
+						if (collections.length === 0) throw new Error(`No collections in ${fixtureName}`);
+						for (const [collectionName, documents] of collections) {
+							if (documents.length === 0) continue;
+							const importFile = `import-${largeJsonImports.length}.json`;
+							await fs.writeFile(path.join(tmpdir, importFile), JSON.stringify(documents));
+							largeJsonImports.push({ collectionName, importFile });
+						}
+						continue;
+					}
 
                     // Check if it's an object with collection names as keys
                     if (typeof jsonData === 'object' && !Array.isArray(jsonData)) {
@@ -397,6 +411,7 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
                 } catch (err) {
                     console.error(`[MongoDB] Failed to parse JSON fixture ${fixtureName}: ${err.message}`);
                     console.error(`[MongoDB] File preview (first 200 chars): ${content.substring(0, 200)}`);
+					throw err;
                 }
             } else if (ext === '.bson') {
                 // BSON is restored after the server is ready; init.js cannot read it.
@@ -564,6 +579,25 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
                     return;
                 }
             }
+
+			for (const fixture of largeJsonImports) {
+				const importResult = await new Promise(resolveImport => {
+					const importer = spawn(containerCmd, [
+						'exec', containerName, 'mongoimport', '--db', database,
+						'--collection', fixture.collectionName, '--jsonArray', '--stopOnError',
+						'--file', `/fixtures/${fixture.importFile}`
+					]);
+					let stderr = '';
+					importer.stderr.on('data', data => { stderr += data.toString(); });
+					importer.on('close', code => resolveImport({ code, stderr }));
+					importer.on('error', error => resolveImport({ code: -1, stderr: error.message }));
+				});
+				if (importResult.code !== 0) {
+					await new Promise(res => spawn(containerCmd, ['rm', '-f', containerName]).on('close', res));
+					reject(new Error(`MongoDB JSON fixture ${fixture.importFile} failed: ${importResult.stderr}`));
+					return;
+				}
+			}
 
             for (const fixture of bsonFixtures) {
                 const restoreResult = await new Promise(resolveRestore => {

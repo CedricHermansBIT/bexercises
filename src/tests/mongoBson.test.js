@@ -40,3 +40,27 @@ test('MongoDB restores BSON fixtures into the test database', {
 		await fs.rm(fixtureDir, { recursive: true, force: true });
 	}
 });
+
+test('MongoDB imports large JSON fixtures without loading them through mongosh', {
+	skip: process.env.RUN_CONTAINER_TESTS !== '1' ? 'Set RUN_CONTAINER_TESTS=1 for container integration tests' : false
+}, async () => {
+	const fixtureDir = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-large-json-fixture-'));
+	const workDir = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-large-json-work-'));
+	const originalFixtures = config.paths.fixtures;
+	let container;
+	try {
+		await fs.chmod(workDir, 0o777);
+		const documents = Array.from({ length: 12000 }, (_, index) => ({ index, payload: 'x'.repeat(90) }));
+		await fs.writeFile(path.join(fixtureDir, 'large.json'), JSON.stringify(documents));
+		config.paths.fixtures = fixtureDir;
+		container = await startMongoDBContainer(workDir, ['large.json']);
+		const result = await executeMongoDBQuery(container, 'db.large.countDocuments({})');
+		assert.equal(result.exitCode, 0);
+		assert.match(result.stdout, /12000/);
+	} finally {
+		config.paths.fixtures = originalFixtures;
+		if (container) await container.cleanup();
+		await fs.rm(workDir, { recursive: true, force: true });
+		await fs.rm(fixtureDir, { recursive: true, force: true });
+	}
+});
