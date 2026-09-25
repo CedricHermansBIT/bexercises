@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const securityHeaders = require('../middleware/securityHeaders');
 const cors = require('../middleware/cors');
 
@@ -23,4 +25,18 @@ test('security headers restrict scripts and anonymous CORS access', async () => 
 	} finally {
 		await new Promise(resolve => server.close(resolve));
 	}
+});
+
+test('frontend source has no inline event handlers blocked by the CSP', async () => {
+	async function visit(directory) {
+		for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+			const file = path.join(directory, entry.name);
+			if (entry.isDirectory()) await visit(file);
+			else if (/\.(html|js)$/.test(entry.name) && entry.name !== 'dompurify.min.js') {
+				const source = await fs.readFile(file, 'utf8');
+				assert.doesNotMatch(source, /(?<![.\w])on(?:click|change|error|load|submit|input|keydown)\s*=/i, file);
+			}
+		}
+	}
+	await visit(path.join(__dirname, '../../frontend'));
 });

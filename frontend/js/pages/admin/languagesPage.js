@@ -376,25 +376,32 @@ class LanguagesPage {
         container.innerHTML = chapters
             .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
             .map(chapter => `
-                <div class="chapter-item" data-chapter-id="${chapter.id}" draggable="true">
+                <div class="chapter-item" draggable="true">
                     <div class="drag-handle" style="cursor: grab; margin-right: 0.5rem; color: var(--text-muted);">⋮⋮</div>
                     <div class="chapter-info">
                         <div class="chapter-name">${this.escapeHtml(chapter.name)}</div>
                         <div class="chapter-meta">
-                            ID: ${chapter.id} | 
+                            ID: <span class="chapter-id"></span> |
                             ${chapter.exercise_count || 0} exercise${chapter.exercise_count !== 1 ? 's' : ''}
                         </div>
                     </div>
                     <div class="chapter-actions">
-                        <button class="action-btn" onclick="languagesPage.editChapter('${chapter.id}')">
+                        <button class="action-btn edit-chapter-btn">
                             <span>✏️</span> Edit
                         </button>
-                        <button class="action-btn danger" onclick="languagesPage.deleteChapter('${chapter.id}')">
+                        <button class="action-btn danger delete-chapter-btn">
                             <span>🗑</span> Delete
                         </button>
                     </div>
                 </div>
             `).join('');
+		container.querySelectorAll('.chapter-item').forEach((item, index) => {
+			const chapter = chapters[index];
+			item.dataset.chapterId = chapter.id;
+			item.querySelector('.chapter-id').textContent = chapter.id;
+			item.querySelector('.edit-chapter-btn').addEventListener('click', () => this.editChapter(chapter.id));
+			item.querySelector('.delete-chapter-btn').addEventListener('click', () => this.deleteChapter(chapter.id));
+		});
 
         // Setup drag and drop
         this.setupChapterDragAndDrop();
@@ -424,7 +431,8 @@ class LanguagesPage {
     }
 
     async editChapter(chapterId) {
-        const chapterItem = document.querySelector(`[data-chapter-id="${chapterId}"]`);
+        const chapterItem = [...document.querySelectorAll('.chapter-item')]
+			.find(item => item.dataset.chapterId === chapterId);
         if (!chapterItem) return;
 
         const chapters = await this.apiService.getChaptersByLanguage(this.currentLanguage.id);
@@ -435,24 +443,30 @@ class LanguagesPage {
         chapterItem.classList.add('editing');
         chapterItem.innerHTML = `
             <div class="chapter-edit-form">
-                <label for="edit-chapter-name-${chapterId}" style="display: block; margin-bottom: 0.5rem; color: var(--text-primary); font-weight: 600;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-primary); font-weight: 600;">
                     Chapter Name: <span style="color: var(--accent-red);">*</span>
                 </label>
-                <input type="text" id="edit-chapter-name-${chapterId}" value="${this.escapeHtml(chapter.name)}" placeholder="Enter chapter name" required>
+                <input type="text" class="edit-chapter-name" placeholder="Enter chapter name" required>
                 <div class="form-actions">
-                    <button class="action-btn primary" onclick="languagesPage.saveChapter('${chapterId}')">
+                    <button class="action-btn primary save-chapter-btn">
                         <span>💾</span> Save
                     </button>
-                    <button class="action-btn" onclick="languagesPage.loadChapters('${this.currentLanguage.id}')">
+                    <button class="action-btn cancel-chapter-btn">
                         Cancel
                     </button>
                 </div>
             </div>
         `;
+		chapterItem.querySelector('.edit-chapter-name').value = chapter.name;
+		chapterItem.querySelector('.save-chapter-btn').addEventListener('click', () => this.saveChapter(chapterId));
+		chapterItem.querySelector('.cancel-chapter-btn').addEventListener('click', () =>
+			this.loadChapters(this.currentLanguage.id));
     }
 
     async saveChapter(chapterId) {
-        const nameInput = document.getElementById(`edit-chapter-name-${chapterId}`);
+        const chapterItem = [...document.querySelectorAll('.chapter-item')]
+			.find(item => item.dataset.chapterId === chapterId);
+		const nameInput = chapterItem?.querySelector('.edit-chapter-name');
 
         if (!nameInput) return;
 
@@ -583,4 +597,3 @@ document.addEventListener('DOMContentLoaded', () => {
     languagesPage = new LanguagesPage();
     window.languagesPage = languagesPage; // Make globally accessible for onclick handlers
 });
-

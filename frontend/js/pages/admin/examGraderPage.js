@@ -562,12 +562,12 @@ class ExamGraderPage {
             const displayName = submission.scriptFilename || submission.studentId;
 
             submissionDiv.innerHTML = `
-                <div class="submission-header" onclick="window.toggleSubmission(${index})">
+                <div class="submission-header">
                     <div>
-                        <strong style="font-size: 1.1em;">${displayName}</strong>
+                        <strong style="font-size: 1.1em;" class="submission-name"></strong>
                         ${submission.scriptFilename && submission.studentId !== displayName ? 
-                            `<span style="color: var(--text-secondary); margin-left: 10px; font-size: 0.9em;">(${submission.studentId})</span>` : ''}
-                        ${submission.error ? `<span style="color: #e74c3c;"> - Error: ${submission.error}</span>` : ''}
+                            '<span class="submission-id" style="color: var(--text-secondary); margin-left: 10px; font-size: 0.9em;"></span>' : ''}
+                        ${submission.error ? '<span class="submission-error" style="color: #e74c3c;"></span>' : ''}
                     </div>
                     <div class="score ${isPassing ? 'passing' : 'failing'}">
                         ${submission.totalPoints.toFixed(2)} / ${submission.maxPoints.toFixed(2)} (${percentage.toFixed(1)}%)
@@ -577,6 +577,13 @@ class ExamGraderPage {
                     ${submission.tasks.map((task, taskIndex) => this.renderTaskResult(task, taskIndex)).join('')}
                 </div>
             `;
+			submissionDiv.querySelector('.submission-name').textContent = displayName;
+			const studentId = submissionDiv.querySelector('.submission-id');
+			if (studentId) studentId.textContent = `(${submission.studentId})`;
+			const error = submissionDiv.querySelector('.submission-error');
+			if (error) error.textContent = ` - Error: ${submission.error}`;
+			submissionDiv.querySelector('.submission-header').addEventListener('click', () =>
+				submissionDiv.querySelector('.collapsible-content').classList.toggle('expanded'));
 
             resultsContainer.appendChild(submissionDiv);
         });
@@ -590,17 +597,17 @@ class ExamGraderPage {
 
         return `
             <div class="task-result ${taskPassed ? 'passed' : 'failed'}">
-                <strong>${task.name || `Task ${taskIndex + 1}`}</strong> - 
+                <strong>${this.escapeHtml(task.name || `Task ${taskIndex + 1}`)}</strong> -
                 ${task.points.toFixed(2)} / ${task.maxPoints.toFixed(2)} points
-                ${task.error ? `<div style="color: #e74c3c; margin-top: 5px;">Error: ${task.error}</div>` : ''}
+                ${task.error ? `<div style="color: #e74c3c; margin-top: 5px;">Error: ${this.escapeHtml(task.error)}</div>` : ''}
                 
                 ${task.tests && task.tests.length > 0 ? `
                     <div style="margin-top: 10px;">
                         <strong>Output Tests:</strong>
                         ${task.tests.map(test => `
                             <div class="test-detail" style="color: ${test.passed ? '#2ecc71' : '#e74c3c'};">
-                                ${test.passed ? '✓' : '✗'} ${test.description} - ${test.points} / ${test.maxPoints} pts
-                                ${test.error ? `<div>Error: ${test.error}</div>` : ''}
+                                ${test.passed ? '✓' : '✗'} ${this.escapeHtml(test.description)} - ${test.points} / ${test.maxPoints} pts
+                                ${test.error ? `<div>Error: ${this.escapeHtml(test.error)}</div>` : ''}
                                 ${!test.passed && !test.error ? `
                                     <div class="output-comparison">
                                         <div>
@@ -619,7 +626,7 @@ class ExamGraderPage {
                                             <strong>Output Files:</strong>
                                             ${test.outputFiles.map(file => `
                                                 <div style="margin: 5px 0; font-size: 0.9em;">
-                                                    ${file.hashMatches ? '✓' : '✗'} ${file.filename}
+                                                    ${file.hashMatches ? '✓' : '✗'} ${this.escapeHtml(file.filename)}
                                                     ${!file.studentExists ? ' (not created by student)' : ''}
                                                     ${!file.solutionExists ? ' (not created by solution)' : ''}
                                                     ${file.studentExists && file.solutionExists && !file.hashMatches ? ' (content differs)' : ''}
@@ -638,7 +645,7 @@ class ExamGraderPage {
                         <strong>Code Checks:</strong>
                         ${task.codeChecks.map(check => `
                             <div class="test-detail" style="color: ${check.passed ? '#2ecc71' : '#e74c3c'};">
-                                ${check.passed ? '✓' : '✗'} ${check.description} - ${check.points} / ${check.maxPoints} pts
+                                ${check.passed ? '✓' : '✗'} ${this.escapeHtml(check.description)} - ${check.points} / ${check.maxPoints} pts
                             </div>
                         `).join('')}
                     </div>
@@ -758,13 +765,6 @@ class ExamGraderPage {
     }
 }
 
-// Global function for toggling submission details (called from inline onclick)
-window.toggleSubmission = (index) => {
-    const content = document.getElementById(`submission-${index}`);
-    content.classList.toggle('expanded');
-};
-
 document.addEventListener('DOMContentLoaded', () => {
     new ExamGraderPage();
 });
-

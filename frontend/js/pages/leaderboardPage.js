@@ -513,9 +513,10 @@ class LeaderboardPage {
                     <div class="error-state">
                         <span class="error-icon">⚠</span>
                         <p>Failed to load leaderboard data</p>
-                        <button class="retry-btn" onclick="window.location.reload()">Retry</button>
+                        <button class="retry-btn">Retry</button>
                     </div>
                 `;
+				container.querySelector('.retry-btn').addEventListener('click', () => window.location.reload());
             }
         }
     }
