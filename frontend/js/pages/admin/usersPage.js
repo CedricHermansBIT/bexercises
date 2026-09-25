@@ -31,6 +31,7 @@ class UsersPage {
     async init() {
         // Check authentication
         const isAuthenticated = await this.authComponent.checkAuth();
+        if (isAuthenticated === null) return;
         if (!isAuthenticated) {
             navigateTo('login.html');
             return;

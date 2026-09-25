@@ -41,6 +41,7 @@ class LeaderboardPage {
 
         // Check authentication - REQUIRED
         const isAuthenticated = await this.authComponent.checkAuth();
+        if (isAuthenticated === null) return;
         if (!isAuthenticated) {
             navigateTo('login.html');
             return;

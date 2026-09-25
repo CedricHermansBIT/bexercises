@@ -19,8 +19,27 @@ class AuthComponent {
 			return !!data.user;
 		} catch (error) {
 			console.error('Auth check failed:', error);
-			this.updateUI(null);
-			return false;
+			if (error.message === 'Not authenticated') {
+				this.updateUI(null);
+				return false;
+			}
+			// A failed network request says nothing about the session. Keep the
+			// current page in place so a temporary outage cannot cause a login loop.
+			if (!document.getElementById('auth-network-error')) {
+				const banner = document.createElement('div');
+				banner.id = 'auth-network-error';
+				banner.setAttribute('role', 'alert');
+				banner.className = 'auth-network-error';
+				const message = document.createElement('span');
+				message.textContent = 'Could not check your session. Check your connection and retry.';
+				const retry = document.createElement('button');
+				retry.type = 'button';
+				retry.textContent = 'Retry';
+				retry.addEventListener('click', () => window.location.reload());
+				banner.append(message, retry);
+				document.body.prepend(banner);
+			}
+			return null;
 		}
 	}
 

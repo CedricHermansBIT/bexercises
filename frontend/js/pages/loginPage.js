@@ -18,6 +18,7 @@ class LoginPage {
         setFavicon();
 
         const isAuthenticated = await this.authComponent.checkAuth();
+        if (isAuthenticated === null) return;
 
         if (isAuthenticated) {
             navigateTo('languages.html');
