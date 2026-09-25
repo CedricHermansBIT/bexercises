@@ -155,6 +155,7 @@ class DatabaseService {
 				completed_at DATETIME,
 				last_submission_at DATETIME,
 				attempts INTEGER DEFAULT 0,
+				attempts_to_completion INTEGER,
 				successful_attempts INTEGER DEFAULT 0,
 				failed_attempts INTEGER DEFAULT 0,
 				PRIMARY KEY (user_id, exercise_id),
@@ -207,6 +208,14 @@ class DatabaseService {
 		} catch (e) {
 			// Column already exists
 		}
+		try {
+			await this.db.exec('ALTER TABLE user_progress ADD COLUMN attempts_to_completion INTEGER');
+		} catch (e) {
+			// Column already exists
+		}
+		// Historical first-pass counts were not recorded; preserve current totals as the baseline.
+		await this.db.run(`UPDATE user_progress SET attempts_to_completion = attempts
+			WHERE completed = 1 AND attempts_to_completion IS NULL`);
 
 		// Add expected_stderr column to test_cases if it doesn't exist (for existing databases)
 		try {
@@ -1117,16 +1126,22 @@ class DatabaseService {
 					last_submission = ?, 
 					last_submission_at = CURRENT_TIMESTAMP,
 					completed_at = CASE WHEN ? = 1 AND completed = 0 THEN CURRENT_TIMESTAMP ELSE completed_at END,
+					attempts_to_completion = CASE WHEN ? = 1 AND completed = 0
+						THEN attempts + 1 ELSE attempts_to_completion END,
 					attempts = attempts + 1,
 					successful_attempts = successful_attempts + CASE WHEN ? = 1 THEN 1 ELSE 0 END,
 					failed_attempts = failed_attempts + CASE WHEN ? = 0 THEN 1 ELSE 0 END
 				WHERE user_id = ? AND exercise_id = ?
-			`, [completed ? 1 : 0, last_submission, completed ? 1 : 0, completed ? 1 : 0, completed ? 1 : 0, userId, exerciseId]);
+			`, [completed ? 1 : 0, last_submission, completed ? 1 : 0, completed ? 1 : 0,
+				completed ? 1 : 0, completed ? 1 : 0, userId, exerciseId]);
 		} else {
 			await this.db.run(`
-				INSERT INTO user_progress (user_id, exercise_id, completed, last_submission, last_submission_at, completed_at, attempts, successful_attempts, failed_attempts)
-				VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 1, ?, ?)
-			`, [userId, exerciseId, completed ? 1 : 0, last_submission, completed ? new Date().toISOString() : null, completed ? 1 : 0, completed ? 0 : 1]);
+				INSERT INTO user_progress (user_id, exercise_id, completed, last_submission, last_submission_at,
+					completed_at, attempts, attempts_to_completion, successful_attempts, failed_attempts)
+				VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 1, ?, ?, ?)
+			`, [userId, exerciseId, completed ? 1 : 0, last_submission,
+				completed ? new Date().toISOString() : null, completed ? 1 : null,
+				completed ? 1 : 0, completed ? 0 : 1]);
 		}
 	}
 
@@ -1346,7 +1361,7 @@ class DatabaseService {
 			SELECT 
 				exercise_id,
 				COUNT(DISTINCT user_id) as users_completed,
-				AVG(CASE WHEN completed = 1 THEN attempts ELSE NULL END) as avg_tries_to_complete
+				AVG(CASE WHEN completed = 1 THEN COALESCE(attempts_to_completion, attempts) ELSE NULL END) as avg_tries_to_complete
 			FROM user_progress
 			WHERE completed = 1
 			GROUP BY exercise_id
