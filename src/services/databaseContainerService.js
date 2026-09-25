@@ -336,6 +336,7 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
     const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const database = 'testdb';
     const containerCmd = getContainerCommand();
+    const bsonFixtures = [];
 
     console.log(`[MongoDB] Starting container: ${containerName} using ${containerCmd} with image ${dockerImage}`);
 
@@ -398,28 +399,11 @@ async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo
                     console.error(`[MongoDB] File preview (first 200 chars): ${content.substring(0, 200)}`);
                 }
             } else if (ext === '.bson') {
-                // BSON file - copy to tmpdir and use mongorestore
+                // BSON is restored after the server is ready; init.js cannot read it.
                 const bsonDestPath = path.join(tmpdir, fixtureName);
                 await fs.copyFile(fixturePath, bsonDestPath);
-
-                // Extract collection name from filename (e.g., "users.bson" -> "users")
                 const collectionName = path.basename(fixtureName, '.bson');
-
-                initJs += `// Fixture: ${fixtureName}\n`;
-                initJs += `// Note: BSON files are restored using mongorestore in a separate init script\n`;
-                initJs += `// This is a placeholder to maintain fixture ordering\n\n`;
-
-                // Create a separate shell script to run mongorestore
-                const restoreShPath = path.join(tmpdir, `restore-${collectionName}.sh`);
-                const restoreScript = `#!/bin/bash
-# Restore BSON fixture: ${fixtureName}
-mongorestore --db=${database} --collection=${collectionName} /fixtures/${fixtureName}
-`;
-                await fs.writeFile(restoreShPath, restoreScript);
-                // Make it executable
-                await fs.chmod(restoreShPath, 0o755);
-
-                console.log(`[MongoDB] Created mongorestore script for BSON fixture: ${fixtureName}`);
+                bsonFixtures.push({ filename: fixtureName, collectionName });
             } else {
                 console.warn(`[MongoDB] Unsupported fixture file type: ${fixtureName} (only .js, .json, and .bson are supported)`);
             }
@@ -575,6 +559,27 @@ mongorestore --db=${database} --collection=${collectionName} /fixtures/${fixture
                 } else {
                     console.error(`[MongoDB] Init script execution failed with exit code ${initResult.exitCode}`);
                     console.error(`[MongoDB] Init stderr: ${initResult.stderr}`);
+                    await new Promise(res => spawn(containerCmd, ['rm', '-f', containerName]).on('close', res));
+                    reject(new Error(`MongoDB fixture initialization failed: ${initResult.stderr}`));
+                    return;
+                }
+            }
+
+            for (const fixture of bsonFixtures) {
+                const restoreResult = await new Promise(resolveRestore => {
+                    const restore = spawn(containerCmd, [
+                        'exec', containerName, 'mongorestore', '--db', database,
+                        '--collection', fixture.collectionName, `/fixtures/${fixture.filename}`
+                    ]);
+                    let stderr = '';
+                    restore.stderr.on('data', data => { stderr += data.toString(); });
+                    restore.on('close', code => resolveRestore({ code, stderr }));
+                    restore.on('error', error => resolveRestore({ code: -1, stderr: error.message }));
+                });
+                if (restoreResult.code !== 0) {
+                    await new Promise(res => spawn(containerCmd, ['rm', '-f', containerName]).on('close', res));
+                    reject(new Error(`MongoDB BSON fixture ${fixture.filename} failed: ${restoreResult.stderr}`));
+                    return;
                 }
             }
 
