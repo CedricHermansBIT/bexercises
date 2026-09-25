@@ -5,6 +5,7 @@ const statisticsService = require('../services/statisticsService');
 const testRunner = require('../services/testRunner');
 const databaseService = require('../services/databaseService');
 const { ensureAuthenticated } = require('../middleware/auth');
+const { isAdmin } = require('../middleware/adminRole');
 const executionLimiter = require('../services/executionLimiter');
 const { classifyFailure } = require('../services/submissionFeedback');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
@@ -368,7 +369,7 @@ router.get('/online-users', ensureAuthenticated, asyncHandler(async (req, res) =
 		count: onlineUsers.length,
 		users: onlineUsers.map(u => ({
 			displayName: u.display_name,
-			isAdmin: u.is_admin === 1,
+			isAdmin: isAdmin(u),
 			lastActivity: u.last_activity
 		}))
 	});

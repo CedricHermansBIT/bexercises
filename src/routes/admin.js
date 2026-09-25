@@ -1,6 +1,7 @@
 // src/routes/admin.js
 const express = require('express');
 const requireAdmin = require('../middleware/adminAuth');
+const { isAdmin } = require('../middleware/adminRole');
 const exerciseService = require('../services/exerciseService');
 const databaseService = require('../services/databaseService');
 const dockerService = require('../services/dockerService');
@@ -863,7 +864,7 @@ router.get('/users', async (req, res) => {
             ORDER BY u.last_login DESC
         `, [archived ? 1 : 0]);
 
-		res.json(users);
+		res.json(users.map(user => ({ ...user, is_admin: isAdmin(user) ? 1 : 0 })));
 	} catch (error) {
 		console.error('Error fetching users:', error);
 		res.status(500).json({
@@ -880,11 +881,15 @@ router.get('/users', async (req, res) => {
 router.post('/users/archive-active', async (req, res) => {
 	try {
 		const databaseService = require('../services/databaseService');
+		const activeUsers = await databaseService.db.all(
+			'SELECT id, email, is_admin FROM users WHERE COALESCE(is_archived, 0) = 0');
+		const studentIds = activeUsers.filter(user => !isAdmin(user)).map(user => user.id);
+		if (studentIds.length === 0) return res.json({ success: true, archivedCount: 0 });
 		const result = await databaseService.db.run(`
 			UPDATE users
 			SET is_archived = 1, archived_at = CURRENT_TIMESTAMP
-			WHERE COALESCE(is_archived, 0) = 0 AND COALESCE(is_admin, 0) = 0
-		`);
+			WHERE COALESCE(is_archived, 0) = 0 AND id IN (${studentIds.map(() => '?').join(',')})
+		`, studentIds);
 		res.json({ success: true, archivedCount: result.changes || 0 });
 	} catch (error) {
 		console.error('Error archiving active users:', error);

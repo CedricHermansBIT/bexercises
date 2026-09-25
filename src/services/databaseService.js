@@ -4,6 +4,7 @@ const { open } = require('sqlite');
 const path = require('path');
 const fs = require('fs').promises;
 const { globalCache } = require('../utils/cache');
+const { isAdmin } = require('../middleware/adminRole');
 
 class DatabaseService {
 	constructor() {
@@ -1061,7 +1062,7 @@ class DatabaseService {
 	async getOnlineUsers(minutesThreshold = 60) {
 		const thresholdTime = new Date(Date.now() - minutesThreshold * 60 * 1000).toISOString().split('.')[0].replace('T', ' ');
 		return this.db.all(`
-			SELECT id, display_name, is_admin, last_activity
+			SELECT id, email, display_name, is_admin, last_activity
 			FROM users
 			WHERE last_activity >= ?
 			ORDER BY last_activity DESC
@@ -1329,6 +1330,7 @@ class DatabaseService {
 				SELECT
 					u.id,
 					u.display_name,
+					u.email, u.is_admin,
 					COUNT(DISTINCT CASE WHEN up.completed = 1 THEN up.exercise_id END) as completed_count,
 					SUM(up.attempts) as total_attempts
 				FROM users u
@@ -1337,31 +1339,29 @@ class DatabaseService {
 				JOIN chapters c ON e.chapter_id = c.id
 				WHERE c.language_id = ?
 					AND COALESCE(u.is_archived, 0) = 0
-					AND (? = 1 OR COALESCE(u.is_admin, 0) = 0)
 				GROUP BY u.id, u.display_name
 				ORDER BY completed_count DESC, total_attempts ASC
-				LIMIT 100
 			`;
-			params.push(languageId, includeAdmins ? 1 : 0);
+			params.push(languageId);
 		} else {
 			query = `
 				SELECT
 					u.id,
 					u.display_name,
+					u.email, u.is_admin,
 					COUNT(DISTINCT CASE WHEN up.completed = 1 THEN up.exercise_id END) as completed_count,
 					SUM(up.attempts) as total_attempts
 				FROM users u
 				JOIN user_progress up ON u.id = up.user_id
 				WHERE COALESCE(u.is_archived, 0) = 0
-					AND (? = 1 OR COALESCE(u.is_admin, 0) = 0)
 				GROUP BY u.id, u.display_name
 				ORDER BY completed_count DESC, total_attempts ASC
-				LIMIT 100
 			`;
-			params.push(includeAdmins ? 1 : 0);
 		}
 
-		return this.db.all(query, params);
+		const rows = await this.db.all(query, params);
+		return rows.filter(row => includeAdmins || !isAdmin(row)).slice(0, 100)
+			.map(({ email, is_admin, ...publicRow }) => publicRow);
 	}
 
 	/**
@@ -1400,6 +1400,7 @@ class DatabaseService {
 			SELECT
 				u.id,
 				u.display_name,
+				u.email, u.is_admin,
 				COALESCE(SUM(a.points), 0) as total_points,
 				COUNT(ua.achievement_id) as achievements_earned,
 				(SELECT COUNT(*) FROM achievements) as total_achievements
@@ -1407,14 +1408,14 @@ class DatabaseService {
 			LEFT JOIN user_achievements ua ON u.id = ua.user_id
 			LEFT JOIN achievements a ON ua.achievement_id = a.id
 			WHERE COALESCE(u.is_archived, 0) = 0
-				AND (? = 1 OR COALESCE(u.is_admin, 0) = 0)
 			GROUP BY u.id, u.display_name
 			HAVING total_points > 0
 			ORDER BY total_points DESC, achievements_earned DESC
-			LIMIT 100
 		`;
 
-		return this.db.all(query, [includeAdmins ? 1 : 0]);
+		const rows = await this.db.all(query);
+		return rows.filter(row => includeAdmins || !isAdmin(row)).slice(0, 100)
+			.map(({ email, is_admin, ...publicRow }) => publicRow);
 	}
 
 	// ============= Achievement Methods =============
