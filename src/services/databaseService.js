@@ -855,7 +855,7 @@ class DatabaseService {
 		const testCasesWithFixtures = await Promise.all(testCases.map(async (tc) => {
 			// Get fixtures for this test case
 			const fixtures = await this.db.all(`
-				SELECT f.filename 
+				SELECT f.filename, f.permissions
 				FROM fixture_files f
 				JOIN test_case_fixtures tcf ON f.id = tcf.fixture_id
 				WHERE tcf.test_case_id = ?
@@ -873,7 +873,7 @@ class DatabaseService {
 				validationQuery: tc.validation_query || null,
                 expectedValidationOutput: tc.expected_validation_output || null,
                 fixtures: fixtures.map(f => f.filename),
-				fixturePermissions: {} // TODO: Add permissions column if needed
+				fixturePermissions: Object.fromEntries(fixtures.map(f => [f.filename, f.permissions]))
 			};
 		}));
 
@@ -1221,8 +1221,12 @@ class DatabaseService {
 	async createFixtureFile(filename, content, type = 'file', permissions = 'rwxr-xr-x') {
 		const size = type === 'file' ? Buffer.byteLength(content || '', 'utf8') : 0;
 		await this.db.run(`
-			INSERT OR REPLACE INTO fixture_files (filename, type, content, size, permissions, updated_at)
+			INSERT INTO fixture_files (filename, type, content, size, permissions, updated_at)
 			VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+			ON CONFLICT(filename) DO UPDATE SET
+				type = excluded.type, content = excluded.content,
+				size = excluded.size, permissions = excluded.permissions,
+				updated_at = CURRENT_TIMESTAMP
 		`, [filename, type, type === 'file' ? content : null, size, permissions]);
 		return this.getFixtureFile(filename);
 	}

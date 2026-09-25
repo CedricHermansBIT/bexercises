@@ -197,6 +197,14 @@ async function createTempScript(scriptContents, languageId = 'bash') {
  * @returns {Promise<Array>} Array of copied fixture names
  */
 async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
+	function permissionMode(value) {
+		if (typeof value !== 'string' || !/^[r-][w-][x-][r-][w-][x-][r-][w-][x-]$/.test(value)) return value;
+		let mode = 0;
+		for (let i = 0; i < value.length; i++) {
+			if (value[i] !== '-') mode |= [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001][i];
+		}
+		return mode;
+	}
 	const copiedFiles = [];
 	console.log(`[copyFixtures] tmpdir: ${tmpdir}, fixtures:`, fixtures);
 	console.log(`[copyFixtures] fixtures path: ${config.paths.fixtures}`);
@@ -246,7 +254,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 				let mode = fixturePermissions[fixtureName] !== undefined
 					? fixturePermissions[fixtureName]
 					: stat.mode;
-				await fs.chmod(destPath, mode);
+				await fs.chmod(destPath, permissionMode(mode));
 
 				copiedFiles.push(fixtureName);
 				console.log(`✓ Copied folder with contents: ${fixtureName} -> ${destPath}`);
@@ -261,7 +269,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 				} else {
 					mode = stat.mode;
 				}
-				await fs.chmod(destPath, mode);
+				await fs.chmod(destPath, permissionMode(mode));
 
 				copiedFiles.push(fixtureName);
 				console.log(`✓ Copied fixture: ${fixtureName} -> ${destPath}`);
