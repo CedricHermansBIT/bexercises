@@ -17,6 +17,7 @@ async function extractZip(zipBuffer, targetDir) {
 
 	// Create a simple script to unzip and list files with details
 	const unzipScript = `#!/bin/bash
+set -e
 echo "Unzipping file..."
 unzip -o upload.zip 2>&1
 echo "Files extracted:"
@@ -24,7 +25,7 @@ find . -type f -name "*.sh" 2>&1
 ls -la
 `;
 
-	const { tmpdir } = await createTempScript(unzipScript);
+	const { tmpdir, scriptFilename, languageConfig } = await createTempScript(unzipScript);
 
 	try {
 		// Copy the zip file to the temp directory
@@ -33,7 +34,7 @@ ls -la
 
 		console.log('[ExamGrader] Running unzip in Docker container...');
 		// Run the unzip script using existing Docker infrastructure
-		const result = await runScriptInContainer(tmpdir, [], [], config.docker.timeout);
+		const result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, [], [], config.docker.timeout);
 
 		console.log('[ExamGrader] Unzip output:', result.stdout);
 		console.log('[ExamGrader] Unzip stderr:', result.stderr);
@@ -116,8 +117,10 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 	const solutionContent = await fs.readFile(solutionScript, 'utf8');
 
 	// Create temp directories for both scripts
-	const { tmpdir: studentTmpdir } = await createTempScript(studentContent);
-	const { tmpdir: solutionTmpdir } = await createTempScript(solutionContent);
+	const studentTemp = await createTempScript(studentContent);
+	const solutionTemp = await createTempScript(solutionContent);
+	const studentTmpdir = studentTemp.tmpdir;
+	const solutionTmpdir = solutionTemp.tmpdir;
 
 	try {
 		// Copy fixtures to both directories if provided
@@ -130,8 +133,8 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 
 		// Run both scripts with same arguments and inputs
 		const [studentResult, solutionResult] = await Promise.all([
-			runScriptInContainer(studentTmpdir, args, inputs, config.docker.timeout),
-			runScriptInContainer(solutionTmpdir, args, inputs, config.docker.timeout)
+			runScriptInContainer(studentTmpdir, studentTemp.scriptFilename, studentTemp.languageConfig, args, inputs, config.docker.timeout),
+			runScriptInContainer(solutionTmpdir, solutionTemp.scriptFilename, solutionTemp.languageConfig, args, inputs, config.docker.timeout)
 		]);
 
 		const studentOut = normalizeOutput(studentResult.stdout).trim();
@@ -610,4 +613,3 @@ module.exports = {
 	gradeSubmission,
 	gradeExamSubmissions
 };
-
