@@ -90,3 +90,52 @@ test('database cases start with clean state and their own fixtures', async () =>
 		delete require.cache[runnerPath];
 	}
 });
+
+test('dynamic database output uses a clean reference database and reports broken references', async () => {
+	const containerPath = require.resolve('../services/databaseContainerService');
+	const runnerPath = require.resolve('../services/testRunner');
+	const databaseService = require('../services/databaseService');
+	const originalContainer = require.cache[containerPath]?.exports;
+	const originalGetLanguage = databaseService.getLanguage;
+	const started = [];
+	const cleaned = [];
+	let breakReference = false;
+	require.cache[containerPath] = {
+		id: containerPath, filename: containerPath, loaded: true,
+		exports: {
+			startMariaDBContainer: async (_dir, fixtures) => {
+				const container = { fixtures, cleanup: async () => cleaned.push(container) };
+				started.push(container);
+				return container;
+			},
+			startMongoDBContainer: () => { throw new Error('Unexpected MongoDB run'); },
+			executeMariaDBQuery: async (container, query) => {
+				assert.equal(container.fixtures[0], 'seed.sql');
+				if (query === 'reference' && breakReference) return { stdout: '', stderr: '', exitCode: -1, timedOut: true };
+				return { stdout: 'expected', stderr: '', exitCode: 0 };
+			},
+			executeMongoDBQuery: () => { throw new Error('Unexpected MongoDB query'); }
+		}
+	};
+	databaseService.getLanguage = async () => ({ docker_image: 'mariadb:10.11' });
+	delete require.cache[runnerPath];
+	try {
+		const exercise = {
+			id: 'dynamic-db', language_id: 'mariadb', exercise_type: 'database', solution: 'reference',
+			testCases: [{ useDynamicOutput: true, fixtures: ['seed.sql'], expectedOutput: 'old' }]
+		};
+		assert.equal((await require(runnerPath).runTests(exercise, 'student'))[0].passed, true);
+		assert.equal(started.length, 2);
+		assert.equal(cleaned.length, 2);
+		assert.notEqual(started[0], started[1]);
+		breakReference = true;
+		const broken = (await require(runnerPath).runTests(exercise, 'student'))[0];
+		assert.equal(broken.passed, false);
+		assert.match(broken.configurationError, /Reference solution failed/);
+	} finally {
+		databaseService.getLanguage = originalGetLanguage;
+		if (originalContainer) require.cache[containerPath].exports = originalContainer;
+		else delete require.cache[containerPath];
+		delete require.cache[runnerPath];
+	}
+});

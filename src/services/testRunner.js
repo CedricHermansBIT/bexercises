@@ -222,34 +222,51 @@ async function runTests(exercise, script) {
             }
 
             // If test case uses dynamic output, run the exercise solution to get expected output
-            if (tc.useDynamicOutput && exercise.solution) {
+            let configurationError = null;
+            if (tc.useDynamicOutput) {
+                if (!exercise.solution) {
+                    configurationError = 'Dynamic output requires a reference solution';
+                } else {
+                let solutionTmpdir = null;
+                let solutionContainer = null;
                 try {
-                    const { tmpdir: solutionTmpdir, scriptFilename: solutionScriptFilename, languageConfig: solutionLangConfig } = await createTempScript(exercise.solution, languageId);
-
-                    // Copy same fixtures to solution temp dir
-                    if (tc.fixtures && Array.isArray(tc.fixtures)) {
-                        await copyFixtures(solutionTmpdir, tc.fixtures, tc.fixturePermissions);
+                    let solutionResult;
+                    if (needsDatabaseContainer) {
+                        solutionTmpdir = await fs.mkdtemp(path.join(config.paths.temp, 'bex-reference-db-'));
+                        await fs.chmod(solutionTmpdir, 0o777);
+                        const dbFixtures = (tc.fixtures || []).filter(f =>
+                            effectiveLanguageId === 'mariadb' ? f.endsWith('.sql') : /\.(js|json|bson)$/.test(f));
+                        solutionContainer = effectiveLanguageId === 'mariadb'
+                            ? await startMariaDBContainer(solutionTmpdir, dbFixtures, dockerImage)
+                            : await startMongoDBContainer(solutionTmpdir, dbFixtures, dockerImage);
+                        solutionResult = effectiveLanguageId === 'mariadb'
+                            ? await executeMariaDBQuery(solutionContainer, exercise.solution.trim())
+                            : await executeMongoDBQuery(solutionContainer, exercise.solution.trim());
+                    } else {
+                        const reference = await createTempScript(exercise.solution, languageId);
+                        solutionTmpdir = reference.tmpdir;
+                        if (tc.fixtures && Array.isArray(tc.fixtures)) {
+                            await copyFixtures(solutionTmpdir, tc.fixtures, tc.fixturePermissions);
+                        }
+                        solutionResult = await runScriptInContainer(
+                            solutionTmpdir, reference.scriptFilename, reference.languageConfig,
+                            tc.arguments || [], tc.input || [], config.docker.timeout
+                        );
                     }
-
-                    const solutionResult = await runScriptInContainer(
-                        solutionTmpdir,
-                        solutionScriptFilename,
-                        solutionLangConfig,
-                        tc.arguments || [],
-                        tc.input || [],
-                        config.docker.timeout
-                    );
-
-                    // Use solution's output as expected
+                    if (solutionResult.exitCode !== 0 || solutionResult.timedOut ||
+                        solutionResult.outputLimited || solutionResult.error) {
+                        throw new Error(`Reference solution failed: ${solutionResult.error || solutionResult.stderr || solutionResult.exitCode}`);
+                    }
                     expected = normalizeOutput(solutionResult.stdout).trim();
                     expectedStderr = normalizeOutput(solutionResult.stderr || '').trim();
                     expectedExitCode = solutionResult.exitCode;
-
-                    // Cleanup solution temp dir
-                    await removeRecursive(solutionTmpdir);
                 } catch (err) {
-                    console.error('Failed to run solution script for dynamic output:', err);
-                    // Fall back to stored expected output
+                    configurationError = err.message;
+                    console.error('Failed to run reference solution for dynamic output:', err);
+                } finally {
+                    if (solutionContainer) await solutionContainer.cleanup();
+                    if (solutionTmpdir) await removeRecursive(solutionTmpdir);
+                }
                 }
             }
 
@@ -310,12 +327,12 @@ async function runTests(exercise, script) {
             if (isDatabaseExercise) {
                 // Database exercises: only check stdout and timeout, ignore stderr and exit codes
                 // If validation query is present, we're checking database state instead of command output
-                passed = (!r.timedOut && !r.outputLimited && !r.error && r.exitCode === 0)
+                passed = (!configurationError && !r.timedOut && !r.outputLimited && !r.error && r.exitCode === 0)
                     && (actualForComparison === expectedForComparison)
                     && outputFilesMatch;
             } else {
                 // Programming exercises: check all outputs including stderr and exit codes
-				passed = compareRunnerResults(r, {
+                passed = !configurationError && compareRunnerResults(r, {
 					stdout: expected, stderr: expectedStderr, exitCode: expectedExitCode
 				}).passed && outputFilesMatch;
             }
@@ -332,6 +349,7 @@ async function runTests(exercise, script) {
                 exitCode: r.exitCode,
                 timedOut: r.timedOut,
                 error: r.error,
+                configurationError,
                 outputFiles: outputFilesResult,
                 validationQuery: tc.validationQuery || null,
                 expectedValidationOutput: tc.expectedValidationOutput || null,
