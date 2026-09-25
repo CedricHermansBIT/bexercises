@@ -3,6 +3,22 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const config = require('../config');
 const databaseService = require('../services/databaseService');
+const { isAdmin } = require('./adminRole');
+
+async function resolveSessionUser(id) {
+	// Existing sessions may contain the old serialized user object.
+	const userId = typeof id === 'object' ? id?.id : id;
+	if (!userId) return false;
+	const dbUser = await databaseService.getUserById(userId);
+	if (!dbUser) return false;
+	return {
+		id: dbUser.id,
+		googleId: dbUser.google_id,
+		email: dbUser.email,
+		name: dbUser.display_name,
+		isAdmin: isAdmin(dbUser)
+	};
+}
 
 /**
  * Configure Passport authentication strategies
@@ -54,7 +70,7 @@ function configurePassport() {
 					email: email,
 					name: displayName,
 					picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
-					isAdmin: dbUser.is_admin === 1
+					isAdmin: isAdmin(dbUser)
 				};
 
 				return done(null, user);
@@ -64,16 +80,13 @@ function configurePassport() {
 			}
 		}));
 
-		passport.serializeUser((user, done) => {
-			done(null, user);
-		});
-
-		passport.deserializeUser((user, done) => {
-			done(null, user);
-		});
 	} else {
 		console.warn('WARNING: Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env file');
 	}
+	passport.serializeUser((user, done) => done(null, user.id));
+	passport.deserializeUser((id, done) => {
+		resolveSessionUser(id).then(user => done(null, user), done);
+	});
 }
 
 /**
@@ -88,6 +101,7 @@ function ensureAuthenticated(req, res, next) {
 
 module.exports = {
 	configurePassport,
-	ensureAuthenticated
+	ensureAuthenticated,
+	resolveSessionUser
 };
 

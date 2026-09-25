@@ -178,7 +178,7 @@ router.get('/statistics/:id?', asyncHandler(async (req, res) => {
  * GET /api/leaderboard/:languageId?
  * Get leaderboard data, optionally filtered by language
  */
-router.get('/leaderboard/:languageId?', asyncHandler(async (req, res) => {
+router.get('/leaderboard/:languageId?', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const includeAdmins = req.query.includeAdmins === 'true' && req.user?.isAdmin === true;
 	const leaderboard = await databaseService.getLeaderboard(req.params.languageId, includeAdmins);
 	res.json(leaderboard);
@@ -188,7 +188,7 @@ router.get('/leaderboard/:languageId?', asyncHandler(async (req, res) => {
  * GET /api/leaderboard-achievements
  * Get achievement points leaderboard
  */
-router.get('/leaderboard-achievements', asyncHandler(async (req, res) => {
+router.get('/leaderboard-achievements', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const includeAdmins = req.query.includeAdmins === 'true' && req.user?.isAdmin === true;
 	const leaderboard = await databaseService.getAchievementLeaderboard(includeAdmins);
 	res.json(leaderboard);
@@ -320,7 +320,7 @@ router.get('/progress/language/:languageId', asyncHandler(async (req, res) => {
  * GET /api/online-users
  * Get list of users currently online (active in last hour)
  */
-router.get('/online-users', asyncHandler(async (req, res) => {
+router.get('/online-users', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const onlineUsers = await databaseService.getOnlineUsers(60);
 
 	res.json({

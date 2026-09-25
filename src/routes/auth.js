@@ -2,6 +2,7 @@
 const express = require('express');
 const passport = require('passport');
 const config = require('../config');
+const { isAdmin } = require('../middleware/adminRole');
 
 const router = express.Router();
 const basePath = config.server.basePath || '';
@@ -19,6 +20,7 @@ router.get('/google',
 router.get('/google/callback',
 	passport.authenticate('google', { failureRedirect: basePath || '/' }),
 	(req, res) => {
+		req.session.profilePicture = req.user?.picture || null;
 		res.redirect(basePath || '/');
 	}
 );
@@ -40,21 +42,12 @@ router.get('/logout', (req, res) => {
  */
 router.get('/user', (req, res) => {
 	if (req.isAuthenticated()) {
-		// Determine if user is admin
-		const adminEmails = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',') : [];
-		const adminDomain = process.env.ADMIN_DOMAIN || '@bitlab.nl';
-
-		const isAdmin =
-			req.user.role === 'admin' ||
-			req.user.isAdmin === true ||
-			adminEmails.includes(req.user.email) ||
-			req.user.email?.endsWith(adminDomain);
-
 		res.json({
 			authenticated: true,
 			user: {
 				...req.user,
-				isAdmin
+				picture: req.session.profilePicture || req.user.picture || null,
+				isAdmin: isAdmin(req.user)
 			}
 		});
 	} else {

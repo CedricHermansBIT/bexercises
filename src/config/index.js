@@ -2,6 +2,11 @@
 require('dotenv').config();
 const path = require('path');
 
+if (process.env.NODE_ENV === 'production' &&
+	(!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'fallback-secret-change-in-production')) {
+	throw new Error('SESSION_SECRET must be set to a unique value in production');
+}
+
 // Extract base path first so we can use it in config
 const basePath = process.env.BASE_PATH || '';
 

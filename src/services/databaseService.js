@@ -994,6 +994,10 @@ class DatabaseService {
 		return this.db.get('SELECT * FROM users WHERE google_id = ?', [googleId]);
 	}
 
+	async getUserById(id) {
+		return this.db.get('SELECT * FROM users WHERE id = ?', [id]);
+	}
+
 	async createUser(data) {
 		const { google_id, email, display_name, is_admin } = data;
 		const result = await this.db.run(`
