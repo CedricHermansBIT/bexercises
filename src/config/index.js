@@ -37,7 +37,11 @@ const config = {
 	docker: {
 		image: process.env.RUNNER_IMAGE || 'bitlab-runner:latest',
 		timeout: parseInt(process.env.PER_TEST_TIMEOUT_MS || '30000'),
-		maxParallelTests: parseInt(process.env.MAX_PARALLEL_TESTS || '4'),
+		maxParallelTests: Math.max(1, parseInt(process.env.MAX_PARALLEL_TESTS || '2', 10)),
+		maxQueuedRuns: Math.max(0, parseInt(process.env.MAX_QUEUED_RUNS || '20', 10)),
+		runsPerMinute: Math.max(1, parseInt(process.env.RUNS_PER_MINUTE || '6', 10)),
+		cpus: process.env.DOCKER_CPUS || '1',
+		maxOutputBytes: Math.max(1024, parseInt(process.env.MAX_RUN_OUTPUT_BYTES || '65536', 10)),
 		memory: process.env.DOCKER_MEMORY || '256m',
 		pidsLimit: parseInt(process.env.DOCKER_PIDS_LIMIT || '128')
 	},

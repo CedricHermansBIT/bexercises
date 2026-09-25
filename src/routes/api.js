@@ -4,6 +4,8 @@ const exerciseService = require('../services/exerciseService');
 const statisticsService = require('../services/statisticsService');
 const testRunner = require('../services/testRunner');
 const databaseService = require('../services/databaseService');
+const { ensureAuthenticated } = require('../middleware/auth');
+const executionLimiter = require('../services/executionLimiter');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
 const router = express.Router();
@@ -92,11 +94,14 @@ router.get('/exercises/:id/database-schema', asyncHandler(async (req, res) => {
  * POST /api/exercises/:id/run
  * Run tests for an exercise
  */
-router.post('/exercises/:id/run', asyncHandler(async (req, res) => {
+router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const { script, timezone } = req.body;
 
 	if (!script || typeof script !== 'string') {
 		throw ApiError.badRequest('Missing script in request body');
+	}
+	if (!executionLimiter.checkRateLimit(req.user.id)) {
+		return res.status(429).json({ error: 'Run limit reached. Try again in a minute.' });
 	}
 
 	const exercise = await exerciseService.getExerciseWithTests(req.params.id);
@@ -105,7 +110,7 @@ router.post('/exercises/:id/run', asyncHandler(async (req, res) => {
 	}
 
 	// Run tests
-	const results = await testRunner.runTests(exercise, script);
+	const results = await executionLimiter.enqueue(() => testRunner.runTests(exercise, script));
 	const allPassed = results.every(r => r.passed);
 
 	// Save user progress if authenticated
