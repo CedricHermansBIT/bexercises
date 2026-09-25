@@ -55,6 +55,7 @@ const config = {
 		maxExamDepth: Math.max(1, parseInt(process.env.MAX_EXAM_DEPTH || '8', 10)),
 		memory: process.env.DOCKER_MEMORY || '256m',
 		databaseMemory: process.env.DOCKER_DATABASE_MEMORY || '1g',
+		databaseStorageSize: process.env.DOCKER_DATABASE_STORAGE_SIZE || '512m',
 		databasePidsLimit: Math.max(1, parseInt(process.env.DOCKER_DATABASE_PIDS_LIMIT || '256', 10)),
 		pidsLimit: parseInt(process.env.DOCKER_PIDS_LIMIT || '128')
 	},
