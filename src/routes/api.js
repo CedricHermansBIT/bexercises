@@ -118,10 +118,13 @@ router.get('/exercises/:id/database-schema', asyncHandler(async (req, res) => {
  * Run tests for an exercise
  */
 router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, res) => {
-	const { script, timezone } = req.body;
+	const { script, timezone } = req.body || {};
 
 	if (!script || typeof script !== 'string') {
 		throw ApiError.badRequest('Missing script in request body');
+	}
+	if (Buffer.byteLength(script, 'utf8') > 65536) {
+		throw ApiError.badRequest('Script must be at most 64 KiB');
 	}
 	const exercise = await exerciseService.getExerciseWithTests(req.params.id);
 	if (!exercise) {

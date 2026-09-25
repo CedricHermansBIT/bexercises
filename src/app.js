@@ -8,6 +8,7 @@ const path = require('path');
 
 const config = require('./config');
 const { configurePassport } = require('./middleware/auth');
+const requireAdmin = require('./middleware/adminAuth');
 const SqliteSessionStore = require('./middleware/sessionStore');
 const corsMiddleware = require('./middleware/cors');
 const securityHeaders = require('./middleware/securityHeaders');
@@ -41,8 +42,6 @@ function createApp() {
 	app.use(morgan('combined'));
 	app.use(securityHeaders);
 
-	// Body parsing - increased limit to support large file/folder uploads
-	app.use(bodyParser.json({ limit: '50mb' }));
 	// Session configuration with SQLite store
 	const sessionStore = new SqliteSessionStore({
 		dbPath: path.join(config.paths.root, 'data', 'sessions.db'),
@@ -59,6 +58,12 @@ function createApp() {
 	app.use(passport.initialize());
 	app.use(passport.session());
 	configurePassport();
+
+	// Authenticate admin requests before parsing larger uploads.
+	mountAtBothPaths('/api/admin', requireAdmin);
+	mountAtBothPaths('/api/admin/exam-grader/grade', bodyParser.json({ limit: '50mb' }));
+	mountAtBothPaths('/api/admin/fixtures', bodyParser.json({ limit: '10mb' }));
+	app.use(bodyParser.json({ limit: '1mb' }));
 
 	// Serve static files from frontend directory with correct MIME types
 	// This must come BEFORE CORS to avoid issues with module loading

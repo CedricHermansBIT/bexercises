@@ -101,6 +101,25 @@ test('anonymous execution request is rejected before running an exercise', async
 	}
 });
 
+test('authenticated execution rejects scripts over 64 KiB before loading tests', async () => {
+	const app = express();
+	app.use(express.json({ limit: '1mb' }));
+	app.use((req, _res, next) => { req.isAuthenticated = () => true; req.user = { id: 1 }; next(); });
+	app.use('/api', require('../routes/api'));
+	app.use(require('../middleware/errorHandler').errorMiddleware);
+	const server = app.listen(0);
+	try {
+		const response = await fetch(`http://127.0.0.1:${server.address().port}/api/exercises/1/run`, {
+			method: 'POST', headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ script: 'x'.repeat(65537) })
+		});
+		assert.equal(response.status, 400);
+		assert.match((await response.json()).error, /64 KiB/);
+	} finally {
+		await new Promise(resolve => server.close(resolve));
+	}
+});
+
 test('an exercise without tests cannot be completed by submitting code', async () => {
 	const exerciseService = require('../services/exerciseService');
 	const original = exerciseService.getExerciseWithTests;
