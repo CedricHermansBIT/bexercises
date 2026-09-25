@@ -1053,7 +1053,7 @@ class DatabaseService {
 		if (existing) {
 			await this.db.run(`
 				UPDATE user_progress 
-				SET completed = ?,
+				SET completed = CASE WHEN completed = 1 OR ? = 1 THEN 1 ELSE 0 END,
 					last_submission = ?, 
 					last_submission_at = CURRENT_TIMESTAMP,
 					completed_at = CASE WHEN ? = 1 AND completed = 0 THEN CURRENT_TIMESTAMP ELSE completed_at END,
