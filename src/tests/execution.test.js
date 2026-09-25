@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const express = require('express');
-const { hashFile } = require('../services/dockerService');
+const { hashFile, removeRecursive } = require('../services/dockerService');
 const config = require('../config');
 const limiter = require('../services/executionLimiter');
 const { parseContainerCreatedAt } = require('../services/containerCleanupService');
@@ -32,6 +32,26 @@ test('tar archives with identical names and different contents hash differently'
 		assert.notEqual(await hashFile(first), await hashFile(second));
 	} finally {
 		await fs.rm(dir, { recursive: true, force: true });
+	}
+});
+
+test('cleanup never chmods or follows a generated symlink', async () => {
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-cleanup-test-'));
+	const target = path.join(root, 'host-file');
+	const work = path.join(root, 'work');
+	const locked = path.join(work, 'locked');
+	try {
+		await fs.writeFile(target, 'keep this');
+		await fs.chmod(target, 0o600);
+		await fs.mkdir(locked, { recursive: true });
+		await fs.symlink(target, path.join(locked, 'link'));
+		await fs.chmod(locked, 0o000);
+		await removeRecursive(work);
+		assert.equal((await fs.stat(target)).mode & 0o777, 0o600);
+		assert.equal(await fs.readFile(target, 'utf8'), 'keep this');
+	} finally {
+		await fs.chmod(locked, 0o700).catch(() => {});
+		await fs.rm(root, { recursive: true, force: true });
 	}
 });
 

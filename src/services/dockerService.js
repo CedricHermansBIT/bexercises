@@ -114,117 +114,34 @@ function normalizeOutput(s) {
  * @param {string} targetPath - Path to remove
  */
 async function removeRecursive(targetPath) {
-	// Try the modern fs.rm first with force option
-	if (fs.rm) {
-		try {
-			return await fs.rm(targetPath, { recursive: true, force: true, maxRetries: 3 });
-		} catch (err) {
-			// If we get a permission error, try to chmod first
-			if (err.code === 'EACCES' || err.code === 'EPERM') {
-				console.warn('Permission error during rm, attempting chmod fix:', err.message);
-				try {
-					await chmodRecursive(targetPath, 0o777);
-					return await fs.rm(targetPath, { recursive: true, force: true });
-				} catch (chmodErr) {
-					console.error('Failed to chmod before deletion:', chmodErr.message);
-					// Continue to fallback methods
-				}
-			}
-			console.error('fs.rm failed, falling back:', err.message);
-		}
-	}
-
-	// Try fs.rmdir with recursive option
-	if (fs.rmdir) {
-		try {
-			// Try to fix permissions first if possible
-			try {
-				await chmodRecursive(targetPath, 0o777);
-			} catch (chmodErr) {
-				// Ignore chmod errors, try deletion anyway
-			}
-			return await fs.rmdir(targetPath, { recursive: true });
-		} catch (e) {
-			// Fall through to manual removal
-			console.error('fs.rmdir recursive failed, falling back to manual removal:', e.message);
-		}
-	}
-
-	// Manual recursive delete (safe fallback)
-	async function _rmDirRecursive(p) {
-		try {
-			// Try to fix permissions on the directory
-			await fs.chmod(p, 0o777).catch(() => {});
-		} catch (err) {
-			// Ignore chmod errors
-		}
-
-		const entries = await fs.readdir(p);
-		await Promise.all(entries.map(async (entry) => {
-			const full = path.join(p, entry);
-			try {
-				const stat = await fs.lstat(full);
-				// Try to fix permissions before deletion
-				await fs.chmod(full, 0o777).catch(() => {});
-
-				if (stat.isDirectory()) {
-					await _rmDirRecursive(full);
-				} else {
-					await fs.unlink(full);
-				}
-			} catch (err) {
-				if (err.code === 'EACCES' || err.code === 'EPERM') {
-					console.warn(`Permission denied deleting ${full}, attempting force delete`);
-					try {
-						await fs.chmod(full, 0o777);
-						await fs.unlink(full);
-					} catch (retryErr) {
-						console.error(`Failed to delete ${full}:`, retryErr.message);
-					}
-				} else if (err.code !== 'ENOENT') {
-					console.error(`Error deleting ${full}:`, err.message);
-				}
-			}
-		}));
-
-		try {
-			await fs.rmdir(p);
-		} catch (err) {
-			if (err.code !== 'ENOENT') {
-				console.error(`Failed to remove directory ${p}:`, err.message);
-			}
-		}
-	}
-
 	try {
-		await _rmDirRecursive(targetPath);
+		await fs.rm(targetPath, { recursive: true, force: true, maxRetries: 3 });
 	} catch (err) {
-		if (err.code !== 'ENOENT') {
-			console.error('Final cleanup error:', err.message);
-		}
+		if (err.code !== 'EACCES' && err.code !== 'EPERM') throw err;
+		await chmodRecursive(targetPath, 0o777);
+		await fs.rm(targetPath, { recursive: true, force: true, maxRetries: 3 });
 	}
 }
 
 /**
- * Recursively chmod a directory and its contents
- * @param {string} targetPath - Path to chmod
- * @param {number} mode - Permission mode (e.g., 0o777)
+ * Restore permissions only on regular files and directories. Never follow a
+ * symlink while cleaning up student-generated output.
  */
 async function chmodRecursive(targetPath, mode) {
+	let stat;
 	try {
-		const stat = await fs.lstat(targetPath);
-		await fs.chmod(targetPath, mode);
-
-		if (stat.isDirectory()) {
-			const entries = await fs.readdir(targetPath);
-			await Promise.all(entries.map(async (entry) => {
-				const full = path.join(targetPath, entry);
-				await chmodRecursive(full, mode);
-			}));
-		}
+		stat = await fs.lstat(targetPath);
 	} catch (err) {
-		// Ignore errors in chmod
-		console.warn(`chmod failed for ${targetPath}:`, err.message);
+		if (err.code === 'ENOENT') return;
+		throw err;
+	}
+	if (stat.isSymbolicLink()) return;
+	if (!stat.isDirectory() && !stat.isFile()) return;
+	await fs.chmod(targetPath, mode);
+	if (stat.isDirectory()) {
+		for (const entry of await fs.readdir(targetPath)) {
+			await chmodRecursive(path.join(targetPath, entry), mode);
+		}
 	}
 }
 
