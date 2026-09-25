@@ -67,7 +67,7 @@ class ContainerCleanupService {
 	 * Clean up orphaned containers (those that were not properly cleaned up)
 	 * @returns {Promise<Object>} Cleanup result with counts
 	 */
-	async cleanupOrphanedContainers() {
+	async cleanupOrphanedContainers(minAgeMs = 10 * 60 * 1000) {
 		if (!this.containerCmd) {
 			this.init();
 		}
@@ -80,7 +80,7 @@ class ContainerCleanupService {
 
 		try {
 			// Find all containers with our prefix (both running and stopped)
-			const containers = await this.listBexContainers();
+			const containers = await this.listBexContainers(minAgeMs);
 
 			if (containers.length === 0) {
 				return result;
@@ -100,11 +100,6 @@ class ContainerCleanupService {
 				}
 			}
 
-			// If using Podman, also clean up any dangling resources
-			if (this.isPodman) {
-				await this.podmanCleanup();
-			}
-
 			console.log(`[ContainerCleanup] Cleaned up ${result.removed} containers, ${result.errors} errors`);
 		} catch (error) {
 			console.error('[ContainerCleanup] Error during cleanup:', error.message);
@@ -118,9 +113,9 @@ class ContainerCleanupService {
 	 * List all bex-* containers (both running and stopped)
 	 * @returns {Promise<Array>} Array of {id, name, status}
 	 */
-	async listBexContainers() {
+	async listBexContainers(minAgeMs = 10 * 60 * 1000) {
 		return new Promise((resolve, reject) => {
-			const args = ['ps', '-a', '--filter', `name=${this.trackingPrefix}`, '--format', '{{.ID}}\t{{.Names}}\t{{.Status}}'];
+			const args = ['ps', '-a', '--filter', 'label=bitlab.managed=true', '--format', '{{.ID}}\t{{.Names}}\t{{.Status}}\t{{.CreatedAt}}'];
 			const proc = spawn(this.containerCmd, args);
 
 			let stdout = '';
@@ -138,8 +133,12 @@ class ContainerCleanupService {
 				const containers = stdout.trim().split('\n')
 					.filter(line => line.trim())
 					.map(line => {
-						const [id, name, ...statusParts] = line.split('\t');
-						return { id: id.trim(), name: name.trim(), status: statusParts.join('\t').trim() };
+						const [id, name, status, createdAt] = line.split('\t');
+						return { id: id.trim(), name: name.trim(), status: status.trim(), createdAt };
+					})
+					.filter(container => {
+						const created = Date.parse(container.createdAt);
+						return Number.isFinite(created) && Date.now() - created >= minAgeMs;
 					});
 
 				resolve(containers);
@@ -179,21 +178,8 @@ class ContainerCleanupService {
 	 * Handles: num_locks issue, system prune, lock renumbering
 	 */
 	async podmanCleanup() {
-		if (!this.isPodman) return;
-
-		console.log('[ContainerCleanup] Running Podman-specific cleanup...');
-
-		try {
-			// 1. Clean up any dangling images and build cache
-			await this.runPodmanCommand(['system', 'prune', '-f', '--volumes']);
-
-			// 2. Renumber locks to fix the "exceeded num_locks" issue
-			// This should be done periodically to prevent lock exhaustion
-			await this.podmanRenumberLocks();
-
-		} catch (error) {
-			console.warn('[ContainerCleanup] Podman cleanup warning:', error.message);
-		}
+		// Global pruning can delete resources owned by other applications.
+		return;
 	}
 
 	/**
@@ -260,28 +246,7 @@ class ContainerCleanupService {
 		console.log('[ContainerCleanup] FORCE: Cleaning up ALL bex-* containers...');
 
 		// First try normal cleanup
-		const result = await this.cleanupOrphanedContainers();
-
-		// If using Podman, do aggressive cleanup
-		if (this.isPodman) {
-			try {
-				// Kill any remaining containers
-				await this.runPodmanCommand(['kill', '--all']).catch(() => {});
-
-				// Remove all stopped containers
-				await this.runPodmanCommand(['container', 'prune', '-f']).catch(() => {});
-
-				// Renumber locks
-				await this.podmanRenumberLocks();
-
-				// Full system prune
-				await this.runPodmanCommand(['system', 'prune', '-f', '--volumes']).catch(() => {});
-
-				console.log('[ContainerCleanup] FORCE: Podman aggressive cleanup complete');
-			} catch (error) {
-				console.warn('[ContainerCleanup] FORCE: Some Podman cleanup tasks failed:', error.message);
-			}
-		}
+		const result = await this.cleanupOrphanedContainers(0);
 
 		return result;
 	}
@@ -309,7 +274,7 @@ class ContainerCleanupService {
 
 		try {
 			// Count bex containers
-			const bexContainers = await this.listBexContainers();
+			const bexContainers = await this.listBexContainers(0);
 			status.bexContainers = bexContainers.length;
 
 			// Count all containers
@@ -348,4 +313,3 @@ class ContainerCleanupService {
 const containerCleanupService = new ContainerCleanupService();
 
 module.exports = containerCleanupService;
-
