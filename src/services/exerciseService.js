@@ -177,6 +177,7 @@ async function getExerciseById(id) {
 		let chapterName = null;
 		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
 		let exerciseType = 'programming';
+		let fileExtension = '.sh';
 
 		if (exercise.chapter_id) {
 			// Get chapter to find language and chapter name
@@ -191,6 +192,7 @@ async function getExerciseById(id) {
 					// Include code template so workspace doesn't need extra API call
 					codeTemplate = language.code_template || codeTemplate;
 					exerciseType = language.exercise_type || exerciseType;
+					fileExtension = language.file_extension || '.sh';
 				}
 			}
 		}
@@ -204,7 +206,8 @@ async function getExerciseById(id) {
 			language_id: languageId,
 			language: languageName,
 			code_template: codeTemplate,
-			exercise_type: exerciseType
+			exercise_type: exerciseType,
+			file_extension: fileExtension
 		};
 	} catch (error) {
 		console.error('Error getting exercise from database:', error);
@@ -236,6 +239,7 @@ async function getExerciseWithTests(id) {
 		let languageName = null;
 		let codeTemplate = '#!/bin/bash\n\n# Write your solution here\n';
 		let exerciseType = 'programming';
+		let fileExtension = '.sh';
 
 		if (chapter) {
 			languageId = chapter.language_id;
@@ -244,6 +248,7 @@ async function getExerciseWithTests(id) {
 				languageName = language.name;
 				codeTemplate = language.code_template || codeTemplate;
 				exerciseType = language.exercise_type || 'programming';
+				fileExtension = language.file_extension || '.sh';
 			}
 		}
 
@@ -253,7 +258,8 @@ async function getExerciseWithTests(id) {
 			language_id: languageId,
 			language: languageName,
 			code_template: codeTemplate,
-			exercise_type: exerciseType
+			exercise_type: exerciseType,
+			file_extension: fileExtension
 		};
 	} catch (error) {
 		console.error('Error getting exercise with tests from database:', error);

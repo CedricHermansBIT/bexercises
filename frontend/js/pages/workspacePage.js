@@ -370,6 +370,8 @@ class WorkspacePage {
             // Render description (markdown)
             const descriptionDiv = document.getElementById('exercise-description');
             descriptionDiv.innerHTML = marked.parse(exercise.description);
+			const editorTitle = document.querySelector('.editor-title');
+			if (editorTitle) editorTitle.textContent = `solution${exercise.file_extension || '.sh'}`;
 
             await this.loadFixtures(exercise.id);
             await this.loadDatabaseSchema(exercise);
@@ -385,7 +387,7 @@ class WorkspacePage {
 
             // Load saved code or default template
             const savedCode = this.storageService.getExerciseProgress(exerciseId)?.code;
-            const startingCode = savedCode || defaultTemplate;
+            const startingCode = savedCode ?? defaultTemplate;
             this.codeEditor.setValue(startingCode);
 
             // Refresh CodeMirror
@@ -691,7 +693,8 @@ class WorkspacePage {
             const defaultCode = this.currentExercise.code_template || '#!/bin/bash\n\n# Write your solution here\n';
 
             this.codeEditor.setValue(defaultCode);
-            this.updateProgress(this.currentExercise.id, defaultCode, false);
+            this.updateProgress(this.currentExercise.id, defaultCode,
+				this.storageService.getExerciseProgress(this.currentExercise.id)?.completed || false);
         }
     }
 

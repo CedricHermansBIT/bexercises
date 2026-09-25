@@ -39,7 +39,7 @@ class StorageService {
 		}
 
 		progress[exerciseId].code = code;
-		progress[exerciseId].completed = completed;
+		progress[exerciseId].completed = Boolean(progress[exerciseId].completed || completed);
 		progress[exerciseId].lastModified = new Date().toISOString();
 
 		this.saveProgress(progress);
