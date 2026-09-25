@@ -71,6 +71,12 @@ function createApp() {
 		}
 	};
 
+	// Legacy admin URL is still used by navigation links. Redirect before the
+	// static middleware so its old editor markup never flashes on screen.
+	const redirectLegacyAdmin = (_req, res) => res.redirect(302, 'admin/index.html');
+	app.get(`${basePath}/pages/admin.html`, redirectLegacyAdmin);
+	if (basePath) app.get('/pages/admin.html', redirectLegacyAdmin);
+
 	// Mount static files at basePath
 	if (basePath) {
 		app.use(basePath, express.static(config.paths.frontend, staticOptions));

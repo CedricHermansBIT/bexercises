@@ -40,3 +40,11 @@ test('frontend source has no inline event handlers blocked by the CSP', async ()
 	}
 	await visit(path.join(__dirname, '../../frontend'));
 });
+
+test('legacy admin redirect has no leftover editor page after closing HTML', async () => {
+	const html = await fs.readFile(path.join(__dirname, '../../frontend/pages/admin.html'), 'utf8');
+	const close = html.indexOf('</html>');
+	assert.ok(close > 0);
+	assert.equal(html.slice(close + '</html>'.length).trim(), '');
+	assert.match(html, /admin\/index\.html/);
+});
