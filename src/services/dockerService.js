@@ -431,11 +431,8 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 	const containerInputs = '/tmp/.bitlab-inputs';
 	const runtime = getContainerCommand();
 	const deadline = Date.now() + timeoutMs;
-	let cleanupStarted = false;
 	let outputDir = null;
 	const cleanup = () => {
-		if (cleanupStarted) return;
-		cleanupStarted = true;
 		const removal = spawn(runtime, runtime === 'podman'
 			? ['rm', '-f', '-t', '0', containerName]
 			: ['rm', '-f', containerName], { stdio: 'ignore' });
@@ -506,7 +503,13 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		outputDir = null;
 		return result;
 	} finally {
-		cleanup();
+		// An early timeout may race container creation, so retry after the CLI exits.
+		const removed = await runContainerCommand(runtime, runtime === 'podman'
+			? ['rm', '-f', '-t', '0', containerName]
+			: ['rm', '-f', containerName], 10000, 4096);
+		if (removed.error || (removed.exitCode !== 0 && !/no such container|no container with name/i.test(removed.stderr))) {
+			console.error(`Failed to remove ${containerName}:`, removed.error || removed.stderr);
+		}
 		if (outputDir) await fs.rm(outputDir, { recursive: true, force: true });
 	}
 }
