@@ -2,6 +2,12 @@
 const { spawn } = require('child_process');
 const { getContainerCommand } = require('./dockerService');
 
+function parseContainerCreatedAt(value) {
+	// Docker and Podman append nanoseconds and a timezone name to CreatedAt.
+	const match = value && value.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})(?:\.\d+)? ([+-]\d{2})(\d{2})/);
+	return match ? Date.parse(`${match[1]}T${match[2]}${match[3]}:${match[4]}`) : NaN;
+}
+
 /**
  * Container cleanup service
  * Handles orphaned container cleanup and Podman-specific maintenance
@@ -137,7 +143,7 @@ class ContainerCleanupService {
 						return { id: id.trim(), name: name.trim(), status: status.trim(), createdAt };
 					})
 					.filter(container => {
-						const created = Date.parse(container.createdAt);
+						const created = parseContainerCreatedAt(container.createdAt);
 						return Number.isFinite(created) && Date.now() - created >= minAgeMs;
 					});
 
@@ -313,3 +319,4 @@ class ContainerCleanupService {
 const containerCleanupService = new ContainerCleanupService();
 
 module.exports = containerCleanupService;
+module.exports.parseContainerCreatedAt = parseContainerCreatedAt;

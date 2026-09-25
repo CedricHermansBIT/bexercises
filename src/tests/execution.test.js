@@ -8,6 +8,14 @@ const express = require('express');
 const { hashFile } = require('../services/dockerService');
 const config = require('../config');
 const limiter = require('../services/executionLimiter');
+const { parseContainerCreatedAt } = require('../services/containerCleanupService');
+
+test('cleanup parses Docker and Podman creation timestamps', () => {
+	assert.equal(parseContainerCreatedAt('2026-05-19 13:44:04.241755929 +0200 CEST'),
+		Date.parse('2026-05-19T13:44:04+02:00'));
+	assert.equal(parseContainerCreatedAt('2026-05-19 13:44:04 +0000 UTC'),
+		Date.parse('2026-05-19T13:44:04+00:00'));
+});
 
 test('tar archives with identical names and different contents hash differently', async () => {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-tar-test-'));
