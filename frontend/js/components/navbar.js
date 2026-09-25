@@ -52,11 +52,11 @@ class Navbar {
                 </div>
 
                 <div class="topbar-right">
-                    <button class="topbar-btn" id="achievements-btn" title="Achievements">
-                        <span>🏅</span>
+                    <button class="topbar-btn nav-destination nav-achievements" id="achievements-btn" title="View achievements" aria-label="Achievements">
+                        <span aria-hidden="true">🏅</span><span class="nav-destination-label">Achievements</span>
                     </button>
-                    <button class="topbar-btn" id="leaderboard-btn" title="Leaderboard">
-                        <span>🏆</span>
+                    <button class="topbar-btn nav-destination nav-leaderboard" id="leaderboard-btn" title="View leaderboard rankings" aria-label="Leaderboard">
+                        <span aria-hidden="true">📊</span><span class="nav-destination-label">Leaderboard</span>
                     </button>
                     <div class="online-users-navbar" id="online-users-navbar">
                         <button class="topbar-btn" id="online-users-btn" title="Online Users">

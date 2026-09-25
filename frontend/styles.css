@@ -282,6 +282,25 @@ body {
     transform: translateY(-1px);
 }
 
+.topbar-btn.nav-destination {
+    white-space: nowrap;
+    gap: 0.4rem;
+}
+
+.topbar-btn.nav-achievements {
+    border-color: var(--accent-yellow);
+}
+
+.topbar-btn.nav-leaderboard {
+    border-color: var(--accent-blue);
+}
+
+@media (max-width: 900px) {
+    .topbar-btn .nav-destination-label {
+        display: none;
+    }
+}
+
 .topbar-btn.admin-only {
     border-color: var(--accent-lavender);
 }
