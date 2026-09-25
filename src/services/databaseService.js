@@ -1284,7 +1284,7 @@ class DatabaseService {
 			totalAttempts: progress.attempts || 0,
 			successfulAttempts: progress.successful_attempts || 0,
 			failedAttempts: progress.failed_attempts || 0,
-			lastAttempt: progress.started_at,
+			lastAttempt: progress.last_submission_at,
 			failureReasons
 		};
 	}
@@ -1305,6 +1305,10 @@ class DatabaseService {
 			FROM user_progress
 			WHERE exercise_id = ?
 		`, [exerciseId]);
+		const reasons = await this.db.all(`
+			SELECT failure_category, COUNT(*) AS count FROM submission_attempts
+			WHERE exercise_id = ? AND passed = 0 GROUP BY failure_category
+		`, [exerciseId]);
 
 		return {
 			totalAttempts: stats.total_attempts || 0,
@@ -1312,7 +1316,8 @@ class DatabaseService {
 			failedAttempts: stats.total_failed || 0,
 			totalUsers: stats.total_users || 0,
 			avgAttempts: Math.round(stats.avg_attempts || 0),
-			failureReasons: {}
+			failureReasons: Object.fromEntries(reasons.map(reason =>
+				[reason.failure_category || 'unknown', reason.count]))
 		};
 	}
 

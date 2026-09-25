@@ -39,7 +39,7 @@ async function getAllStatistics(userId = null) {
 		if (userId) {
 			// Get all user's progress from database
 			const allProgress = await databaseService.db.all(`
-				SELECT exercise_id, attempts, successful_attempts, failed_attempts, started_at
+				SELECT exercise_id, attempts, successful_attempts, failed_attempts, last_submission_at
 				FROM user_progress
 				WHERE user_id = ?
 			`, [userId]);
@@ -50,10 +50,19 @@ async function getAllStatistics(userId = null) {
 					totalAttempts: p.attempts || 0,
 					successfulAttempts: p.successful_attempts || 0,
 					failedAttempts: p.failed_attempts || 0,
-					lastAttempt: p.started_at,
-					failureReasons: {}
+						lastAttempt: p.last_submission_at,
+						failureReasons: {}
 				};
 			});
+			const reasons = await databaseService.db.all(`
+				SELECT exercise_id, failure_category, COUNT(*) AS count FROM submission_attempts
+				WHERE user_id = ? AND passed = 0 GROUP BY exercise_id, failure_category
+			`, [userId]);
+			for (const reason of reasons) {
+				if (stats[reason.exercise_id]) {
+					stats[reason.exercise_id].failureReasons[reason.failure_category || 'unknown'] = reason.count;
+				}
+			}
 			return stats;
 		} else {
 			// Get global statistics for all exercises

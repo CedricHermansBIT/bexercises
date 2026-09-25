@@ -25,15 +25,20 @@ test('attempt history supplies failure reasons without storing submitted code', 
 				created_at TEXT DEFAULT CURRENT_TIMESTAMP, passed INTEGER, test_count INTEGER,
 				runtime_ms INTEGER, failure_category TEXT, failed_test_number INTEGER);
 			CREATE TABLE user_progress (user_id TEXT, exercise_id TEXT, completed INTEGER,
-				attempts INTEGER, successful_attempts INTEGER, failed_attempts INTEGER, started_at TEXT);
+				attempts INTEGER, successful_attempts INTEGER, failed_attempts INTEGER,
+				started_at TEXT, last_submission_at TEXT);
 		`);
 		databaseService.db = db;
-		await db.run('INSERT INTO user_progress VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+		await db.run('INSERT INTO user_progress VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
 			['student', 'exercise', 0, 1, 0, 1]);
 		await databaseService.saveSubmissionAttempt('student', 'exercise',
 			[{ passed: false, testNumber: 3, failureCategory: 'wrong_output' }], 123);
 		const stats = await databaseService.getExerciseStatistics('student', 'exercise');
 		assert.deepEqual(stats.failureReasons, { wrong_output: 1 });
+		assert.deepEqual((await databaseService.getGlobalExerciseStatistics('exercise')).failureReasons, { wrong_output: 1 });
+		assert.deepEqual((await require('../services/statisticsService').getAllStatistics('student')).exercise.failureReasons,
+			{ wrong_output: 1 });
+		assert.ok(stats.lastAttempt);
 		assert.deepEqual(await db.get('SELECT runtime_ms, failed_test_number FROM submission_attempts'),
 			{ runtime_ms: 123, failed_test_number: 3 });
 		assert.equal((await db.all('PRAGMA table_info(submission_attempts)')).some(column => column.name === 'code'), false);
