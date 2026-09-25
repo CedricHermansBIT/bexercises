@@ -67,7 +67,8 @@ async function runTests(exercise, script) {
     }
 
     try {
-        // Start database container if needed (will be reused across test cases)
+        // Resolve the image once; each case gets its own database state.
+		let dockerImage;
         if (needsDatabaseContainer) {
             // Get language configuration including docker_image
             const databaseService = require('./databaseService');
@@ -77,33 +78,7 @@ async function runTests(exercise, script) {
             }
 
             // Use docker_image from language config, with fallback defaults
-            const dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? 'mariadb:latest' : 'mongo:latest');
-
-            // Collect all fixtures from all test cases for initial DB setup
-            const allFixtures = [];
-            for (const tc of exercise.testCases) {
-                if (tc.fixtures && Array.isArray(tc.fixtures)) {
-                    // Only include SQL/JS/JSON/BSON fixtures for database initialization
-                    tc.fixtures.forEach(f => {
-                        if ((effectiveLanguageId === 'mariadb' && f.endsWith('.sql')) ||
-                            (effectiveLanguageId === 'mongodb' && (f.endsWith('.js') || f.endsWith('.json') || f.endsWith('.bson')))) {
-                            if (!allFixtures.includes(f)) {
-                                allFixtures.push(f);
-                            }
-                        }
-                    });
-                }
-            }
-
-            console.log(`[Database] Starting ${effectiveLanguageId} container with fixtures:`, allFixtures);
-
-            if (effectiveLanguageId === 'mariadb') {
-                dbContainer = await startMariaDBContainer(tmpdir, allFixtures, dockerImage);
-            } else if (effectiveLanguageId === 'mongodb') {
-                dbContainer = await startMongoDBContainer(tmpdir, allFixtures, dockerImage);
-            }
-            if (dbContainer)
-            console.log(`[Database] Container ready:`, dbContainer.containerName);
+            dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? 'mariadb:latest' : 'mongo:latest');
         }
 
         for (let i = 0; i < exercise.testCases.length; i++) {
@@ -149,11 +124,18 @@ async function runTests(exercise, script) {
             }
 
             // Copy any fixtures needed for this test case
-            if (tc.fixtures && Array.isArray(tc.fixtures)) {
+            if (!needsDatabaseContainer && tc.fixtures && Array.isArray(tc.fixtures)) {
                 await copyFixtures(tmpdir, tc.fixtures, tc.fixturePermissions);
                 // Mark fixtures as protected
                 tc.fixtures.forEach(f => protectedFiles.add(f));
             }
+			if (needsDatabaseContainer) {
+				const dbFixtures = (tc.fixtures || []).filter(f =>
+					effectiveLanguageId === 'mariadb' ? f.endsWith('.sql') : /\.(js|json|bson)$/.test(f));
+				dbContainer = effectiveLanguageId === 'mariadb'
+					? await startMariaDBContainer(tmpdir, dbFixtures, dockerImage)
+					: await startMongoDBContainer(tmpdir, dbFixtures, dockerImage);
+			}
 
             let r;
             // Run script - use database container if available, otherwise use regular container
@@ -358,7 +340,7 @@ async function runTests(exercise, script) {
             if (isDatabaseExercise) {
                 // Database exercises: only check stdout and timeout, ignore stderr and exit codes
                 // If validation query is present, we're checking database state instead of command output
-                passed = (!r.timedOut)
+                passed = (!r.timedOut && !r.outputLimited && !r.error && r.exitCode === 0)
                     && (actualForComparison === expectedForComparison)
                     && outputFilesMatch;
             } else {
@@ -391,6 +373,10 @@ async function runTests(exercise, script) {
                 isDatabaseExercise: isDatabaseExercise,
                 passed
             });
+			if (dbContainer) {
+				await dbContainer.cleanup();
+				dbContainer = null;
+			}
         }
     } finally {
         // Cleanup database container if started

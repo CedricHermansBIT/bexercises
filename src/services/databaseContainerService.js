@@ -45,6 +45,8 @@ async function startMariaDBContainer(tmpdir, fixtures = [], dockerImage = 'maria
     const dockerArgs = [
         'run', '-d',
         '--name', containerName,
+        '--label', 'bitlab.managed=true',
+        '--label', `bitlab.created=${Date.now()}`,
         '--network', 'none',
         '-e', `MYSQL_ROOT_PASSWORD=${password}`,
         '-e', `MYSQL_DATABASE=${database}`,
@@ -434,6 +436,8 @@ mongorestore --db=${database} --collection=${collectionName} /fixtures/${fixture
     const dockerArgs = [
         'run', '-d',
         '--name', containerName,
+        '--label', 'bitlab.managed=true',
+        '--label', `bitlab.created=${Date.now()}`,
         '--network', 'none',
         '-e', `MONGO_INITDB_DATABASE=${database}`,
         '-v', `${tmpdir}:/fixtures:ro`,
@@ -641,65 +645,12 @@ mongorestore --db=${database} --collection=${collectionName} /fixtures/${fixture
  * @returns {Promise<Object>} Query result {stdout, stderr, exitCode}
  */
 async function executeMariaDBQuery(containerInfo, query) {
-    const containerCmd = getContainerCommand();
-
     console.log(`[MariaDB] Executing query: ${query.substring(0, 150)}...`);
     console.log(`[MariaDB] Target database: ${containerInfo.database}`);
-
-    return new Promise((resolve) => {
-        // Use the database name as argument which is more reliable than USE statement
-        const dockerArgs = [
-            'exec', containerInfo.containerName,
-            'mariadb',
-            '-u', 'root',
-            `-p${containerInfo.password}`,
-            containerInfo.database,
-            '-e', query
-        ];
-
-        console.log(`[MariaDB] Command: mariadb -u root -p*** ${containerInfo.database} -e "${query.substring(0, 50)}..."`);
-
-        const docker = spawn(containerCmd, dockerArgs);
-        let stdout = '';
-        let stderr = '';
-
-        docker.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-
-        docker.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-
-        docker.on('close', (code) => {
-            if (code !== 0) {
-                console.error(`[MariaDB] Query failed with exit code ${code}`);
-                console.error(`[MariaDB] stderr: ${stderr}`);
-                console.error(`[MariaDB] stdout: ${stdout}`);
-            } else {
-                console.log(`[MariaDB] Query successful, output length: ${stdout.length}`);
-            }
-
-            resolve({
-                stdout,
-                stderr,
-                exitCode: code,
-                timedOut: false,
-                error: null
-            });
-        });
-
-        docker.on('error', (err) => {
-            console.error(`[MariaDB] Query error: ${err.message}`);
-            resolve({
-                stdout,
-                stderr: err.message,
-                exitCode: -1,
-                timedOut: false,
-                error: err.message
-            });
-        });
-    });
+    return executeDatabaseCommand(containerInfo, [
+        'mariadb', '-u', 'root', `-p${containerInfo.password}`,
+        containerInfo.database, '-e', query
+    ]);
 }
 
 /**
@@ -709,48 +660,52 @@ async function executeMariaDBQuery(containerInfo, query) {
  * @returns {Promise<Object>} Query result {stdout, stderr, exitCode}
  */
 async function executeMongoDBQuery(containerInfo, query) {
+    return executeDatabaseCommand(containerInfo, [
+        'mongosh', containerInfo.database, '--quiet', '--eval', query
+    ]);
+}
+
+function executeDatabaseCommand(containerInfo, command) {
     const containerCmd = getContainerCommand();
-
-    return new Promise((resolve) => {
-        const dockerArgs = [
-            'exec', containerInfo.containerName,
-            'mongosh',
-            containerInfo.database,
-            '--quiet',
-            '--eval', query
-        ];
-
-        const docker = spawn(containerCmd, dockerArgs);
+    return new Promise(resolve => {
+        const proc = spawn(containerCmd, ['exec', containerInfo.containerName, ...command]);
         let stdout = '';
         let stderr = '';
-
-        docker.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-
-        docker.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-
-        docker.on('close', (code) => {
-            resolve({
-                stdout,
-                stderr,
-                exitCode: code,
-                timedOut: false,
-                error: null
-            });
-        });
-
-        docker.on('error', (err) => {
-            resolve({
-                stdout,
-                stderr: err.message,
-                exitCode: -1,
-                timedOut: false,
-                error: err.message
-            });
-        });
+        let bytes = 0;
+        let timedOut = false;
+        let outputLimited = false;
+        let settled = false;
+        const append = (stream, chunk) => {
+            const remaining = config.docker.maxOutputBytes - bytes;
+            if (remaining <= 0) return;
+            const data = Buffer.from(chunk);
+            const kept = data.subarray(0, remaining);
+            bytes += kept.length;
+            if (stream === 'stdout') stdout += kept.toString();
+            else stderr += kept.toString();
+            if (bytes >= config.docker.maxOutputBytes) {
+                outputLimited = true;
+                stop();
+            }
+        };
+        const stop = () => {
+            spawn(containerCmd, containerCmd === 'podman'
+                ? ['rm', '-f', '-t', '0', containerInfo.containerName]
+                : ['rm', '-f', containerInfo.containerName], { stdio: 'ignore' });
+            proc.kill('SIGKILL');
+        };
+        proc.stdout.on('data', data => append('stdout', data));
+        proc.stderr.on('data', data => append('stderr', data));
+        const timer = setTimeout(() => { timedOut = true; stop(); }, config.docker.timeout);
+        const finish = (code, error = null) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            resolve({ stdout, stderr, exitCode: timedOut || outputLimited ? -1 : code,
+                timedOut, outputLimited, error });
+        };
+        proc.on('close', code => finish(code, outputLimited ? 'Output limit exceeded' : null));
+        proc.on('error', error => finish(-1, error.message));
     });
 }
 
