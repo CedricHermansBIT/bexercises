@@ -167,6 +167,7 @@ async function runTests(exercise, script) {
             let expected = normalizeOutput(tc.expectedOutput || '').trim();
             let expectedStderr = normalizeOutput(tc.expectedStderr || '').trim();
             let expectedExitCode = (tc.expectedExitCode != null) ? tc.expectedExitCode : 0;
+			let configurationError = null;
 
             // For database exercises with validation queries, run the validation query AFTER user script
             // to check the actual database state rather than just the command output
@@ -184,7 +185,11 @@ async function runTests(exercise, script) {
                             validationResult = await executeMongoDBQuery(dbContainer, tc.validationQuery);
                         }
 
-                        validationOutput = normalizeOutput(validationResult.stdout).trim();
+						if (validationResult.exitCode !== 0 || validationResult.timedOut ||
+							validationResult.outputLimited || validationResult.error) {
+							throw new Error(`Validation query failed: ${validationResult.error || validationResult.stderr || validationResult.exitCode}`);
+						}
+						validationOutput = normalizeOutput(validationResult.stdout).trim();
                         console.log(`Validation query returned: ${validationOutput}`);
                     } else {
                         // Fallback to combined script approach for other databases
@@ -208,7 +213,11 @@ async function runTests(exercise, script) {
                             );
 
                             // Use validation query output as the actual output to compare
-                            validationOutput = normalizeOutput(validationResult.stdout).trim();
+							if (validationResult.exitCode !== 0 || validationResult.timedOut ||
+								validationResult.outputLimited || validationResult.error) {
+								throw new Error(`Validation query failed: ${validationResult.error || validationResult.stderr || validationResult.exitCode}`);
+							}
+							validationOutput = normalizeOutput(validationResult.stdout).trim();
 
                             console.log(`Validation query returned: ${validationOutput}`);
                             console.log(`Expected database state: ${expected}`);
@@ -219,11 +228,11 @@ async function runTests(exercise, script) {
                     }
                 } catch (err) {
                     console.error('Failed to run validation query:', err);
+					configurationError = err.message;
                 }
             }
 
             // If test case uses dynamic output, run the exercise solution to get expected output
-            let configurationError = null;
             if (tc.useDynamicOutput) {
                 if (!exercise.solution) {
                     configurationError = 'Dynamic output requires a reference solution';

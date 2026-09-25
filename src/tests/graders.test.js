@@ -139,3 +139,37 @@ test('dynamic database output uses a clean reference database and reports broken
 		delete require.cache[runnerPath];
 	}
 });
+
+test('failed database validation is a configuration error even with empty expected output', async () => {
+	const containerPath = require.resolve('../services/databaseContainerService');
+	const runnerPath = require.resolve('../services/testRunner');
+	const databaseService = require('../services/databaseService');
+	const originalContainer = require.cache[containerPath]?.exports;
+	const originalGetLanguage = databaseService.getLanguage;
+	require.cache[containerPath] = {
+		id: containerPath, filename: containerPath, loaded: true,
+		exports: {
+			startMariaDBContainer: async () => ({ cleanup: async () => {} }),
+			startMongoDBContainer: () => { throw new Error('Unexpected MongoDB run'); },
+			executeMariaDBQuery: async (_container, query) => query === 'check'
+				? { stdout: '', stderr: '', exitCode: -1, timedOut: true }
+				: { stdout: '', stderr: '', exitCode: 0 },
+			executeMongoDBQuery: () => { throw new Error('Unexpected MongoDB query'); }
+		}
+	};
+	databaseService.getLanguage = async () => ({ docker_image: 'mariadb:10.11' });
+	delete require.cache[runnerPath];
+	try {
+		const [result] = await require(runnerPath).runTests({
+			id: 'validation-timeout', language_id: 'mariadb', exercise_type: 'database',
+			testCases: [{ validationQuery: 'check', expectedValidationOutput: '', expectedOutput: '' }]
+		}, 'student');
+		assert.equal(result.passed, false);
+		assert.match(result.configurationError, /Validation query failed/);
+	} finally {
+		databaseService.getLanguage = originalGetLanguage;
+		if (originalContainer) require.cache[containerPath].exports = originalContainer;
+		else delete require.cache[containerPath];
+		delete require.cache[runnerPath];
+	}
+});
