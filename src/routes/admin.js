@@ -1474,6 +1474,10 @@ router.delete('/chapters/:chapterId', async (req, res) => {
 
 // ============= Container Management =============
 
+router.get('/execution/status', (req, res) => {
+	res.json(require('../services/executionLimiter').getStatus());
+});
+
 /**
  * GET /api/admin/containers/status
  * Get container runtime status and statistics

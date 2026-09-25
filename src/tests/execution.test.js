@@ -61,6 +61,30 @@ test('execution limiter enforces per-user rate and global concurrency', async ()
 	}
 });
 
+test('zero-length queue accepts free slots and rejects full queues without charging a run', async () => {
+	const oldRate = config.docker.runsPerMinute;
+	const oldParallel = config.docker.maxParallelTests;
+	const oldQueued = config.docker.maxQueuedRuns;
+	try {
+		config.docker.runsPerMinute = 1;
+		config.docker.maxParallelTests = 1;
+		config.docker.maxQueuedRuns = 0;
+		let release;
+		const first = limiter.enqueue(() => new Promise(resolve => { release = resolve; }), 'queue-user-a');
+		await new Promise(resolve => setImmediate(resolve));
+		await assert.rejects(limiter.enqueue(() => 2, 'queue-user-b'), { statusCode: 503 });
+		await assert.rejects(limiter.enqueue(() => 2, 'queue-user-a'), { statusCode: 429 });
+		release(1);
+		assert.equal(await first, 1);
+		await new Promise(resolve => setImmediate(resolve));
+		assert.equal(await limiter.enqueue(() => 2, 'queue-user-b'), 2);
+	} finally {
+		config.docker.runsPerMinute = oldRate;
+		config.docker.maxParallelTests = oldParallel;
+		config.docker.maxQueuedRuns = oldQueued;
+	}
+});
+
 test('anonymous execution request is rejected before running an exercise', async () => {
 	const app = express();
 	app.use(express.json());
@@ -73,6 +97,32 @@ test('anonymous execution request is rejected before running an exercise', async
 		});
 		assert.equal(response.status, 401);
 	} finally {
+		await new Promise(resolve => server.close(resolve));
+	}
+});
+
+test('an exercise without tests cannot be completed by submitting code', async () => {
+	const exerciseService = require('../services/exerciseService');
+	const original = exerciseService.getExerciseWithTests;
+	exerciseService.getExerciseWithTests = async () => ({ testCases: [] });
+	const app = express();
+	app.use(express.json());
+	app.use((req, _res, next) => {
+		req.isAuthenticated = () => true;
+		req.user = { id: 'zero-tests-user' };
+		next();
+	});
+	app.use('/api', require('../routes/api'));
+	app.use(require('../middleware/errorHandler').errorMiddleware);
+	const server = app.listen(0);
+	try {
+		const response = await fetch(`http://127.0.0.1:${server.address().port}/api/exercises/empty/run`, {
+			method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ script: 'echo hi' })
+		});
+		assert.equal(response.status, 400);
+		assert.match((await response.json()).error, /no tests/i);
+	} finally {
+		exerciseService.getExerciseWithTests = original;
 		await new Promise(resolve => server.close(resolve));
 	}
 });

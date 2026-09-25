@@ -100,18 +100,17 @@ router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, 
 	if (!script || typeof script !== 'string') {
 		throw ApiError.badRequest('Missing script in request body');
 	}
-	if (!executionLimiter.checkRateLimit(req.user.id)) {
-		return res.status(429).json({ error: 'Run limit reached. Try again in a minute.' });
-	}
-
 	const exercise = await exerciseService.getExerciseWithTests(req.params.id);
 	if (!exercise) {
 		throw ApiError.notFound('Exercise not found');
 	}
+	if (!exercise.testCases || exercise.testCases.length === 0) {
+		throw ApiError.badRequest('Exercise has no tests configured');
+	}
 
 	// Run tests
-	const results = await executionLimiter.enqueue(() => testRunner.runTests(exercise, script));
-	const allPassed = results.every(r => r.passed);
+	const results = await executionLimiter.enqueue(() => testRunner.runTests(exercise, script), req.user.id);
+	const allPassed = results.length > 0 && results.every(r => r.passed);
 
 	// Save user progress if authenticated
 	if (req.user && req.user.id) {
