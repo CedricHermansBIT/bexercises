@@ -496,6 +496,31 @@ async function runScriptWithTestCase(script, languageId = 'bash', args = [], inp
  * @param {string} filePath - Path to file
  * @returns {Promise<string>} Hex string of SHA-256 hash
  */
+function inspectTar(args, deadline, onData) {
+	return new Promise((resolve, reject) => {
+		const remaining = deadline - Date.now();
+		if (remaining <= 0) return reject(new Error('Archive inspection timed out'));
+		const child = spawn('tar', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+		let settled = false;
+		const finish = error => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			if (error) {
+				child.kill('SIGKILL');
+				reject(error);
+			} else resolve();
+		};
+		const timer = setTimeout(() => finish(new Error('Archive inspection timed out')), remaining);
+		child.stdout.on('data', data => {
+			try { onData(data); } catch (error) { finish(error); }
+		});
+		child.stderr.resume();
+		child.on('error', finish);
+		child.on('close', code => finish(code === 0 ? null : new Error(`tar exited with code ${code}`)));
+	});
+}
+
 async function hashFile(filePath) {
 	// Check if file is a tar.gz archive
 	const isTarGz = filePath.endsWith('.tar.gz') || filePath.endsWith('.tgz');
@@ -503,26 +528,32 @@ async function hashFile(filePath) {
 	if (isTarGz) {
 		// Hash member names and their uncompressed contents, avoiding tar/gzip
 		// timestamps while detecting changed file contents.
-		const members = await new Promise((resolve, reject) => {
-			const listing = spawn('tar', ['-tzf', filePath]);
-			let names = '';
-			listing.stdout.on('data', data => { names += data.toString(); });
-			listing.on('error', reject);
-			listing.on('close', code => code === 0
-				? resolve(names.trimEnd().split('\n').filter(Boolean).sort())
-				: reject(new Error(`Failed to list tar contents: exit code ${code}`)));
+		if ((await fs.stat(filePath)).size > config.docker.maxArchiveBytes) {
+			throw new Error('Archive exceeds compressed size limit');
+		}
+		const deadline = Date.now() + config.docker.archiveInspectTimeoutMs;
+		let names = '';
+		let listingBytes = 0;
+		await inspectTar(['-tzf', filePath], deadline, data => {
+			listingBytes += data.length;
+			if (listingBytes > 262144) throw new Error('Archive listing exceeds size limit');
+			names += data.toString();
 		});
+		const members = names.trimEnd().split('\n').filter(Boolean).sort();
+		if (members.length > config.docker.maxArchiveMembers || new Set(members).size !== members.length) {
+			throw new Error('Archive has too many or duplicate members');
+		}
 		const hash = crypto.createHash('sha256');
+		let expandedBytes = 0;
 		for (const member of members) {
 			hash.update(`member\0${member}\0`);
 			if (member.endsWith('/')) continue;
-			await new Promise((resolve, reject) => {
-				const extract = spawn('tar', ['-xOzf', filePath, '--', member]);
-				extract.stdout.on('data', data => hash.update(data));
-				extract.on('error', reject);
-				extract.on('close', code => code === 0
-					? resolve()
-					: reject(new Error(`Failed to read tar member: ${member}`)));
+			await inspectTar(['-xOzf', filePath, '--', member], deadline, data => {
+				expandedBytes += data.length;
+				if (expandedBytes > config.docker.maxArchiveExpandedBytes) {
+					throw new Error('Archive exceeds expanded size limit');
+				}
+				hash.update(data);
 			});
 			hash.update('\0');
 		}

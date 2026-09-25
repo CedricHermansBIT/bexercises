@@ -35,6 +35,22 @@ test('tar archives with identical names and different contents hash differently'
 	}
 });
 
+test('archive hashing stops when expanded content exceeds its limit', async () => {
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-tar-limit-'));
+	const oldLimit = config.docker.maxArchiveExpandedBytes;
+	try {
+		const file = path.join(dir, 'large.txt');
+		const archive = path.join(dir, 'large.tar.gz');
+		await fs.writeFile(file, Buffer.alloc(1024 * 1024));
+		assert.equal(spawnSync('tar', ['-czf', archive, '-C', dir, 'large.txt']).status, 0);
+		config.docker.maxArchiveExpandedBytes = 1024;
+		await assert.rejects(hashFile(archive), /expanded size limit/);
+	} finally {
+		config.docker.maxArchiveExpandedBytes = oldLimit;
+		await fs.rm(dir, { recursive: true, force: true });
+	}
+});
+
 test('cleanup never chmods or follows a generated symlink', async () => {
 	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-cleanup-test-'));
 	const target = path.join(root, 'host-file');
