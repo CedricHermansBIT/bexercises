@@ -34,7 +34,9 @@ ls -la
 
 		console.log('[ExamGrader] Running unzip in Docker container...');
 		// Run the unzip script using existing Docker infrastructure
-		const result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, [], [], config.docker.timeout);
+		const result = await runScriptInContainer(tmpdir, scriptFilename,
+			{ ...languageConfig, dockerImage: config.docker.image, interpreter: 'bash' },
+			[], [], config.docker.timeout);
 
 		console.log('[ExamGrader] Unzip output:', result.stdout);
 		console.log('[ExamGrader] Unzip stderr:', result.stderr);
@@ -133,8 +135,12 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
 
 		// Run both scripts with same arguments and inputs
 		const [studentResult, solutionResult] = await Promise.all([
-			runScriptInContainer(studentTmpdir, studentTemp.scriptFilename, studentTemp.languageConfig, args, inputs, config.docker.timeout),
-			runScriptInContainer(solutionTmpdir, solutionTemp.scriptFilename, solutionTemp.languageConfig, args, inputs, config.docker.timeout)
+			runScriptInContainer(studentTmpdir, studentTemp.scriptFilename,
+				{ ...studentTemp.languageConfig, dockerImage: config.docker.image, interpreter: 'bash' },
+				args, inputs, config.docker.timeout),
+			runScriptInContainer(solutionTmpdir, solutionTemp.scriptFilename,
+				{ ...solutionTemp.languageConfig, dockerImage: config.docker.image, interpreter: 'bash' },
+				args, inputs, config.docker.timeout)
 		]);
 
 		const studentOut = normalizeOutput(studentResult.stdout).trim();

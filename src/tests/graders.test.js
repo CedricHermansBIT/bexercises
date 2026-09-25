@@ -35,6 +35,7 @@ test('exam comparison passes the current runner arguments', async () => {
 		for (const args of calls) {
 			assert.equal(args[1], 'script.sh');
 			assert.equal(args[2].interpreter, 'bash');
+			assert.equal(args[2].dockerImage, require('../config').docker.image);
 			assert.deepEqual(args[3], ['arg']);
 			assert.deepEqual(args[4], ['input']);
 		}
