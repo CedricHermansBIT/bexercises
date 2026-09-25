@@ -380,6 +380,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
  */
 async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args = [], inputs = [], timeoutMs = config.docker.timeout) {
 	return new Promise((resolve) => {
+		const containerName = `bex-run-${crypto.randomUUID()}`;
 		const containerWorkdir = '/home/runner';
 		const interpreter = languageConfig.interpreter;
 		const dockerImage = languageConfig.dockerImage;
@@ -395,9 +396,16 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 
 		const dockerArgs = [
 			'run', '--rm',
+			'--name', containerName,
+			'--label', 'bitlab.managed=true',
+			'--label', `bitlab.created=${Date.now()}`,
 			'--network', 'none',
 			'--memory', config.docker.memory,
+			'--cpus', config.docker.cpus,
 			'--pids-limit', config.docker.pidsLimit.toString(),
+			'--cap-drop', 'ALL',
+			'--security-opt', 'no-new-privileges',
+			'--user', '65534:65534',
 			'-v', `${tmpdir}:${containerWorkdir}:rw`,
 			'-w', containerWorkdir,
 			'--entrypoint', '/bin/sh',
@@ -416,46 +424,57 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		let stdout = '';
 		let stderr = '';
 		let timedOut = false;
+		let outputLimited = false;
+		let outputBytes = 0;
+		let settled = false;
+		let cleanupStarted = false;
+		const cleanup = () => {
+			if (cleanupStarted) return;
+			cleanupStarted = true;
+			const removal = spawn(dockerCmd, dockerCmd === 'podman'
+				? ['rm', '-f', '-t', '0', containerName]
+				: ['rm', '-f', containerName], { stdio: 'ignore' });
+			removal.on('error', err => console.error(`Failed to remove ${containerName}:`, err));
+			docker.kill('SIGKILL');
+		};
+		const finish = (code, error = null) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(killTimer);
+			resolve({
+				stdout: normalizeOutput(stdout), stderr: normalizeOutput(stderr),
+				exitCode: timedOut || outputLimited ? -1 : code,
+				timedOut, outputLimited, error
+			});
+		};
+		const append = (stream, chunk) => {
+			const remaining = config.docker.maxOutputBytes - outputBytes;
+			if (remaining <= 0) return;
+			const data = Buffer.from(chunk);
+			const kept = data.subarray(0, remaining);
+			outputBytes += kept.length;
+			if (stream === 'stdout') stdout += kept.toString();
+			else stderr += kept.toString();
+			if (data.length > remaining || outputBytes >= config.docker.maxOutputBytes) {
+				outputLimited = true;
+				cleanup();
+			}
+		};
 
-		docker.stdout.on('data', (d) => {
-			stdout += d.toString();
-		});
-
-		docker.stderr.on('data', (d) => {
-			stderr += d.toString();
-		});
+		docker.stdout.on('data', (d) => append('stdout', d));
+		docker.stderr.on('data', (d) => append('stderr', d));
 
 		const killTimer = setTimeout(() => {
 			timedOut = true;
-			try {
-				docker.kill('SIGKILL');
-			} catch (e) {
-				// Ignore
-                console.error('Error killing docker process:', e);
-			}
+			cleanup();
 		}, timeoutMs);
 
 		docker.on('error', (err) => {
-			clearTimeout(killTimer);
-			resolve({
-				stdout: normalizeOutput(stdout),
-				stderr: normalizeOutput(stderr),
-				exitCode: null,
-				timedOut,
-				error: err.message
-			});
+			finish(null, err.message);
 		});
 
 		docker.on('close', (code, _signal) => {
-			clearTimeout(killTimer);
-			const exitCode = timedOut ? -1 : code;
-			resolve({
-				stdout: normalizeOutput(stdout),
-				stderr: normalizeOutput(stderr),
-				exitCode,
-				timedOut,
-				error: null
-			});
+			finish(code, outputLimited ? 'Output limit exceeded' : null);
 		});
 	});
 }
@@ -521,31 +540,32 @@ async function hashFile(filePath) {
 	const isTarGz = filePath.endsWith('.tar.gz') || filePath.endsWith('.tgz');
 
 	if (isTarGz) {
-		// For tar.gz files, hash the file list instead of the archive itself
-		// This avoids timestamp issues in the tar metadata
-		return new Promise((resolve, reject) => {
-			const tarProcess = spawn('tar', ['tf', filePath]);
-			const hash = crypto.createHash('sha256');
-			let fileList = '';
-
-			tarProcess.stdout.on('data', (data) => {
-				fileList += data.toString();
-			});
-
-			tarProcess.on('close', (code) => {
-				if (code !== 0) {
-					reject(new Error(`Failed to list tar contents: exit code ${code}`));
-					return;
-				}
-
-				// Sort the file list to ensure consistent ordering
-				const sortedFiles = fileList.trim().split('\n').sort().join('\n');
-				hash.update(sortedFiles);
-				resolve(hash.digest('hex'));
-			});
-
-			tarProcess.on('error', reject);
+		// Hash member names and their uncompressed contents, avoiding tar/gzip
+		// timestamps while detecting changed file contents.
+		const members = await new Promise((resolve, reject) => {
+			const listing = spawn('tar', ['-tzf', filePath]);
+			let names = '';
+			listing.stdout.on('data', data => { names += data.toString(); });
+			listing.on('error', reject);
+			listing.on('close', code => code === 0
+				? resolve(names.trimEnd().split('\n').filter(Boolean).sort())
+				: reject(new Error(`Failed to list tar contents: exit code ${code}`)));
 		});
+		const hash = crypto.createHash('sha256');
+		for (const member of members) {
+			hash.update(`member\0${member}\0`);
+			if (member.endsWith('/')) continue;
+			await new Promise((resolve, reject) => {
+				const extract = spawn('tar', ['-xOzf', filePath, '--', member]);
+				extract.stdout.on('data', data => hash.update(data));
+				extract.on('error', reject);
+				extract.on('close', code => code === 0
+					? resolve()
+					: reject(new Error(`Failed to read tar member: ${member}`)));
+			});
+			hash.update('\0');
+		}
+		return hash.digest('hex');
 	}
 
 	// For regular files, hash the content normally
