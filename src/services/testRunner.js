@@ -348,6 +348,7 @@ async function runTests(exercise, script) {
                 stderr: r.stderr,
                 exitCode: r.exitCode,
                 timedOut: r.timedOut,
+				outputLimited: r.outputLimited,
                 error: r.error,
                 configurationError,
                 outputFiles: outputFilesResult,

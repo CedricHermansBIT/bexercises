@@ -175,6 +175,21 @@ class DatabaseService {
 				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 			)
 		`);
+		await this.db.exec(`
+			CREATE TABLE IF NOT EXISTS submission_attempts (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				exercise_id TEXT NOT NULL,
+				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				passed INTEGER NOT NULL,
+				test_count INTEGER NOT NULL,
+				runtime_ms INTEGER NOT NULL,
+				failure_category TEXT,
+				failed_test_number INTEGER
+			);
+			CREATE INDEX IF NOT EXISTS idx_submission_attempts_exercise_user
+				ON submission_attempts(exercise_id, user_id, created_at);
+		`);
 
 		// Add new columns if they don't exist (for existing databases)
 		try {
@@ -1080,6 +1095,16 @@ class DatabaseService {
 		return this.getUserDraft(userId, exerciseId);
 	}
 
+	async saveSubmissionAttempt(userId, exerciseId, results, runtimeMs) {
+		const failed = results.find(result => !result.passed);
+		await this.db.run(`
+			INSERT INTO submission_attempts
+				(user_id, exercise_id, passed, test_count, runtime_ms, failure_category, failed_test_number)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, [userId, exerciseId, failed ? 0 : 1, results.length, runtimeMs,
+			failed?.failureCategory || null, failed?.testNumber || null]);
+	}
+
 	async saveUserProgress(userId, exerciseId, data) {
 		const { completed, last_submission } = data;
 		
@@ -1209,6 +1234,13 @@ class DatabaseService {
 	 */
 	async getExerciseStatistics(userId, exerciseId) {
 		const progress = await this.getUserProgress(userId, exerciseId);
+		const reasons = await this.db.all(`
+			SELECT failure_category, COUNT(*) AS count FROM submission_attempts
+			WHERE user_id = ? AND exercise_id = ? AND passed = 0
+			GROUP BY failure_category
+		`, [userId, exerciseId]);
+		const failureReasons = Object.fromEntries(reasons.map(reason =>
+			[reason.failure_category || 'unknown', reason.count]));
 
 		if (!progress) {
 			return {
@@ -1216,7 +1248,7 @@ class DatabaseService {
 				successfulAttempts: 0,
 				failedAttempts: 0,
 				lastAttempt: null,
-				failureReasons: {}
+				failureReasons
 			};
 		}
 
@@ -1225,7 +1257,7 @@ class DatabaseService {
 			successfulAttempts: progress.successful_attempts || 0,
 			failedAttempts: progress.failed_attempts || 0,
 			lastAttempt: progress.started_at,
-			failureReasons: {} // Can be enhanced later to track specific failure types
+			failureReasons
 		};
 	}
 

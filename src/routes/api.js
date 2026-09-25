@@ -6,6 +6,7 @@ const testRunner = require('../services/testRunner');
 const databaseService = require('../services/databaseService');
 const { ensureAuthenticated } = require('../middleware/auth');
 const executionLimiter = require('../services/executionLimiter');
+const { classifyFailure } = require('../services/submissionFeedback');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
 const router = express.Router();
@@ -131,7 +132,16 @@ router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, 
 	}
 
 	// Run tests
-	const results = await executionLimiter.enqueue(() => testRunner.runTests(exercise, script), req.user.id);
+	let runtimeMs = 0;
+	const rawResults = await executionLimiter.enqueue(async () => {
+		const started = Date.now();
+		try {
+			return await testRunner.runTests(exercise, script);
+		} finally {
+			runtimeMs = Date.now() - started;
+		}
+	}, req.user.id);
+	const results = rawResults.map(result => ({ ...result, failureCategory: classifyFailure(result) }));
 	const allPassed = results.length > 0 && results.every(r => r.passed);
 
 	// Save user progress if authenticated
@@ -140,6 +150,7 @@ router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, 
 			completed: allPassed,
 			last_submission: script
 		});
+		await databaseService.saveSubmissionAttempt(req.user.id, req.params.id, results, runtimeMs);
 
 		// Check for achievements
 		const newAchievements = [];

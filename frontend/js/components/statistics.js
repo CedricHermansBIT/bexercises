@@ -66,6 +66,9 @@ class Statistics {
 			'timeout': '⏱️',
 			'wrong_exit_code': '🚪',
 			'wrong_output': '📝',
+			'wrong_stderr': '📣',
+			'output_limit': '📦',
+			'configuration_error': '🛠️',
 			'error': '❌',
 			'unknown': '❓'
 		};
@@ -82,10 +85,13 @@ class Statistics {
 			'timeout': 'Timeout',
 			'wrong_exit_code': 'Wrong Exit Code',
 			'wrong_output': 'Wrong Output',
+			'wrong_stderr': 'Wrong Error Output',
+			'output_limit': 'Output Limit',
+			'configuration_error': 'Exercise Configuration',
 			'error': 'Error',
 			'unknown': 'Unknown'
 		};
-		return labels[reason] || reason;
+		return labels[reason] || 'Other';
 	}
 }
 
