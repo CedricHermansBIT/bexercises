@@ -297,9 +297,10 @@ class ExercisesPage {
         const header = document.createElement('div');
         header.className = 'chapter-header';
         header.innerHTML = `
-            <h2 class="chapter-title">${chapterName}</h2>
+            <h2 class="chapter-title"></h2>
             <span class="chapter-count">${exercises.length} exercises</span>
         `;
+		header.querySelector('.chapter-title').textContent = chapterName;
         section.appendChild(header);
 
         const grid = document.createElement('div');
@@ -324,9 +325,7 @@ class ExercisesPage {
         card.dataset.completed = isCompleted;
 
         // Extract first paragraph from description
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = exercise.description;
-        const firstP = tempDiv.querySelector('p')?.textContent || exercise.description.substring(0, 150);
+		const firstP = String(exercise.description || '').replace(/<[^>]*>/g, '').split(/\n\s*\n/)[0];
 
         // Get global stats for this exercise
         const stats = this.globalStats[exercise.id] || { usersCompleted: 0, avgTries: 0 };
@@ -366,18 +365,21 @@ class ExercisesPage {
             <div class="card-header">
                 <div class="card-number">${number}.</div>
                 <div class="card-title-container">
-                    <div class="card-title">${exercise.title}</div>
+                    <div class="card-title"></div>
                 </div>
                 <span class="card-badge ${isCompleted ? 'completed' : 'not-started'}">
                     ${isCompleted ? '✓' : '○'}
                 </span>
             </div>
-            <div class="card-description">${firstP.substring(0, 120)}${firstP.length > 120 ? '...' : ''}</div>
+            <div class="card-description"></div>
             <div class="card-footer">
                 <span class="card-arrow">→</span>
                 ${statsHtml}
             </div>
         `;
+		card.querySelector('.card-title').textContent = exercise.title;
+		card.querySelector('.card-description').textContent = firstP.substring(0, 120) +
+			(firstP.length > 120 ? '...' : '');
 
         card.addEventListener('click', () => {
             this.selectExercise(exercise.id);

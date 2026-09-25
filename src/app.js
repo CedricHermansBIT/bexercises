@@ -10,6 +10,7 @@ const config = require('./config');
 const { configurePassport } = require('./middleware/auth');
 const SqliteSessionStore = require('./middleware/sessionStore');
 const corsMiddleware = require('./middleware/cors');
+const securityHeaders = require('./middleware/securityHeaders');
 const trackUserActivity = require('./middleware/activityTracker');
 const { errorMiddleware } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth');
@@ -38,6 +39,7 @@ function createApp() {
 
 	// Logging
 	app.use(morgan('combined'));
+	app.use(securityHeaders);
 
 	// Body parsing - increased limit to support large file/folder uploads
 	app.use(bodyParser.json({ limit: '50mb' }));

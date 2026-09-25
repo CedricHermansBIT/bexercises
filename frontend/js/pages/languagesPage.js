@@ -296,12 +296,10 @@ class LanguagesPage {
         }
 
         card.innerHTML = `
-            <div class="language-icon">
-                ${language.icon_svg || this.getDefaultIcon(language.id)}
-            </div>
+            <div class="language-icon"></div>
             <div class="language-info">
-                <h2 class="language-name">${displayName}</h2>
-                <p class="language-description">${language.description || ''}</p>
+                <h2 class="language-name"></h2>
+                <p class="language-description"></p>
                 <div class="language-meta">
                     ${metaText}
                 </div>
@@ -318,6 +316,12 @@ class LanguagesPage {
                 ${statusBadge}
             </div>
         `;
+		const icon = language.icon_svg || this.getDefaultIcon(language.id);
+		card.querySelector('.language-icon').innerHTML = window.DOMPurify?.sanitize
+			? window.DOMPurify.sanitize(icon, { USE_PROFILES: { svg: true } })
+			: this.getDefaultIcon(language.id);
+		card.querySelector('.language-name').textContent = displayName;
+		card.querySelector('.language-description').textContent = language.description || '';
 
         return card;
     }

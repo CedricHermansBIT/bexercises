@@ -374,7 +374,13 @@ class WorkspacePage {
 
             // Render description (markdown)
             const descriptionDiv = document.getElementById('exercise-description');
-            descriptionDiv.innerHTML = marked.parse(exercise.description);
+			if (window.DOMPurify?.sanitize && window.marked?.parse) {
+				descriptionDiv.innerHTML = window.DOMPurify.sanitize(
+					window.marked.parse(exercise.description || ''), { USE_PROFILES: { html: true } }
+				);
+			} else {
+				descriptionDiv.textContent = exercise.description || '';
+			}
 			const editorTitle = document.querySelector('.editor-title');
 			if (editorTitle) editorTitle.textContent = `solution${exercise.file_extension || '.sh'}`;
 

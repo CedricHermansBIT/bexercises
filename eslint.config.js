@@ -3,7 +3,7 @@ const js = require("@eslint/js");
 
 module.exports = [
   {
-    ignores: ["node_modules/", ".local/", "tmp/", "data/"],
+    ignores: ["node_modules/", ".local/", "tmp/", "data/", "frontend/js/utils/dompurify.min.js"],
   },
   js.configs.recommended,
   {

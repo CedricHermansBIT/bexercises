@@ -1327,7 +1327,9 @@ class ExercisesPage {
             const progress = ((i + 1) / exercisesWithSolutions.length) * 100;
 
             // Update status with progress - this creates new progress bar element
-            statusDiv.innerHTML = `<p>Testing ${exercise.title} (${i + 1}/${exercisesWithSolutions.length})...</p><div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
+			statusDiv.innerHTML = '<p></p><div class="progress-bar"><div class="progress-fill"></div></div>';
+			statusDiv.querySelector('p').textContent = `Testing ${exercise.title} (${i + 1}/${exercisesWithSolutions.length})...`;
+			statusDiv.querySelector('.progress-fill').style.width = `${progress}%`;
 
             try {
                 // Get full exercise data with test cases (admin endpoint)
