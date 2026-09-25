@@ -3,8 +3,13 @@
  * Service for managing local storage
  */
 class StorageService {
-	constructor(key = 'bash-exercises-progress') {
-		this.key = key;
+	constructor(userId) {
+		if (userId === undefined || userId === null) {
+			throw new Error('A user ID is required for local draft storage');
+		}
+		this.key = `bash-exercises-progress:user:${userId}`;
+		// The old key had no owner. Never import it into an account on a shared PC.
+		localStorage.removeItem('bash-exercises-progress');
 	}
 
 	/**

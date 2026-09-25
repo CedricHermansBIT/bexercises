@@ -16,7 +16,7 @@ import soundEffects from '../utils/soundEffects.js';
 class WorkspacePage {
     constructor() {
         this.apiService = new ApiService();
-        this.storageService = new StorageService();
+        this.storageService = null;
         this.authComponent = new AuthComponent(this.apiService);
         this.notificationBanner = new NotificationBanner();
         this.onlineUsers = new OnlineUsers();
@@ -53,6 +53,7 @@ class WorkspacePage {
             navigateTo('login.html');
             return;
         }
+		this.storageService = new StorageService(this.authComponent.getCurrentUser().id);
 
         // Initialize components in parallel (don't block the main flow)
         const componentInit = Promise.all([
