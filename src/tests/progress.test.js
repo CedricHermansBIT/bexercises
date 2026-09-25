@@ -52,3 +52,23 @@ test('first completion records the attempt count once', async () => {
 		await db.close();
 	}
 });
+
+test('first-try achievements survive reruns after completion', async () => {
+	const db = await open({ filename: ':memory:', driver: sqlite3.Database });
+	const originalDb = databaseService.db;
+	try {
+		await db.exec(`
+			CREATE TABLE user_progress (user_id TEXT, completed INTEGER, attempts INTEGER, attempts_to_completion INTEGER);
+			CREATE TABLE achievements (id TEXT PRIMARY KEY, requirement_type TEXT, requirement_value INTEGER);
+			CREATE TABLE user_achievements (user_id TEXT, achievement_id TEXT, progress INTEGER, earned_at TEXT);
+			INSERT INTO user_progress VALUES ('student', 1, 4, 1);
+			INSERT INTO achievements VALUES ('first-try', 'first_try_completions', 1);
+		`);
+		databaseService.db = db;
+		const earned = await databaseService.checkAndAwardAchievements('student');
+		assert.deepEqual(earned.map(achievement => achievement.id), ['first-try']);
+	} finally {
+		databaseService.db = originalDb;
+		await db.close();
+	}
+});

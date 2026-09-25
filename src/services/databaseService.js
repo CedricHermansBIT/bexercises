@@ -1515,7 +1515,7 @@ class DatabaseService {
 
 		const firstTryCount = await this.db.get(`
 			SELECT COUNT(*) as count FROM user_progress 
-			WHERE user_id = ? AND completed = 1 AND attempts = 1
+			WHERE user_id = ? AND completed = 1 AND COALESCE(attempts_to_completion, attempts) = 1
 		`, [userId]);
 		const firstTryCompletions = firstTryCount.count;
 

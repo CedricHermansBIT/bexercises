@@ -178,7 +178,8 @@ router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, 
 			] = await Promise.all([
 				databaseService.checkAndAwardAchievements(req.user.id),
 				databaseService.checkTimeBasedAchievements(req.user.id, timezone),
-				databaseService.checkPersistenceAchievements(req.user.id, progressAfter.attempts),
+				databaseService.checkPersistenceAchievements(req.user.id,
+					progressAfter.attempts_to_completion ?? progressAfter.attempts),
 				databaseService.checkSpeedAchievements(req.user.id),
 				databaseService.checkStreakAchievements(req.user.id),
 				databaseService.checkChapterAchievements(req.user.id, req.params.id)
