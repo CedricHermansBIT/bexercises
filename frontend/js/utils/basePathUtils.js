@@ -17,7 +17,7 @@ export function detectBasePath() {
 	// /pages/login.html -> ''
 	// / -> ''
 
-	const match = path.match(/^(\/[^\/]+)(?:\/|$)/);
+	const match = path.match(/^(\/[^/]+)(?:\/|$)/);
 	if (match && match[1] && !match[1].match(/\.(html|css|js)$/)) {
 		// Only return if it's not a file extension and not 'pages'
 		if (match[1] !== '/pages' && match[1] !== '/js' && match[1] !== '/styles.css') {

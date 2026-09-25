@@ -10,7 +10,7 @@ function setFavicon() {
     let basePath = '';
 
     // Extract base path (e.g., '/bitlab' from '/bitlab/pages/login.html')
-    const match = path.match(/^(\/[^\/]+)?\/(pages|index\.html)/);
+    const match = path.match(/^(\/[^/]+)?\/(pages|index\.html)/);
     if (match && match[1]) {
         basePath = match[1];
     }

@@ -14,7 +14,7 @@ function detectBasePath() {
 	// /bitlab/pages/login.html -> /bitlab
 	// /pages/login.html -> ''
 
-	const match = path.match(/^(\/[^\/]+)\/pages\//);
+	const match = path.match(/^(\/[^/]+)\/pages\//);
 	if (match && match[1]) {
 		return match[1];
 	}

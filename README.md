@@ -23,7 +23,7 @@ BITLab is an educational platform that allows students to practice programming b
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v22 or higher)
 - Docker
 - Google OAuth credentials
 
@@ -35,7 +35,7 @@ git clone <repository-url>
 cd BITLab
 
 # Install dependencies
-npm install
+npm ci
 
 # Create environment configuration
 cp .env.example .env
@@ -57,9 +57,8 @@ For detailed setup instructions, see [QUICKSTART.md](docs/QUICKSTART.md).
 **Essential Guides:**
 - **[Quickstart Guide](docs/QUICKSTART.md)** - Installation and setup
 - **[First Admin Setup](docs/FIRST_ADMIN_SETUP.md)** - Create your first admin account
-- **[Multi-Language Support](docs/MULTI_LANGUAGE_SUPPORT.md)** - Add new programming languages
-- **[Custom Docker Images](docs/CUSTOM_DOCKER_IMAGE_GUIDE.md)** - Configure custom execution environments
-- **[Code Templates](docs/CODE_TEMPLATES.md)** - Customize starter code per language
+- **[Database Fixtures](docs/database-fixtures-guide.md)** - Prepare database exercises
+- **[Exam Grader](docs/EXAM_GRADER.md)** - Grade uploaded exam scripts
 
 **Advanced:**
 - **[Service Setup](docs/SERVICE_SETUP.md)** - Run BITLab as a system service (production)
@@ -120,9 +119,13 @@ SESSION_SECRET=your-random-secret-key
 # Docker
 RUNNER_IMAGE=bitlab-runner:latest
 PER_TEST_TIMEOUT_MS=30000
-MAX_PARALLEL_TESTS=4
+MAX_PARALLEL_TESTS=2
+MAX_QUEUED_RUNS=20
+RUNS_PER_MINUTE=6
+DOCKER_CPUS=1
 DOCKER_MEMORY=256m
 DOCKER_PIDS_LIMIT=128
+MAX_RUN_OUTPUT_BYTES=65536
 ```
 
 See [QUICKSTART.md](docs/QUICKSTART.md) for complete configuration details.

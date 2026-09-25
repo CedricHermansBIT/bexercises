@@ -600,7 +600,7 @@ router.put('/fixtures/:filename(*)/permissions', async (req, res) => {
 		}
 
 		// Validate permissions format (rwxr-xr-x or similar)
-		if (!/^[r\-][w\-][x\-][r\-][w\-][x\-][r\-][w\-][x\-]$/.test(permissions)) {
+		if (!/^[r-][w-][x-][r-][w-][x-][r-][w-][x-]$/.test(permissions)) {
 			return res.status(400).json({ error: 'Invalid permissions format. Use rwxr-xr-x format' });
 		}
 

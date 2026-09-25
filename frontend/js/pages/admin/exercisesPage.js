@@ -138,7 +138,7 @@ class ExercisesPage {
 
         // Check if output looks like a table (has lines with separators like +--+--+ or |  |  |)
         const lines = output.trim().split('\n');
-        const hasTableBorders = lines.some(line => /^[\+\-\|]+$/.test(line.trim()) || /^\|.*\|$/.test(line));
+        const hasTableBorders = lines.some(line => /^[+|-]+$/.test(line.trim()) || /^\|.*\|$/.test(line));
 
         if (!hasTableBorders) {
             // Not a table, return as pre
@@ -148,7 +148,7 @@ class ExercisesPage {
         // Parse table format (MariaDB outputs tables with +--+--+ borders and | col | col | format)
         const dataLines = lines.filter(line => {
             const trimmed = line.trim();
-            return trimmed.startsWith('|') && !trimmed.match(/^[\+\-]+$/);
+            return trimmed.startsWith('|') && !trimmed.match(/^[+-]+$/);
         });
 
         if (dataLines.length < 1) {

@@ -7,6 +7,10 @@ module.exports = [
   },
   js.configs.recommended,
   {
+    files: ["fixtures/**/*.js"],
+    languageOptions: { globals: { db: "readonly" } },
+  },
+  {
     files: ["src/**/*.js", "eslint.config.js"],
     languageOptions: {
       ecmaVersion: 2021,
@@ -29,6 +33,8 @@ module.exports = [
         ...globals.browser,
         "marked": "readonly",
         "CodeMirror": "readonly",
+        "themeManager": "readonly",
+        "module": "readonly",
       },
     },
     rules: {
