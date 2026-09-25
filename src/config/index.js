@@ -42,6 +42,8 @@ const config = {
 		runsPerMinute: Math.max(1, parseInt(process.env.RUNS_PER_MINUTE || '6', 10)),
 		cpus: process.env.DOCKER_CPUS || '1',
 		maxOutputBytes: Math.max(1024, parseInt(process.env.MAX_RUN_OUTPUT_BYTES || '65536', 10)),
+		workspaceSize: process.env.DOCKER_WORKSPACE_SIZE || '64m',
+		tmpSize: process.env.DOCKER_TMP_SIZE || '16m',
 		memory: process.env.DOCKER_MEMORY || '256m',
 		databaseMemory: process.env.DOCKER_DATABASE_MEMORY || '1g',
 		databasePidsLimit: Math.max(1, parseInt(process.env.DOCKER_DATABASE_PIDS_LIMIT || '256', 10)),

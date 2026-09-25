@@ -378,106 +378,137 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
  * @param {number} timeoutMs - Timeout in milliseconds
  * @returns {Promise<Object>} Result object with stdout, stderr, exitCode, etc.
  */
-async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args = [], inputs = [], timeoutMs = config.docker.timeout) {
+function runContainerCommand(runtime, args, timeoutMs, maxOutputBytes, onAbort = () => {}) {
 	return new Promise((resolve) => {
-		const containerName = `bex-run-${crypto.randomUUID()}`;
-		const containerWorkdir = '/home/runner';
-		const interpreter = languageConfig.interpreter;
-		const dockerImage = languageConfig.dockerImage;
-
-		let shellCommand;
-		if (inputs && Array.isArray(inputs) && inputs.length > 0) {
-			const escapedInputs = inputs.map(line => line.replace(/'/g, "'\\''"));
-			const inputString = escapedInputs.join('\\n') + '\\n';
-			shellCommand = `printf '%b' '${inputString}' | ${interpreter} ./${scriptFilename} "$@"`;
-		} else {
-			shellCommand = `${interpreter} ./${scriptFilename} "$@" < /dev/null`;
-		}
-
-		const dockerArgs = [
-			'run', '--rm',
-			'--name', containerName,
-			'--label', 'bitlab.managed=true',
-			'--label', `bitlab.created=${Date.now()}`,
-			'--network', 'none',
-			'--memory', config.docker.memory,
-			'--cpus', config.docker.cpus,
-			'--pids-limit', config.docker.pidsLimit.toString(),
-			'--cap-drop', 'ALL',
-			'--security-opt', 'no-new-privileges',
-			'--user', '1000:1000',
-			'--env', `HOME=${containerWorkdir}`,
-			'-v', `${tmpdir}:${containerWorkdir}:rw`,
-			'-w', containerWorkdir,
-			'--entrypoint', '/bin/sh',
-			dockerImage,
-			'-c',
-			shellCommand,
-			'--',
-			...args
-		];
-
-		// Check if docker is installed, if not check if podman is available and use it as a drop-in replacement
-		const dockerCmd = getContainerCommand();
-
-		const docker = spawn(dockerCmd, dockerArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-
-		let stdout = '';
-		let stderr = '';
+		const proc = spawn(runtime, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+		const output = { stdout: [], stderr: [] };
+		let bytes = 0;
 		let timedOut = false;
 		let outputLimited = false;
-		let outputBytes = 0;
 		let settled = false;
-		let cleanupStarted = false;
-		const cleanup = () => {
-			if (cleanupStarted) return;
-			cleanupStarted = true;
-			const removal = spawn(dockerCmd, dockerCmd === 'podman'
-				? ['rm', '-f', '-t', '0', containerName]
-				: ['rm', '-f', containerName], { stdio: 'ignore' });
-			removal.on('error', err => console.error(`Failed to remove ${containerName}:`, err));
-			docker.kill('SIGKILL');
+		const abort = () => {
+			try { onAbort(); } catch (error) { console.error('Container abort failed:', error); }
+			proc.kill('SIGKILL');
 		};
+		const append = (stream, data) => {
+			const remaining = maxOutputBytes - bytes;
+			if (remaining <= 0) return;
+			const chunk = Buffer.from(data).subarray(0, remaining);
+			output[stream].push(chunk);
+			bytes += chunk.length;
+			if (bytes >= maxOutputBytes) {
+				outputLimited = true;
+				abort();
+			}
+		};
+		proc.stdout.on('data', data => append('stdout', data));
+		proc.stderr.on('data', data => append('stderr', data));
+		const timer = setTimeout(() => { timedOut = true; abort(); }, Math.max(1, timeoutMs));
 		const finish = (code, error = null) => {
 			if (settled) return;
 			settled = true;
-			clearTimeout(killTimer);
+			clearTimeout(timer);
 			resolve({
-				stdout: normalizeOutput(stdout), stderr: normalizeOutput(stderr),
+				stdout: normalizeOutput(Buffer.concat(output.stdout).toString('utf8')),
+				stderr: normalizeOutput(Buffer.concat(output.stderr).toString('utf8')),
 				exitCode: timedOut || outputLimited ? -1 : code,
 				timedOut, outputLimited, error
 			});
 		};
-		const append = (stream, chunk) => {
-			const remaining = config.docker.maxOutputBytes - outputBytes;
-			if (remaining <= 0) return;
-			const data = Buffer.from(chunk);
-			const kept = data.subarray(0, remaining);
-			outputBytes += kept.length;
-			if (stream === 'stdout') stdout += kept.toString();
-			else stderr += kept.toString();
-			if (data.length > remaining || outputBytes >= config.docker.maxOutputBytes) {
-				outputLimited = true;
-				cleanup();
-			}
-		};
-
-		docker.stdout.on('data', (d) => append('stdout', d));
-		docker.stderr.on('data', (d) => append('stderr', d));
-
-		const killTimer = setTimeout(() => {
-			timedOut = true;
-			cleanup();
-		}, timeoutMs);
-
-		docker.on('error', (err) => {
-			finish(null, err.message);
-		});
-
-		docker.on('close', (code, _signal) => {
-			finish(code, outputLimited ? 'Output limit exceeded' : null);
-		});
+		proc.on('close', code => finish(code, outputLimited ? 'Output limit exceeded' : null));
+		proc.on('error', error => finish(null, error.message));
 	});
+}
+
+/**
+ * Run a script in a bounded, private workspace. Inputs are mounted read-only;
+ * the script only writes to container tmpfs mounts. Copy output back while the
+ * container is still running so file grading sees its final filesystem state.
+ */
+async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args = [], inputs = [], timeoutMs = config.docker.timeout) {
+	const containerName = `bex-run-${crypto.randomUUID()}`;
+	const containerWorkdir = '/home/runner';
+	const containerInputs = '/tmp/.bitlab-inputs';
+	const runtime = getContainerCommand();
+	const deadline = Date.now() + timeoutMs;
+	let cleanupStarted = false;
+	let outputDir = null;
+	const cleanup = () => {
+		if (cleanupStarted) return;
+		cleanupStarted = true;
+		const removal = spawn(runtime, runtime === 'podman'
+			? ['rm', '-f', '-t', '0', containerName]
+			: ['rm', '-f', containerName], { stdio: 'ignore' });
+		removal.on('error', error => console.error(`Failed to remove ${containerName}:`, error));
+	};
+	let shellCommand;
+	if (inputs && Array.isArray(inputs) && inputs.length > 0) {
+		const escapedInputs = inputs.map(line => line.replace(/'/g, "'\\''"));
+		const inputString = escapedInputs.join('\\n') + '\\n';
+		shellCommand = `printf '%b' '${inputString}' | ${languageConfig.interpreter} ./${scriptFilename} "$@"`;
+	} else {
+		shellCommand = `${languageConfig.interpreter} ./${scriptFilename} "$@" < /dev/null`;
+	}
+	try {
+		const start = await runContainerCommand(runtime, [
+			'run', '-d', '--name', containerName,
+			'--label', 'bitlab.managed=true', '--label', `bitlab.created=${Date.now()}`,
+			'--network', 'none', '--read-only',
+			'--memory', config.docker.memory, '--cpus', config.docker.cpus,
+			'--pids-limit', String(config.docker.pidsLimit),
+			'--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+			'--user', '1000:1000', '--env', `HOME=${containerWorkdir}`,
+			'--tmpfs', `${containerWorkdir}:rw,size=${config.docker.workspaceSize},mode=1777`,
+			'--tmpfs', `/tmp:rw,size=${config.docker.tmpSize},mode=1777`,
+			'--tmpfs', `/var/tmp:rw,size=${config.docker.tmpSize},mode=1777`,
+			'-v', `${tmpdir}:${containerInputs}:ro`,
+			'--entrypoint', '/bin/sh', languageConfig.dockerImage,
+			'-c', 'while :; do sleep 3600; done'
+		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup);
+		if (start.error || start.timedOut || start.outputLimited || start.exitCode !== 0) {
+			return { ...start, exitCode: null, error: start.error || start.stderr || 'Container failed to start' };
+		}
+		// Preserve fixture creation order. Some existing exercises compare the
+		// unsorted output of find(1), which follows directory entry order.
+		const inputEntries = await Promise.all((await fs.readdir(tmpdir)).map(async name => {
+			const stat = await fs.lstat(path.join(tmpdir, name), { bigint: true });
+			return { name, created: stat.birthtimeNs, inode: stat.ino };
+		}));
+		inputEntries.sort((a, b) => a.created < b.created ? -1
+			: a.created > b.created ? 1
+				: a.inode < b.inode ? -1 : a.inode > b.inode ? 1 : a.name.localeCompare(b.name));
+		const staged = await runContainerCommand(runtime, [
+			'exec', '-w', containerWorkdir, containerName, '/bin/sh', '-c',
+			`for file do cp -R "${containerInputs}/$file" . || exit 125; done`, '--',
+			...inputEntries.reverse().map(entry => entry.name)
+		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup);
+		if (staged.exitCode !== 0 || staged.error || staged.timedOut || staged.outputLimited) {
+			return { ...staged, exitCode: null,
+				error: staged.error || staged.stderr || 'Could not stage input files' };
+		}
+		const result = await runContainerCommand(runtime, [
+			'exec', '-w', containerWorkdir, containerName,
+			'/bin/sh', '-c', shellCommand, '--', ...args
+		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup);
+		if (result.timedOut || result.outputLimited || result.error) return result;
+
+		outputDir = await fs.mkdtemp(path.join(path.dirname(tmpdir), 'bex-output-'));
+		const copied = await runContainerCommand(runtime, [
+			'cp', `${containerName}:${containerWorkdir}/.`, outputDir
+		], 15000, config.docker.maxOutputBytes, cleanup);
+		if (copied.exitCode !== 0 || copied.error || copied.timedOut || copied.outputLimited) {
+			return { ...result, exitCode: null,
+				error: copied.error || copied.stderr || 'Could not collect output files' };
+		}
+		await fs.chmod(outputDir, 0o777);
+		await fs.rm(tmpdir, { recursive: true, force: true });
+		await fs.rename(outputDir, tmpdir);
+		outputDir = null;
+		return result;
+	} finally {
+		cleanup();
+		if (outputDir) await fs.rm(outputDir, { recursive: true, force: true });
+	}
 }
 
 /**
