@@ -61,8 +61,13 @@ router.get('/exercises/:id/draft', ensureAuthenticated, asyncHandler(async (req,
 		databaseService.getUserDraft(req.user.id, req.params.id),
 		databaseService.getUserProgress(req.user.id, req.params.id)
 	]);
-	res.json({ code: draft?.code ?? progress?.last_submission ?? null,
-		updatedAt: draft?.updatedAt ?? progress?.last_submission_at ?? null,
+	const rawSubmissionAt = progress?.last_submission_at?.replace(' ', 'T');
+	const submissionAt = rawSubmissionAt && (/(?:Z|[+-]\d{2}:\d{2})$/i.test(rawSubmissionAt)
+		? rawSubmissionAt : `${rawSubmissionAt}Z`);
+	const useDraft = draft && (progress?.last_submission == null ||
+		Date.parse(draft.updatedAt) > Date.parse(submissionAt));
+	res.json({ code: useDraft ? draft.code : progress?.last_submission ?? draft?.code ?? null,
+		updatedAt: useDraft ? draft.updatedAt : progress?.last_submission_at ?? draft?.updatedAt ?? null,
 		completed: Boolean(progress?.completed) });
 }));
 

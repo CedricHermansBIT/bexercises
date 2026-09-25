@@ -41,6 +41,11 @@ test('draft API preserves empty code without changing graded progress', async ()
 		assert.equal(saved.status, 200);
 		assert.equal((await fetch(url).then(response => response.json())).code, '');
 		assert.equal((await db.get('SELECT COUNT(*) AS count FROM user_progress')).count, 0);
+		await db.run("INSERT INTO user_progress VALUES ('student', 'exercise', 1, 1, 'submitted code', '2026-09-25 12:00:00')");
+		await db.run("UPDATE user_drafts SET code = 'old draft', updated_at = '2026-09-25 11:00:00'");
+		assert.equal((await fetch(url).then(response => response.json())).code, 'submitted code');
+		await db.run("UPDATE user_drafts SET code = 'new draft', updated_at = '2026-09-25 13:00:00'");
+		assert.equal((await fetch(url).then(response => response.json())).code, 'new draft');
 		assert.equal((await fetch(url, {
 			method: 'PUT', headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ code: 'x'.repeat(65537) })
