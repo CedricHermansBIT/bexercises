@@ -50,3 +50,27 @@ test('replacing a fixture preserves its test association and applies stored perm
 		await fs.rm(root, { recursive: true, force: true });
 	}
 });
+
+test('nested fixture paths copy safely without escaping the workspace', async () => {
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-nested-fixture-'));
+	const oldFixtures = config.paths.fixtures;
+	const fixtureDir = path.join(root, 'fixtures');
+	const workDir = path.join(root, 'work');
+	try {
+		await fs.mkdir(path.join(fixtureDir, 'Scripts'), { recursive: true });
+		await fs.mkdir(workDir);
+		await fs.writeFile(path.join(fixtureDir, 'Scripts', 'placeholder_file.txt'), 'nested');
+		config.paths.fixtures = fixtureDir;
+		await copyFixtures(workDir, ['Scripts/placeholder_file.txt']);
+		assert.equal(await fs.readFile(path.join(workDir, 'Scripts', 'placeholder_file.txt'), 'utf8'), 'nested');
+		await assert.rejects(copyFixtures(workDir, ['../outside.txt']), /Invalid fixture path/);
+		await fs.mkdir(path.join(root, 'outside'));
+		await fs.writeFile(path.join(root, 'outside', 'secret.txt'), 'secret');
+		await fs.symlink(path.join(root, 'outside'), path.join(fixtureDir, 'escape'));
+		await assert.rejects(copyFixtures(workDir, ['escape/secret.txt']),
+			/Fixture source escapes fixture directory/);
+	} finally {
+		config.paths.fixtures = oldFixtures;
+		await fs.rm(root, { recursive: true, force: true });
+	}
+});

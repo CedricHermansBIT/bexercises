@@ -206,6 +206,21 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 		}
 		return mode;
 	}
+	async function safeDestinationParent(root, relativeName) {
+		let current = root;
+		for (const part of relativeName.split('/').slice(0, -1)) {
+			current = path.join(current, part);
+			try {
+				const stat = await fs.lstat(current);
+				if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('Fixture destination parent is unsafe');
+			} catch (error) {
+				if (error.code !== 'ENOENT') throw error;
+				await fs.mkdir(current);
+			}
+		}
+	}
+	const fixtureRoot = await fs.realpath(config.paths.fixtures);
+	const workRoot = await fs.realpath(tmpdir);
 	const copiedFiles = [];
 	console.log(`[copyFixtures] tmpdir: ${tmpdir}, fixtures:`, fixtures);
 	console.log(`[copyFixtures] fixtures path: ${config.paths.fixtures}`);
@@ -221,6 +236,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 			const srcPath = path.join(src, entry.name);
 			const destPath = path.join(dest, entry.name);
 
+			if (entry.isSymbolicLink()) throw new Error('Symlink fixtures are not supported');
 			if (entry.isDirectory()) {
 				await copyDirRecursive(srcPath, destPath);
 			} else {
@@ -233,8 +249,12 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 	}
 
 	for (const fixtureName of fixtures) {
-		const sourcePath = path.join(config.paths.fixtures, fixtureName);
-		const destPath = path.join(tmpdir, fixtureName);
+		if (typeof fixtureName !== 'string' || !fixtureName || path.isAbsolute(fixtureName) ||
+			fixtureName.includes('\\') || fixtureName.split('/').some(part => part === '..' || part === '.')) {
+			throw new Error(`Invalid fixture path: ${fixtureName}`);
+		}
+		const sourcePath = path.resolve(fixtureRoot, fixtureName);
+		const destPath = path.resolve(workRoot, fixtureName);
 
 		console.log(`[copyFixtures] Attempting to copy: ${sourcePath} -> ${destPath}`);
 
@@ -244,7 +264,13 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 				continue;
 			}
 
-			const stat = await fs.stat(sourcePath);
+			const resolvedSource = await fs.realpath(sourcePath);
+			if (resolvedSource !== fixtureRoot && !resolvedSource.startsWith(`${fixtureRoot}${path.sep}`)) {
+				throw new Error('Fixture source escapes fixture directory');
+			}
+			await safeDestinationParent(workRoot, fixtureName);
+			const stat = await fs.lstat(sourcePath);
+			if (stat.isSymbolicLink()) throw new Error('Symlink fixtures are not supported');
 
 			if (stat.isDirectory()) {
 				// Copy directory recursively with all its contents
@@ -283,7 +309,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 				console.error(`✗ File/folder not found after copy: ${destPath}`);
 			}
 		} catch (err) {
-			console.error(`Error copying fixture ${fixtureName}:`, err.message, err.stack);
+			throw new Error(`Could not copy fixture ${fixtureName}: ${err.message}`, { cause: err });
 		}
 	}
 
