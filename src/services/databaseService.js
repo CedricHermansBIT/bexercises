@@ -884,7 +884,41 @@ class DatabaseService {
 		return exercise;
 	}
 
+	async withWriteTransaction(work) {
+		const previous = this.writeTransactionQueue || Promise.resolve();
+		let release;
+		this.writeTransactionQueue = new Promise(resolve => { release = resolve; });
+		await previous;
+		try {
+			await this.db.exec('BEGIN IMMEDIATE');
+			try {
+				const result = await work();
+				await this.db.exec('COMMIT');
+				return result;
+			} catch (error) {
+				await this.db.exec('ROLLBACK');
+				throw error;
+			}
+		} finally {
+			release();
+		}
+	}
+
+	async validateFixtureReferences(testCases) {
+		if (!Array.isArray(testCases)) return;
+		for (const testCase of testCases) {
+			for (const filename of testCase.fixtures || []) {
+				if (!await this.getFixtureFile(filename)) throw new Error(`Fixture not found: ${filename}`);
+			}
+		}
+	}
+
 	async createExercise(data) {
+		await this.validateFixtureReferences(data.testCases);
+		return this.withWriteTransaction(() => this.createExerciseInTransaction(data));
+	}
+
+	async createExerciseInTransaction(data) {
 		const { id, chapter_id, title, description, solution, order_num, testCases } = data;
 		
 		await this.db.run(`
@@ -935,6 +969,11 @@ class DatabaseService {
 	}
 
 	async updateExercise(id, data) {
+		await this.validateFixtureReferences(data.testCases);
+		return this.withWriteTransaction(() => this.updateExerciseInTransaction(id, data));
+	}
+
+	async updateExerciseInTransaction(id, data) {
 		const { title, description, solution, order_num, chapter_id, testCases } = data;
 
 		// Build the UPDATE query dynamically based on what's provided
@@ -1020,6 +1059,10 @@ class DatabaseService {
 	}
 
 	async reorderExercises(exercises) {
+		return this.withWriteTransaction(() => this.reorderExercisesInTransaction(exercises));
+	}
+
+	async reorderExercisesInTransaction(exercises) {
 		for (const ex of exercises) {
 			await this.db.run(`
 				UPDATE exercises 
@@ -1116,23 +1159,10 @@ class DatabaseService {
 	}
 
 	async recordSubmission(userId, exerciseId, data, results, runtimeMs) {
-		const previous = this.submissionWriteQueue || Promise.resolve();
-		let release;
-		this.submissionWriteQueue = new Promise(resolve => { release = resolve; });
-		await previous;
-		try {
-			await this.db.exec('BEGIN IMMEDIATE');
-			try {
-				await this.saveUserProgress(userId, exerciseId, data);
-				await this.saveSubmissionAttempt(userId, exerciseId, results, runtimeMs);
-				await this.db.exec('COMMIT');
-			} catch (error) {
-				await this.db.exec('ROLLBACK');
-				throw error;
-			}
-		} finally {
-			release();
-		}
+		return this.withWriteTransaction(async () => {
+			await this.saveUserProgress(userId, exerciseId, data);
+			await this.saveSubmissionAttempt(userId, exerciseId, results, runtimeMs);
+		});
 	}
 
 	async saveSubmissionAttempt(userId, exerciseId, results, runtimeMs) {
