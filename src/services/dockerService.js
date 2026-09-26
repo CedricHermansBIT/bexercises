@@ -415,6 +415,16 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup);
 		if (result.timedOut || result.outputLimited || result.error) return result;
 
+		const countLimit = Number.isSafeInteger(config.docker.maxGeneratedFiles) ? config.docker.maxGeneratedFiles : 2048;
+		const depthLimit = Number.isSafeInteger(config.docker.maxGeneratedDepth) ? config.docker.maxGeneratedDepth : 16;
+		const checked = await runContainerCommand(runtime, [
+			'exec', '-w', containerWorkdir, containerName, '/bin/sh', '-c',
+			`command -v find >/dev/null && command -v awk >/dev/null && find . -xdev -print | awk 'NR > ${countLimit + 1} { exit 1 }' && find . -xdev -type d -mindepth ${depthLimit + 1} -print -quit | awk 'NR > 0 { exit 1 }'`
+		], Math.max(1, deadline - Date.now()), 4096, cleanup);
+		if (checked.exitCode !== 0 || checked.error || checked.timedOut || checked.outputLimited) {
+			return { ...result, exitCode: null, error: 'Generated file count or directory depth limit exceeded' };
+		}
+
 		outputDir = await fs.mkdtemp(path.join(path.dirname(tmpdir), 'bex-output-'));
 		const copied = await runContainerCommand(runtime, [
 			'cp', `${containerName}:${containerWorkdir}/.`, outputDir
@@ -582,12 +592,15 @@ async function hashFile(filePath) {
 async function inspectDirectoryState(directoryPath) {
 	const hash = crypto.createHash('sha256');
 	const entriesState = [];
+	let entryCount = 0;
 
-	async function visit(currentPath, relativePath = '') {
+	async function visit(currentPath, relativePath = '', depth = 0) {
+		if (depth > config.docker.maxGeneratedDepth) throw new Error('Generated directory depth limit exceeded');
 		const entries = await fs.readdir(currentPath, { withFileTypes: true });
 		entries.sort((a, b) => a.name.localeCompare(b.name));
 
 		for (const entry of entries) {
+			if (++entryCount > config.docker.maxGeneratedFiles) throw new Error('Generated file count limit exceeded');
 			const entryPath = path.join(currentPath, entry.name);
 			const entryRelativePath = path.join(relativePath, entry.name);
 			const stat = await fs.lstat(entryPath);
@@ -605,7 +618,7 @@ async function inspectDirectoryState(directoryPath) {
 				entryState.linkTarget = await fs.readlink(entryPath);
 				hash.update(entryState.linkTarget);
 			} else if (type === 'directory') {
-				await visit(entryPath, entryRelativePath);
+				await visit(entryPath, entryRelativePath, depth + 1);
 			}
 			hash.update('\0');
 			entriesState.push(entryState);

@@ -55,6 +55,8 @@ const config = {
 		maxArchiveMembers: Math.max(1, parseInt(process.env.MAX_ARCHIVE_MEMBERS || '1000', 10)),
 		archiveInspectTimeoutMs: Math.max(1000, parseInt(process.env.ARCHIVE_INSPECT_TIMEOUT_MS || '10000', 10)),
 		workspaceSize: process.env.DOCKER_WORKSPACE_SIZE || '64m',
+		maxGeneratedFiles: Math.max(1, parseInt(process.env.MAX_GENERATED_FILES || '2048', 10)),
+		maxGeneratedDepth: Math.max(1, parseInt(process.env.MAX_GENERATED_DEPTH || '16', 10)),
 		tmpSize: process.env.DOCKER_TMP_SIZE || '16m',
 		maxExamArchiveBytes: Math.max(1024, parseInt(process.env.MAX_EXAM_ARCHIVE_BYTES || '33554432', 10)),
 		maxExamUncompressedBytes: Math.max(1024, parseInt(process.env.MAX_EXAM_UNCOMPRESSED_BYTES || '33554432', 10)),

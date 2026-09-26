@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const express = require('express');
-const { hashFile, hashOutputFiles, removeRecursive } = require('../services/dockerService');
+const { hashFile, hashOutputFiles, inspectDirectoryState, removeRecursive } = require('../services/dockerService');
 const config = require('../config');
 const limiter = require('../services/executionLimiter');
 const { parseContainerCreatedAt } = require('../services/containerCleanupService');
@@ -84,6 +84,26 @@ test('output grading cannot read paths outside the workspace', async () => {
 		]);
 		assert.equal(results.every(result => result.exists === false && result.error), true);
 	} finally {
+		await fs.rm(root, { recursive: true, force: true });
+	}
+});
+
+test('generated directory inspection stops at file and depth limits', async () => {
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-generated-limit-'));
+	const oldCount = config.docker.maxGeneratedFiles;
+	const oldDepth = config.docker.maxGeneratedDepth;
+	try {
+		config.docker.maxGeneratedFiles = 1;
+		await fs.writeFile(path.join(root, 'one'), '1');
+		await fs.writeFile(path.join(root, 'two'), '2');
+		await assert.rejects(inspectDirectoryState(root), /file count limit/);
+		config.docker.maxGeneratedFiles = 10;
+		config.docker.maxGeneratedDepth = 1;
+		await fs.mkdir(path.join(root, 'a', 'b'), { recursive: true });
+		await assert.rejects(inspectDirectoryState(root), /directory depth limit/);
+	} finally {
+		config.docker.maxGeneratedFiles = oldCount;
+		config.docker.maxGeneratedDepth = oldDepth;
 		await fs.rm(root, { recursive: true, force: true });
 	}
 });
