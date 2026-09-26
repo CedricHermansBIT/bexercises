@@ -1113,6 +1113,26 @@ class DatabaseService {
 		return this.getUserDraft(userId, exerciseId);
 	}
 
+	async recordSubmission(userId, exerciseId, data, results, runtimeMs) {
+		const previous = this.submissionWriteQueue || Promise.resolve();
+		let release;
+		this.submissionWriteQueue = new Promise(resolve => { release = resolve; });
+		await previous;
+		try {
+			await this.db.exec('BEGIN IMMEDIATE');
+			try {
+				await this.saveUserProgress(userId, exerciseId, data);
+				await this.saveSubmissionAttempt(userId, exerciseId, results, runtimeMs);
+				await this.db.exec('COMMIT');
+			} catch (error) {
+				await this.db.exec('ROLLBACK');
+				throw error;
+			}
+		} finally {
+			release();
+		}
+	}
+
 	async saveSubmissionAttempt(userId, exerciseId, results, runtimeMs) {
 		const failed = results.find(result => !result.passed);
 		await this.db.run(`

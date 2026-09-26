@@ -155,11 +155,10 @@ router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, 
 
 	// Save user progress if authenticated
 	if (req.user && req.user.id) {
-		await databaseService.saveUserProgress(req.user.id, req.params.id, {
+		await databaseService.recordSubmission(req.user.id, req.params.id, {
 			completed: allPassed,
 			last_submission: script
-		});
-		await databaseService.saveSubmissionAttempt(req.user.id, req.params.id, results, runtimeMs);
+		}, results, runtimeMs);
 
 		// Check for achievements
 		const newAchievements = [];
