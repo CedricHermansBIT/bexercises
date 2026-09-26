@@ -16,6 +16,7 @@ const router = express.Router();
 
 // All routes require admin authentication
 router.use(requireAdmin);
+router.use(require('../middleware/adminExecutionQueue'));
 
 
 /**
