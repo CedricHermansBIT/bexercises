@@ -58,7 +58,7 @@ class DatabaseService {
 				enabled BOOLEAN DEFAULT 1,
 				file_extension TEXT DEFAULT '.sh',
 				interpreter TEXT DEFAULT 'bash',
-				docker_image TEXT DEFAULT 'alpine:latest',
+				docker_image TEXT DEFAULT 'bitlab-runner:latest',
 				code_template TEXT DEFAULT '#!/bin/bash\n\n# Write your solution here\n',
 				exercise_type TEXT DEFAULT 'programming' CHECK(exercise_type IN ('programming', 'database')),
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -323,7 +323,7 @@ class DatabaseService {
 		}
 
 		try {
-			await this.db.exec(`ALTER TABLE languages ADD COLUMN docker_image TEXT DEFAULT 'alpine:latest'`);
+			await this.db.exec(`ALTER TABLE languages ADD COLUMN docker_image TEXT DEFAULT 'bitlab-runner:latest'`);
 		} catch (err) {
 			// Column already exists, ignore
 			if (!err.message.includes('duplicate column')) {
@@ -719,7 +719,7 @@ class DatabaseService {
 		// Set defaults based on language ID if not provided
 		const ext = file_extension || (id === 'python' ? '.py' : id === 'javascript' ? '.js' : '.sh');
 		const interp = interpreter || (id === 'python' ? 'python3' : id === 'javascript' ? 'node' : 'bash');
-		const image = docker_image || (id === 'python' ? 'python:3.11-alpine' : id === 'javascript' ? 'node:18-alpine' : 'alpine:latest');
+		const image = docker_image || (id === 'python' ? 'python:3.11-alpine' : id === 'javascript' ? 'node:18-alpine' : 'bitlab-runner:latest');
 		const template = code_template || (
 			id === 'python' ? '#!/usr/bin/env python3\n\n# Write your solution here\n' :
 			id === 'javascript' ? '#!/usr/bin/env node\n\n// Write your solution here\n' :

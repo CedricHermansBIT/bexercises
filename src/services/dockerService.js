@@ -37,7 +37,7 @@ const LANGUAGE_CONFIG = {
 	bash: {
 		extension: '.sh',
 		interpreter: 'bash',
-		dockerImage: 'alpine:latest',
+		dockerImage: config.docker.image,
 		shebang: '#!/bin/bash'
 	},
 	python: {
@@ -68,7 +68,7 @@ async function getLanguageConfig(languageId) {
 			return {
 				extension: language.file_extension || '.sh',
 				interpreter: language.interpreter || 'bash',
-				dockerImage: language.docker_image || 'alpine:latest',
+				dockerImage: language.docker_image || config.docker.image,
 				shebang: `#!/usr/bin/env ${language.interpreter || 'bash'}`
 			};
 		}
