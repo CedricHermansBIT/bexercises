@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const { globalCache } = require('../utils/cache');
 const { isAdmin } = require('../middleware/adminRole');
+const runtimeImages = require('../config/runtimeImages');
 
 class DatabaseService {
 	constructor() {
@@ -721,7 +722,7 @@ class DatabaseService {
 		// Set defaults based on language ID if not provided
 		const ext = file_extension || (id === 'python' ? '.py' : id === 'javascript' ? '.js' : '.sh');
 		const interp = interpreter || (id === 'python' ? 'python3' : id === 'javascript' ? 'node' : 'bash');
-		const image = docker_image || (id === 'python' ? 'python:3.11-alpine' : id === 'javascript' ? 'node:18-alpine' : 'bitlab-runner:latest');
+		const image = docker_image || runtimeImages[id] || runtimeImages.bash;
 		const template = code_template || (
 			id === 'python' ? '#!/usr/bin/env python3\n\n# Write your solution here\n' :
 			id === 'javascript' ? '#!/usr/bin/env node\n\n// Write your solution here\n' :

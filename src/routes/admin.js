@@ -8,6 +8,7 @@ const dockerService = require('../services/dockerService');
 const fs = require('fs').promises;
 const path = require('path');
 const config = require('../config');
+const runtimeImages = require('../config/runtimeImages');
 const { createTempDirectory } = require('../utils/tempDirectory');
 const { expandCommandSubstitution } = require('../utils/commandUtils');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
@@ -126,7 +127,7 @@ router.post('/run-test-case', async (req, res) => {
 			}
 
 			// Use docker_image from language config, with fallback defaults
-			const dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? 'mariadb:latest' : 'mongo:latest');
+			const dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? runtimeImages.mariadb : runtimeImages.mongodb);
 
 			// Create temp directory for fixtures only (no user script)
 			const tmpdir = await createTempDirectory('bex-admin-db-');

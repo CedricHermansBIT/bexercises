@@ -16,6 +16,7 @@ const {
     executeMongoDBQuery
 } = require('./databaseContainerService');
 const config = require('../config');
+const runtimeImages = require('../config/runtimeImages');
 const { createTempDirectory } = require('../utils/tempDirectory');
 const { expandCommandSubstitution } = require('../utils/commandUtils');
 const { compareRunnerResults, compareOutputState } = require('./gradingComparison');
@@ -80,7 +81,7 @@ async function runTests(exercise, script) {
             }
 
             // Use docker_image from language config, with fallback defaults
-            dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? 'mariadb:latest' : 'mongo:latest');
+            dockerImage = language.docker_image || (effectiveLanguageId === 'mariadb' ? runtimeImages.mariadb : runtimeImages.mongodb);
         }
 
         for (let i = 0; i < exercise.testCases.length; i++) {

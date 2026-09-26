@@ -5,6 +5,7 @@ const fsSync = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const config = require('../config');
+const runtimeImages = require('../config/runtimeImages');
 const { createTempDirectory } = require('../utils/tempDirectory');
 
 /**
@@ -43,13 +44,13 @@ const LANGUAGE_CONFIG = {
 	python: {
 		extension: '.py',
 		interpreter: 'python3',
-		dockerImage: 'python:3.11-alpine',
+		dockerImage: runtimeImages.python,
 		shebang: '#!/usr/bin/env python3'
 	},
 	javascript: {
 		extension: '.js',
 		interpreter: 'node',
-		dockerImage: 'node:18-alpine',
+		dockerImage: runtimeImages.javascript,
 		shebang: '#!/usr/bin/env node'
 	},
 };

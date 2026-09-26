@@ -4,16 +4,17 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const config = require('../config');
+const runtimeImages = require('../config/runtimeImages');
 const { getContainerCommand } = require('./dockerService');
 
 /**
  * Start a MariaDB container with optional fixture loading
  * @param {string} tmpdir - Temporary directory for database files
  * @param {Array<string>} fixtures - SQL fixture files to load
- * @param {string} dockerImage - Docker image to use (default: mariadb:latest)
+ * @param {string} dockerImage - Docker image to use (default: mariadb:11.8.9)
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
-async function startMariaDBContainer(tmpdir, fixtures = [], dockerImage = 'mariadb:latest') {
+async function startMariaDBContainer(tmpdir, fixtures = [], dockerImage = runtimeImages.mariadb) {
     const containerName = `bex-mariadb-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const password = 'testpass';
     const database = 'testdb';
@@ -333,10 +334,10 @@ async function startMariaDBContainer(tmpdir, fixtures = [], dockerImage = 'maria
  * Start a MongoDB container with optional fixture loading
  * @param {string} tmpdir - Temporary directory for database files
  * @param {Array<string>} fixtures - JavaScript fixture files to load
- * @param {string} dockerImage - Docker image to use (default: mongo:latest)
+ * @param {string} dockerImage - Docker image to use (default: mongo:8.0.32)
  * @returns {Promise<Object>} Container info {containerId, host, port, cleanup}
  */
-async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = 'mongo:latest') {
+async function startMongoDBContainer(tmpdir, fixtures = [], dockerImage = runtimeImages.mongodb) {
     const containerName = `bex-mongo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const database = 'testdb';
     const containerCmd = getContainerCommand();
