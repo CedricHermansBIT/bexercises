@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const express = require('express');
-const { hashFile, hashOutputFiles, inspectDirectoryState, removeRecursive } = require('../services/dockerService');
+const { hashFile, hashOutputFiles, inspectDirectoryState, removeRecursive, removeRunnerContainer } = require('../services/dockerService');
 const config = require('../config');
 const limiter = require('../services/executionLimiter');
 const { parseContainerCreatedAt } = require('../services/containerCleanupService');
@@ -104,6 +104,40 @@ test('generated directory inspection stops at file and depth limits', async () =
 	} finally {
 		config.docker.maxGeneratedFiles = oldCount;
 		config.docker.maxGeneratedDepth = oldDepth;
+		await fs.rm(root, { recursive: true, force: true });
+	}
+});
+
+test('runner cleanup retries while container removal is in progress', async () => {
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-remove-race-'));
+	const fakeDocker = path.join(root, 'fake-docker');
+	const state = path.join(root, 'state');
+	const attempts = path.join(root, 'attempts');
+	try {
+		await fs.writeFile(state, 'present');
+		await fs.writeFile(attempts, '0');
+		await fs.writeFile(fakeDocker, `#!/bin/sh
+case "$1" in
+  rm)
+    count=$(cat "${attempts}")
+    count=$((count + 1))
+    printf '%s' "$count" > "${attempts}"
+    if [ "$count" -eq 1 ]; then
+      echo 'removal of container is already in progress' >&2
+      exit 1
+    fi
+    /bin/rm -f "${state}"
+    ;;
+  inspect)
+    if [ -f "${state}" ]; then echo 'container-id'; else echo 'No such object' >&2; exit 1; fi
+    ;;
+esac
+`);
+		await fs.chmod(fakeDocker, 0o755);
+		await removeRunnerContainer(fakeDocker, 'bex-run-test', false);
+		assert.equal(await fs.readFile(attempts, 'utf8'), '2');
+		await assert.rejects(fs.access(state));
+	} finally {
 		await fs.rm(root, { recursive: true, force: true });
 	}
 });

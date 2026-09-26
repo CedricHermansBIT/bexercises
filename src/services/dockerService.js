@@ -63,7 +63,7 @@ const LANGUAGE_CONFIG = {
 async function getLanguageConfig(languageId) {
 	try {
 		const databaseService = require('./databaseService');
-		const language = await databaseService.getLanguage(languageId);
+		const language = databaseService.db ? await databaseService.getLanguage(languageId) : null;
 
 		if (language) {
 			return {
@@ -331,7 +331,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
  * @param {number} timeoutMs - Timeout in milliseconds
  * @returns {Promise<Object>} Result object with stdout, stderr, exitCode, etc.
  */
-function runContainerCommand(runtime, args, timeoutMs, maxOutputBytes, onAbort = () => {}, stdin = null) {
+function runContainerCommand(runtime, args, timeoutMs, maxOutputBytes, stdin = null) {
 	return new Promise((resolve) => {
 		const proc = spawn(runtime, args, { stdio: [stdin === null ? 'ignore' : 'pipe', 'pipe', 'pipe'] });
 		if (stdin !== null) {
@@ -344,7 +344,6 @@ function runContainerCommand(runtime, args, timeoutMs, maxOutputBytes, onAbort =
 		let outputLimited = false;
 		let settled = false;
 		const abort = () => {
-			try { onAbort(); } catch (error) { console.error('Container abort failed:', error); }
 			proc.kill('SIGKILL');
 		};
 		const append = (stream, data) => {
@@ -377,6 +376,31 @@ function runContainerCommand(runtime, args, timeoutMs, maxOutputBytes, onAbort =
 	});
 }
 
+async function removeRunnerContainer(runtime, containerName, mayStillBeStarting) {
+	const deadline = Date.now() + 15000;
+	const removeArgs = runtime === 'podman'
+		? ['rm', '-f', '-t', '0', containerName] : ['rm', '-f', containerName];
+	let lastError = '';
+	while (Date.now() < deadline) {
+		const remaining = Math.max(1, deadline - Date.now());
+		const removed = await runContainerCommand(runtime, removeArgs, Math.min(5000, remaining), 4096);
+		const inspected = await runContainerCommand(runtime,
+			['inspect', '--format', '{{.Id}}', containerName], Math.min(3000, remaining), 4096);
+		if (inspected.exitCode !== 0 && /no such|not found|does not exist/i.test(inspected.stderr)) {
+			if (!mayStillBeStarting) return;
+			// A timed-out `run` command can return before the daemon finishes creating it.
+			await new Promise(resolve => setTimeout(resolve, 250));
+			const second = await runContainerCommand(runtime,
+				['inspect', '--format', '{{.Id}}', containerName], 3000, 4096);
+			if (second.exitCode !== 0 && /no such|not found|does not exist/i.test(second.stderr)) return;
+			mayStillBeStarting = false;
+		}
+		lastError = removed.error || removed.stderr || inspected.error || inspected.stderr;
+		await new Promise(resolve => setTimeout(resolve, 250));
+	}
+	console.error(`Failed to remove ${containerName}:`, lastError || 'Timed out waiting for removal');
+}
+
 /**
  * Run a script in a bounded, private workspace. Inputs are mounted read-only;
  * the script only writes to container tmpfs mounts. Copy output back while the
@@ -389,12 +413,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 	const runtime = getContainerCommand();
 	const deadline = Date.now() + timeoutMs;
 	let outputDir = null;
-	const cleanup = () => {
-		const removal = spawn(runtime, runtime === 'podman'
-			? ['rm', '-f', '-t', '0', containerName]
-			: ['rm', '-f', containerName], { stdio: 'ignore' });
-		removal.on('error', error => console.error(`Failed to remove ${containerName}:`, error));
-	};
+	let containerStarted = false;
 	const stdin = inputs && Array.isArray(inputs) && inputs.length > 0
 		? inputs.map(String).join('\n') + '\n' : null;
 	const shellCommand = `${languageConfig.interpreter} ./${scriptFilename} "$@"${stdin === null ? ' < /dev/null' : ''}`;
@@ -413,10 +432,11 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 			'-v', `${tmpdir}:${containerInputs}:ro`,
 			'--entrypoint', '/bin/sh', languageConfig.dockerImage,
 			'-c', 'while :; do sleep 3600; done'
-		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup);
+		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes);
 		if (start.error || start.timedOut || start.outputLimited || start.exitCode !== 0) {
 			return { ...start, exitCode: null, error: start.error || start.stderr || 'Container failed to start' };
 		}
+		containerStarted = true;
 		// Preserve fixture creation order. Some existing exercises compare the
 		// unsorted output of find(1), which follows directory entry order.
 		const inputEntries = await Promise.all((await fs.readdir(tmpdir)).map(async name => {
@@ -430,7 +450,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 			'exec', '-w', containerWorkdir, containerName, '/bin/sh', '-c',
 			`for file do cp -R "${containerInputs}/$file" . || exit 125; done`, '--',
 			...inputEntries.reverse().map(entry => entry.name)
-		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup);
+		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes);
 		if (staged.exitCode !== 0 || staged.error || staged.timedOut || staged.outputLimited) {
 			return { ...staged, exitCode: null,
 				error: staged.error || staged.stderr || 'Could not stage input files' };
@@ -438,7 +458,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		const result = await runContainerCommand(runtime, [
 			'exec', ...(stdin === null ? [] : ['-i']), '-w', containerWorkdir, containerName,
 			'/bin/sh', '-c', shellCommand, '--', ...args
-		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup, stdin);
+		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, stdin);
 		if (result.timedOut || result.outputLimited || result.error) return result;
 
 		const countLimit = Number.isSafeInteger(config.docker.maxGeneratedFiles) ? config.docker.maxGeneratedFiles : 2048;
@@ -446,7 +466,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		const checked = await runContainerCommand(runtime, [
 			'exec', '-w', containerWorkdir, containerName, '/bin/sh', '-c',
 			`command -v find >/dev/null && command -v awk >/dev/null && find . -xdev -print | awk 'NR > ${countLimit + 1} { exit 1 }' && find . -xdev -type d -mindepth ${depthLimit + 1} -print -quit | awk 'NR > 0 { exit 1 }'`
-		], Math.max(1, deadline - Date.now()), 4096, cleanup);
+		], Math.max(1, deadline - Date.now()), 4096);
 		if (checked.exitCode !== 0 || checked.error || checked.timedOut || checked.outputLimited) {
 			return { ...result, exitCode: null, error: 'Generated file count or directory depth limit exceeded' };
 		}
@@ -454,7 +474,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		outputDir = await fs.mkdtemp(path.join(path.dirname(tmpdir), 'bex-output-'));
 		const copied = await runContainerCommand(runtime, [
 			'cp', `${containerName}:${containerWorkdir}/.`, outputDir
-		], 15000, config.docker.maxOutputBytes, cleanup);
+		], 15000, config.docker.maxOutputBytes);
 		if (copied.exitCode !== 0 || copied.error || copied.timedOut || copied.outputLimited) {
 			return { ...result, exitCode: null,
 				error: copied.error || copied.stderr || 'Could not collect output files' };
@@ -465,13 +485,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		outputDir = null;
 		return result;
 	} finally {
-		// An early timeout may race container creation, so retry after the CLI exits.
-		const removed = await runContainerCommand(runtime, runtime === 'podman'
-			? ['rm', '-f', '-t', '0', containerName]
-			: ['rm', '-f', containerName], 10000, 4096);
-		if (removed.error || (removed.exitCode !== 0 && !/no such container|no container with name/i.test(removed.stderr))) {
-			console.error(`Failed to remove ${containerName}:`, removed.error || removed.stderr);
-		}
+		await removeRunnerContainer(runtime, containerName, !containerStarted);
 		if (outputDir) await fs.rm(outputDir, { recursive: true, force: true });
 	}
 }
@@ -724,6 +738,7 @@ module.exports = {
 	createTempScript,
 	copyFixtures,
 	runScriptInContainer,
+	removeRunnerContainer,
 	runScript,
 	runScriptWithTestCase,
 	hashFile,
