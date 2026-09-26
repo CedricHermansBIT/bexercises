@@ -362,7 +362,7 @@ networks:
 Create main `Dockerfile`:
 
 ```dockerfile
-FROM node:18-alpine
+FROM node:22.23.2-alpine3.24
 
 WORKDIR /app
 
