@@ -985,12 +985,11 @@ class DatabaseService {
 					for (const fixtureName of tc.fixtures) {
 						// Ensure fixture exists in fixture_files table
 						const fixture = await this.getFixtureFile(fixtureName);
-						if (fixture) {
-							await this.db.run(`
+						if (!fixture) throw new Error(`Fixture not found: ${fixtureName}`);
+						await this.db.run(`
 								INSERT OR IGNORE INTO test_case_fixtures (test_case_id, fixture_id)
 								VALUES (?, ?)
 							`, [testCaseId, fixture.id]);
-						}
 					}
 				}
 			}
@@ -1071,12 +1070,11 @@ class DatabaseService {
 					for (const fixtureName of tc.fixtures) {
 						// Ensure fixture exists in fixture_files table
 						const fixture = await this.getFixtureFile(fixtureName);
-						if (fixture) {
-							await this.db.run(`
+						if (!fixture) throw new Error(`Fixture not found: ${fixtureName}`);
+						await this.db.run(`
 								INSERT OR IGNORE INTO test_case_fixtures (test_case_id, fixture_id)
 								VALUES (?, ?)
 							`, [testCaseId, fixture.id]);
-						}
 					}
 				}
 			}
