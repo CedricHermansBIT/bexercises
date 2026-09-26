@@ -196,6 +196,36 @@ class DatabaseService {
 				ON submission_attempts(exercise_id, user_id, created_at);
 		`);
 
+		// Older databases have a submission_attempts table without foreign keys.
+		// Triggers enforce the same relationship for new writes without rebuilding
+		// or deleting any existing history rows.
+		await this.db.exec(`
+			CREATE TRIGGER IF NOT EXISTS submission_attempts_validate_insert
+			BEFORE INSERT ON submission_attempts
+			BEGIN
+				SELECT RAISE(ABORT, 'Unknown submission user')
+					WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.user_id);
+				SELECT RAISE(ABORT, 'Unknown submission exercise')
+					WHERE NOT EXISTS (SELECT 1 FROM exercises WHERE id = NEW.exercise_id);
+			END;
+			CREATE TRIGGER IF NOT EXISTS submission_attempts_validate_update
+			BEFORE UPDATE OF user_id, exercise_id ON submission_attempts
+			BEGIN
+				SELECT RAISE(ABORT, 'Unknown submission user')
+					WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.user_id);
+				SELECT RAISE(ABORT, 'Unknown submission exercise')
+					WHERE NOT EXISTS (SELECT 1 FROM exercises WHERE id = NEW.exercise_id);
+			END;
+			CREATE TRIGGER IF NOT EXISTS submission_attempts_user_cascade
+			AFTER DELETE ON users BEGIN
+				DELETE FROM submission_attempts WHERE user_id = OLD.id;
+			END;
+			CREATE TRIGGER IF NOT EXISTS submission_attempts_exercise_cascade
+			AFTER DELETE ON exercises BEGIN
+				DELETE FROM submission_attempts WHERE exercise_id = OLD.id;
+			END;
+		`);
+
 		// Add new columns if they don't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE user_progress ADD COLUMN successful_attempts INTEGER DEFAULT 0`);
