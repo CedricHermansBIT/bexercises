@@ -15,7 +15,8 @@ const config = {
 	server: {
 		port: process.env.PORT || 3000,
 		env: process.env.NODE_ENV || 'development',
-		basePath: basePath // e.g., '/bitlab' for subdirectory deployment
+		basePath: basePath, // e.g., '/bitlab' for subdirectory deployment
+		trustProxy: process.env.TRUST_PROXY === 'true'
 	},
 
 	// Session configuration
@@ -25,6 +26,8 @@ const config = {
 		saveUninitialized: false,
 		cookie: {
 			secure: process.env.NODE_ENV === 'production',
+			httpOnly: true,
+			sameSite: 'lax',
 			maxAge: 24 * 60 * 60 * 1000 // 24 hours
 		}
 	},

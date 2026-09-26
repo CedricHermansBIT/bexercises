@@ -42,6 +42,8 @@ function createApp() {
 	app.use(morgan('combined'));
 	app.use(securityHeaders);
 
+	if (config.server.trustProxy) app.set('trust proxy', 1);
+
 	// Session configuration with SQLite store
 	const sessionStore = new SqliteSessionStore({
 		dbPath: path.join(config.paths.root, 'data', 'sessions.db'),
