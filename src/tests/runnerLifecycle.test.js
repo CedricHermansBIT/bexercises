@@ -8,7 +8,7 @@ function managedContainers() {
 		'ps', '--all', '--filter', 'label=bitlab.managed=true', '--format', '{{.Names}}'
 	], { encoding: 'utf8' });
 	assert.equal(result.status, 0, result.stderr);
-	return new Set(result.stdout.trim().split('\n').filter(Boolean));
+	return new Set(result.stdout.trim().split('\n').filter(name => name.startsWith('bex-run-')));
 }
 
 test('runner removes its container after a timeout', {

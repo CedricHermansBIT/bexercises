@@ -17,3 +17,18 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+
+  container-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: docker build -t bitlab-runner:latest -f Dockerfile.runner .
+      - run: npm test
+        env:
+          RUN_CONTAINER_TESTS: '1'
