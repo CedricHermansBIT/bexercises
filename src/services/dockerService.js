@@ -631,11 +631,19 @@ async function hashDirectoryState(directoryPath) {
  */
 async function hashOutputFiles(tmpdir, filenames = []) {
 	const results = [];
+	const root = await fs.realpath(tmpdir);
 
 	for (const filename of filenames) {
-		const filePath = path.join(tmpdir, filename);
-
 		try {
+			if (typeof filename !== 'string' || !filename || path.isAbsolute(filename) ||
+				filename.includes('\\') || filename.split('/').includes('..')) {
+				throw new Error('Invalid output path');
+			}
+			const filePath = path.resolve(root, filename);
+			const parent = await fs.realpath(path.dirname(filePath));
+			if (parent !== root && !parent.startsWith(`${root}${path.sep}`)) {
+				throw new Error('Output path escapes workspace');
+			}
 			// lstat deliberately does not follow symlinks. A link is a valid
 			// expected output state, including when its target is not present.
 			const stat = await fs.lstat(filePath);

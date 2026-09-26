@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const express = require('express');
-const { hashFile, removeRecursive } = require('../services/dockerService');
+const { hashFile, hashOutputFiles, removeRecursive } = require('../services/dockerService');
 const config = require('../config');
 const limiter = require('../services/executionLimiter');
 const { parseContainerCreatedAt } = require('../services/containerCleanupService');
@@ -67,6 +67,23 @@ test('cleanup never chmods or follows a generated symlink', async () => {
 		assert.equal(await fs.readFile(target, 'utf8'), 'keep this');
 	} finally {
 		await fs.chmod(locked, 0o700).catch(() => {});
+		await fs.rm(root, { recursive: true, force: true });
+	}
+});
+
+test('output grading cannot read paths outside the workspace', async () => {
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'bitlab-output-path-'));
+	const workspace = path.join(root, 'work');
+	const secret = path.join(root, 'secret.txt');
+	try {
+		await fs.mkdir(workspace);
+		await fs.writeFile(secret, 'outside');
+		await fs.symlink(root, path.join(workspace, 'escape'));
+		const results = await hashOutputFiles(workspace, [
+			'../secret.txt', secret, 'escape/secret.txt'
+		]);
+		assert.equal(results.every(result => result.exists === false && result.error), true);
+	} finally {
 		await fs.rm(root, { recursive: true, force: true });
 	}
 });
