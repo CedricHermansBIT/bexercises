@@ -262,21 +262,27 @@ async function compareScriptOutputs(studentScript, solutionScript, args = [], in
  */
 async function checkCodeRules(scriptPath, rules) {
 	const content = await fs.readFile(scriptPath, 'utf8');
-	const results = [];
-
-	for (const rule of rules) {
-		const regex = new RegExp(rule.pattern, rule.flags || '');
-		const match = regex.test(content);
-		results.push({
-			description: rule.description,
-			pattern: rule.pattern,
-			passed: match,
-			points: match ? rule.points : 0,
-			maxPoints: rule.points
+	const { Worker } = require('node:worker_threads');
+	return new Promise((resolve, reject) => {
+		const worker = new Worker(path.join(__dirname, '../workers/codeRuleWorker.js'), {
+			workerData: { content, rules }, resourceLimits: { maxOldGenerationSizeMb: 128 }
 		});
-	}
-
-	return results;
+		let settled = false;
+		const finish = (error, results) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			worker.terminate();
+			if (error) reject(error);
+			else resolve(results);
+		};
+		const timer = setTimeout(() => finish(new Error('Code rule evaluation timed out')), 2000);
+		worker.on('message', message => finish(message.error ? new Error(message.error) : null, message.results));
+		worker.on('error', error => finish(error));
+		worker.on('exit', code => {
+			if (code !== 0) finish(new Error(`Code rule worker exited with status ${code}`));
+		});
+	});
 }
 
 /**
