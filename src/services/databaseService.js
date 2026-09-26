@@ -187,7 +187,9 @@ class DatabaseService {
 				test_count INTEGER NOT NULL,
 				runtime_ms INTEGER NOT NULL,
 				failure_category TEXT,
-				failed_test_number INTEGER
+				failed_test_number INTEGER,
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+				FOREIGN KEY (exercise_id) REFERENCES exercises(id) ON DELETE CASCADE
 			);
 			CREATE INDEX IF NOT EXISTS idx_submission_attempts_exercise_user
 				ON submission_attempts(exercise_id, user_id, created_at);
@@ -1106,9 +1108,9 @@ class DatabaseService {
 	async saveUserDraft(userId, exerciseId, code) {
 		await this.db.run(`
 			INSERT INTO user_drafts (user_id, exercise_id, code, updated_at)
-			VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+			VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 			ON CONFLICT(user_id, exercise_id) DO UPDATE SET
-				code = excluded.code, updated_at = CURRENT_TIMESTAMP
+				code = excluded.code, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 		`, [userId, exerciseId, code]);
 		return this.getUserDraft(userId, exerciseId);
 	}
@@ -1137,8 +1139,8 @@ class DatabaseService {
 		const failed = results.find(result => !result.passed);
 		await this.db.run(`
 			INSERT INTO submission_attempts
-				(user_id, exercise_id, passed, test_count, runtime_ms, failure_category, failed_test_number)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
+				(user_id, exercise_id, created_at, passed, test_count, runtime_ms, failure_category, failed_test_number)
+			VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), ?, ?, ?, ?, ?)
 		`, [userId, exerciseId, failed ? 0 : 1, results.length, runtimeMs,
 			failed?.failureCategory || null, failed?.testNumber || null]);
 	}
@@ -1153,8 +1155,8 @@ class DatabaseService {
 				UPDATE user_progress 
 				SET completed = CASE WHEN completed = 1 OR ? = 1 THEN 1 ELSE 0 END,
 					last_submission = ?, 
-					last_submission_at = CURRENT_TIMESTAMP,
-					completed_at = CASE WHEN ? = 1 AND completed = 0 THEN CURRENT_TIMESTAMP ELSE completed_at END,
+					last_submission_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+					completed_at = CASE WHEN ? = 1 AND completed = 0 THEN strftime('%Y-%m-%dT%H:%M:%fZ', 'now') ELSE completed_at END,
 					attempts_to_completion = CASE WHEN ? = 1 AND completed = 0
 						THEN attempts + 1 ELSE attempts_to_completion END,
 					attempts = attempts + 1,
@@ -1167,9 +1169,10 @@ class DatabaseService {
 			await this.db.run(`
 				INSERT INTO user_progress (user_id, exercise_id, completed, last_submission, last_submission_at,
 					completed_at, attempts, attempts_to_completion, successful_attempts, failed_attempts)
-				VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, 1, ?, ?, ?)
+				VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+					CASE WHEN ? = 1 THEN strftime('%Y-%m-%dT%H:%M:%fZ', 'now') END, 1, ?, ?, ?)
 			`, [userId, exerciseId, completed ? 1 : 0, last_submission,
-				completed ? new Date().toISOString() : null, completed ? 1 : null,
+				completed ? 1 : 0, completed ? 1 : null,
 				completed ? 1 : 0, completed ? 0 : 1]);
 		}
 	}
@@ -1183,7 +1186,7 @@ class DatabaseService {
 				COALESCE(SUM(successful_attempts), 0) as total_successful_runs,
 				COALESCE(SUM(failed_attempts), 0) as total_failed_runs,
 				COALESCE(AVG(attempts), 0) as avg_attempts_per_exercise,
-				MAX(last_submission_at) as last_activity
+				MAX(strftime('%Y-%m-%dT%H:%M:%fZ', last_submission_at)) as last_activity
 			FROM user_progress
 			WHERE user_id = ?
 		`, [userId]);

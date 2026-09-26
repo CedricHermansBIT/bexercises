@@ -13,7 +13,7 @@ test('a failed attempt-history insert rolls back progress', async () => {
 				last_submission TEXT, last_submission_at TEXT, completed_at TEXT,
 				attempts INTEGER, attempts_to_completion INTEGER,
 				successful_attempts INTEGER, failed_attempts INTEGER);
-			CREATE TABLE submission_attempts (user_id INTEGER, exercise_id TEXT, passed INTEGER,
+			CREATE TABLE submission_attempts (user_id INTEGER, exercise_id TEXT, created_at TEXT, passed INTEGER,
 				test_count INTEGER, runtime_ms INTEGER, failure_category TEXT, failed_test_number INTEGER);
 			CREATE TRIGGER reject_attempt BEFORE INSERT ON submission_attempts
 				BEGIN SELECT RAISE(ABORT, 'rejected attempt'); END;
@@ -26,7 +26,10 @@ test('a failed attempt-history insert rolls back progress', async () => {
 		await service.recordSubmission(1, 'ex', {
 			completed: true, last_submission: 'echo pass'
 		}, [{ passed: true }], 42);
-		assert.equal((await service.db.get('SELECT attempts FROM user_progress')).attempts, 1);
+		const progress = await service.db.get('SELECT attempts, completed_at, last_submission_at FROM user_progress');
+		assert.equal(progress.attempts, 1);
+		assert.match(progress.completed_at, /^\d{4}-\d\d-\d\dT.*Z$/);
+		assert.match(progress.last_submission_at, /^\d{4}-\d\d-\d\dT.*Z$/);
 		assert.equal((await service.db.get('SELECT COUNT(*) AS count FROM submission_attempts')).count, 1);
 	} finally {
 		await service.db.close();

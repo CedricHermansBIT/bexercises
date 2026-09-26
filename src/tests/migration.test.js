@@ -24,6 +24,9 @@ test('JSON migration links fixtures on a fresh database', async () => {
 		service.db = await open({ filename: ':memory:', driver: sqlite3.Database });
 		await service.db.exec('PRAGMA foreign_keys = ON');
 		await service.createTables();
+		const attemptFks = await service.db.all('PRAGMA foreign_key_list(submission_attempts)');
+		assert.deepEqual(new Set(attemptFks.map(fk => fk.table)), new Set(['users', 'exercises']));
+		assert.equal(attemptFks.every(fk => fk.on_delete === 'CASCADE'), true);
 		await migrate({ service, jsonPath, fixturesDir, initialize: false, close: false });
 		const exercise = await service.getExerciseWithTests('migration-fixture');
 		assert.deepEqual(exercise.testCases[0].fixtures, ['seed.txt']);
