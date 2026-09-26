@@ -304,9 +304,13 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
  * @param {number} timeoutMs - Timeout in milliseconds
  * @returns {Promise<Object>} Result object with stdout, stderr, exitCode, etc.
  */
-function runContainerCommand(runtime, args, timeoutMs, maxOutputBytes, onAbort = () => {}) {
+function runContainerCommand(runtime, args, timeoutMs, maxOutputBytes, onAbort = () => {}, stdin = null) {
 	return new Promise((resolve) => {
-		const proc = spawn(runtime, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+		const proc = spawn(runtime, args, { stdio: [stdin === null ? 'ignore' : 'pipe', 'pipe', 'pipe'] });
+		if (stdin !== null) {
+			proc.stdin.on('error', () => {}); // The script may close stdin early.
+			proc.stdin.end(stdin);
+		}
 		const output = { stdout: [], stderr: [] };
 		let bytes = 0;
 		let timedOut = false;
@@ -364,14 +368,9 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 			: ['rm', '-f', containerName], { stdio: 'ignore' });
 		removal.on('error', error => console.error(`Failed to remove ${containerName}:`, error));
 	};
-	let shellCommand;
-	if (inputs && Array.isArray(inputs) && inputs.length > 0) {
-		const escapedInputs = inputs.map(line => line.replace(/'/g, "'\\''"));
-		const inputString = escapedInputs.join('\\n') + '\\n';
-		shellCommand = `printf '%b' '${inputString}' | ${languageConfig.interpreter} ./${scriptFilename} "$@"`;
-	} else {
-		shellCommand = `${languageConfig.interpreter} ./${scriptFilename} "$@" < /dev/null`;
-	}
+	const stdin = inputs && Array.isArray(inputs) && inputs.length > 0
+		? inputs.map(String).join('\n') + '\n' : null;
+	const shellCommand = `${languageConfig.interpreter} ./${scriptFilename} "$@"${stdin === null ? ' < /dev/null' : ''}`;
 	try {
 		const start = await runContainerCommand(runtime, [
 			'run', '-d', '--name', containerName,
@@ -410,9 +409,9 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 				error: staged.error || staged.stderr || 'Could not stage input files' };
 		}
 		const result = await runContainerCommand(runtime, [
-			'exec', '-w', containerWorkdir, containerName,
+			'exec', ...(stdin === null ? [] : ['-i']), '-w', containerWorkdir, containerName,
 			'/bin/sh', '-c', shellCommand, '--', ...args
-		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup);
+		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, cleanup, stdin);
 		if (result.timedOut || result.outputLimited || result.error) return result;
 
 		const countLimit = Number.isSafeInteger(config.docker.maxGeneratedFiles) ? config.docker.maxGeneratedFiles : 2048;

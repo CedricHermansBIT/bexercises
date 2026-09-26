@@ -25,3 +25,17 @@ test('runner removes its container after a timeout', {
 	}
 	assert.deepEqual(managedContainers(), before);
 });
+
+test('runner passes literal backslash sequences to stdin', {
+	skip: process.env.RUN_CONTAINER_TESTS !== '1' ? 'Set RUN_CONTAINER_TESTS=1 for container integration tests' : false
+}, async () => {
+	const temp = await createTempScript('#!/bin/bash\nod -An -tx1\n');
+	try {
+		const result = await runScriptInContainer(temp.tmpdir, temp.scriptFilename,
+			{ ...temp.languageConfig, dockerImage: 'bitlab-runner:latest' }, [], ['\\n', '\\x41'], 10000);
+		assert.equal(result.exitCode, 0, result.stderr || result.error);
+		assert.match(result.stdout, /5c 6e 0a 5c 78 34 31 0a/);
+	} finally {
+		await removeRecursive(temp.tmpdir);
+	}
+});
