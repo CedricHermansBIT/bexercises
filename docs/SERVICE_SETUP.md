@@ -17,7 +17,7 @@ Most modern Linux distributions use systemd for service management. This is the 
 ### Prerequisites
 
 - BITLab installed in `/opt/bitlab` (or your preferred location)
-- Node.js installed system-wide
+- Node.js 22 or newer installed system-wide
 - Docker installed and running
 - Non-root user to run the service (e.g., `bitlab`)
 
@@ -47,7 +47,7 @@ cd /opt/bitlab
 git clone <repository-url> .
 
 # Install dependencies
-npm install --production
+npm ci --omit=dev
 
 # Build Docker runner image
 docker build -f Dockerfile.runner -t bitlab-runner:latest .
@@ -228,7 +228,7 @@ cd /opt/bitlab
 git pull
 
 # Install any new dependencies
-npm install --production
+npm ci --omit=dev
 
 # Rebuild Docker image if needed
 docker build -f Dockerfile.runner -t bitlab-runner:latest .
@@ -368,7 +368,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci --production
+RUN npm ci --omit=dev
 
 # Copy application
 COPY . .
@@ -760,11 +760,8 @@ ps aux | grep node
 # Check for stale connections
 lsof /opt/bitlab/data/exercises.db
 
-# Stop service and check
-sudo systemctl stop bitlab
-rm /opt/bitlab/data/exercises.db-shm
-rm /opt/bitlab/data/exercises.db-wal
-sudo systemctl start bitlab
+# Check database integrity without removing WAL or SHM files
+sqlite3 /opt/bitlab/data/exercises.db "PRAGMA integrity_check;"
 ```
 
 ## Security Considerations
@@ -782,36 +779,17 @@ sudo systemctl start bitlab
 
 ### Automated Backup Script
 
-Create `scripts/backup.sh`:
+Use the included script. It uses SQLite's online backup API, checks database integrity, and archives the fixture folder in the same snapshot. The running service can stay online.
 
 ```bash
-#!/bin/bash
-
-BACKUP_DIR="/opt/backups/bitlab"
-DATE=$(date +%Y%m%d-%H%M%S)
-
-# Create backup directory
-mkdir -p "$BACKUP_DIR"
-
-# Backup database
-cp /opt/bitlab/data/exercises.db "$BACKUP_DIR/exercises-$DATE.db"
-
-# Backup environment config
-cp /opt/bitlab/.env "$BACKUP_DIR/env-$DATE.bak"
-
-# Keep only last 30 days of backups
-find "$BACKUP_DIR" -name "exercises-*.db" -mtime +30 -delete
-find "$BACKUP_DIR" -name "env-*.bak" -mtime +30 -delete
-
-echo "Backup completed: $DATE"
+sudo mkdir -p /opt/backups/bitlab
+sudo chown bitlab:bitlab /opt/backups/bitlab
+sudo -u bitlab env BITLAB_BACKUP_DIR=/opt/backups/bitlab bash /opt/bitlab/src/scripts/backup.sh
 ```
 
-Add to cron for daily backups:
+The script prints the snapshot directory. Keep that whole directory, including `exercises.db`, `fixtures.tar.gz`, and any `env.backup`. Protect it because it contains student data and OAuth secrets. Schedule it with cron as needed; rotate only verified old snapshots according to your retention policy.
 
-```bash
-# Daily backup at 2 AM
-0 2 * * * /opt/bitlab/scripts/backup.sh
-```
+To test a restore, copy one snapshot to a separate machine or temporary directory. Open its database with `sqlite3 exercises.db 'PRAGMA integrity_check;'` (expect `ok`), extract `fixtures.tar.gz`, start BITLab against those copied files, and verify an exercise with a fixture. Stop the production service before restoring a snapshot to production. Do not copy only the live `.db` file while WAL mode is active.
 
 ## Additional Resources
 

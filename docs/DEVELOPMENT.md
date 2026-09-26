@@ -17,7 +17,7 @@ This guide is for developers who want to contribute to BITLab or customize it fo
 
 ### Prerequisites
 
-- Node.js v14+
+- Node.js v22+
 - Docker
 - Git
 - A code editor (VS Code, WebStorm, etc.)
@@ -28,7 +28,7 @@ This guide is for developers who want to contribute to BITLab or customize it fo
    ```bash
    git clone <repository-url>
    cd BITLab
-   npm install
+   npm ci
    ```
 
 2. **Set up environment**:
@@ -62,7 +62,7 @@ See [STRUCTURE.md](STRUCTURE.md) for detailed architecture documentation.
 
 - **Backend**: Express.js (Node.js)
 - **Frontend**: Vanilla JavaScript (ES6 modules)
-- **Database**: SQLite with better-sqlite3
+- **Database**: SQLite with sqlite3 and sqlite
 - **Authentication**: Passport.js (Google OAuth)
 - **Code Execution**: Docker containers
 
@@ -359,12 +359,12 @@ DELETE FROM exercise_progress WHERE user_id = 'user-id';
 ### Backing Up Database
 
 ```bash
-cp data/exercises.db data/exercises.db.backup
+BITLAB_BACKUP_DIR=/secure/backups bash src/scripts/backup.sh
 ```
 
 Restore:
 ```bash
-cp data/exercises.db.backup data/exercises.db
+# Stop BITLab, then restore exercises.db and fixtures.tar.gz from one snapshot.
 ```
 
 ## Testing
@@ -581,7 +581,7 @@ docker ps
 docker container prune
 
 # Database backup
-cp data/exercises.db data/exercises.db.backup
+BITLAB_BACKUP_DIR=/secure/backups bash src/scripts/backup.sh
 
 # Check database size
 ls -lh data/exercises.db

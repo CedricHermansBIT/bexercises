@@ -4,7 +4,7 @@ Get BITLab up and running in minutes.
 
 ## Prerequisites
 
-- **Node.js** (v16 or higher)
+- **Node.js** (v22 or higher)
 - **Docker** (for isolated code execution)
 - **Google OAuth Credentials** (for user authentication)
 
@@ -20,7 +20,7 @@ cd BITLab
 ### 2. Install Dependencies
 
 ```bash
-npm install
+npm ci
 ```
 
 ### 3. Configure Environment Variables
