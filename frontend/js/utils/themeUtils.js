@@ -25,7 +25,7 @@ class ThemeManager {
      * Initialize theme from localStorage or system preference
      */
     init() {
-        const savedTheme = localStorage.getItem(this.STORAGE_KEY);
+        const savedTheme = document.documentElement.dataset.theme;
 
         if (savedTheme) {
             // Use saved preference
@@ -64,9 +64,15 @@ class ThemeManager {
         document.body.classList.toggle(this.LIGHT_MODE_CLASS, selectedTheme === 'light');
         document.body.classList.toggle(this.HIGH_CONTRAST_MODE_CLASS, selectedTheme === 'high-contrast');
         document.body.dataset.theme = selectedTheme;
+        document.documentElement.dataset.theme = selectedTheme;
+        document.documentElement.style.colorScheme = this.isLightTheme(selectedTheme) ? 'light' : 'dark';
 
         // Save preference
-        localStorage.setItem(this.STORAGE_KEY, selectedTheme);
+        try {
+            localStorage.setItem(this.STORAGE_KEY, selectedTheme);
+        } catch {
+            // Theme switching still works when browser storage is unavailable.
+        }
 
         // Dispatch event for components that need to react to theme changes
         window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: selectedTheme } }));

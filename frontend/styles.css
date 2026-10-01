@@ -31,6 +31,7 @@
 }
 
 /* Light Mode Theme */
+html[data-theme="light"],
 body.light-mode {
     --bg-primary: #f5f5f5;
     --bg-secondary: #ffffff;
@@ -69,6 +70,12 @@ body {
     overflow: hidden;
     font-size: 14px;
     line-height: 1.6;
+}
+
+/* Paint the page canvas with the theme selected before the body exists. */
+html {
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 /* Screen Management */
@@ -1270,6 +1277,7 @@ body {
 }
 
 /* High-contrast dark theme for improved readability and accessibility. */
+html[data-theme="high-contrast"],
 body.high-contrast-mode {
     --bg-primary: #000000;
     --bg-secondary: #080808;
@@ -1295,6 +1303,7 @@ body.high-contrast-mode {
 }
 
 /* Additional palettes, selected through the account menu. */
+html[data-theme="pink"],
 body[data-theme="pink"] {
     --bg-primary: #fff0f7;
     --bg-secondary: #fff9fc;
@@ -1316,6 +1325,7 @@ body[data-theme="pink"] {
     --shadow-lg: 0 8px 32px rgba(155, 75, 113, 0.2);
 }
 
+html[data-theme="dracula"],
 body[data-theme="dracula"] {
     --bg-primary: #282a36;
     --bg-secondary: #21222c;
@@ -1334,6 +1344,7 @@ body[data-theme="dracula"] {
     --border-color: #6272a4;
 }
 
+html[data-theme="paper"],
 body[data-theme="paper"] {
     --bg-primary: #f7f1e3;
     --bg-secondary: #fffdf7;
@@ -1355,6 +1366,7 @@ body[data-theme="paper"] {
     --shadow-lg: 0 8px 32px rgba(67, 46, 27, 0.2);
 }
 
+html[data-theme="nord"],
 body[data-theme="nord"] {
     --bg-primary: #edf6fb;
     --bg-secondary: #f8fcff;
@@ -1376,6 +1388,7 @@ body[data-theme="nord"] {
     --shadow-lg: 0 8px 32px rgba(47, 105, 137, 0.2);
 }
 
+html[data-theme="solarized"],
 body[data-theme="solarized"] {
     --bg-primary: #002b36;
     --bg-secondary: #073642;
