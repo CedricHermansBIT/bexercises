@@ -38,6 +38,7 @@ class ActivityPage {
         this.studentId = null;
         this.generation = 0;
         this.detailGeneration = 0;
+        this.currentView = 'overview';
         this.init().catch(error => this.status(error.message, true));
     }
 
@@ -61,6 +62,20 @@ class ActivityPage {
         element('activity-timezone').value = filters.timezone;
         this.updateChapters();
         this.setPeriod();
+        const views = ['overview', 'students', 'exercises'];
+        for (const [index, view] of views.entries()) {
+            const tab = element(`activity-tab-${view}`);
+            tab.addEventListener('click', () => this.showView(view));
+            tab.addEventListener('keydown', event => {
+                let target;
+                if (event.key === 'ArrowRight') target = views[(index + 1) % views.length];
+                if (event.key === 'ArrowLeft') target = views[(index + views.length - 1) % views.length];
+                if (event.key === 'Home') target = views[0];
+                if (event.key === 'End') target = views[views.length - 1];
+                if (target) { event.preventDefault(); this.showView(target, true); }
+            });
+        }
+        element('activity-back-students').addEventListener('click', () => this.showStudentList());
         element('activity-filters').addEventListener('submit', event => { event.preventDefault(); this.load(); });
         element('activity-period').addEventListener('change', () => { this.setPeriod(); this.load(); });
         for (const id of ['activity-start', 'activity-end']) element(id).addEventListener('change', () => {
@@ -112,6 +127,34 @@ class ActivityPage {
         element('activity-status').classList.toggle('activity-error', error);
     }
 
+    showView(view, focus = false) {
+        this.currentView = view;
+        for (const name of ['overview', 'students', 'exercises']) {
+            const selected = name === view;
+            element(`activity-view-${name}`).hidden = !selected;
+            const tab = element(`activity-tab-${name}`);
+            tab.setAttribute('aria-selected', String(selected));
+            tab.tabIndex = selected ? 0 : -1;
+        }
+        if (focus) element(`activity-tab-${view}`).focus();
+    }
+
+    reveal(section, heading) {
+        heading.focus({ preventScroll: true });
+        section.scrollIntoView({ block: 'start',
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+
+    showStudentList() {
+        const selected = this.studentId;
+        this.studentId = null;
+        ++this.detailGeneration;
+        element('activity-detail').hidden = true;
+        element('activity-student-list').hidden = false;
+        const focus = element(`activity-student-${selected}`) || element('activity-search');
+        this.reveal(element('activity-student-list'), focus);
+    }
+
     async load() {
         if (!element('activity-filters').reportValidity()) return;
         const days = (Date.parse(element('activity-end').value) - Date.parse(element('activity-start').value)) / 86400000 + 1;
@@ -122,6 +165,7 @@ class ActivityPage {
         const generation = ++this.generation;
         ++this.detailGeneration;
         element('activity-detail').hidden = true;
+        element('activity-student-list').hidden = false;
         this.status('Loading activity…');
         try {
             const query = this.query().toString();
@@ -129,7 +173,9 @@ class ActivityPage {
             if (generation !== this.generation) return;
             this.report = report;
             this.reportQuery = query;
-            this.status(`Showing ${report.range.start} through ${report.range.end} in ${report.range.timezone}.`);
+            const language = this.filters.languages.find(l => l.id === element('activity-language').value)?.name || 'All languages';
+            const chapter = this.filters.chapters.find(c => c.id === element('activity-chapter').value)?.name;
+            this.status(`${report.range.start} → ${report.range.end} · ${language}${chapter ? ` / ${chapter}` : ''} · ${element('activity-archived').checked ? 'Including archived students' : 'Current students'} · ${report.range.timezone}`);
             element('activity-history').textContent = report.historyStartsAt
                 ? `Recorded submission history begins ${this.date(report.historyStartsAt)}. Earlier practice cannot be reconstructed; first completions use existing progress records. Exercise filters use the current chapter and language assignments.`
                 : 'No submissions have been recorded yet. Activity will appear as students run exercises; existing progress is preserved.';
@@ -159,7 +205,13 @@ class ActivityPage {
                 exercises.append(row);
             }
             if (!report.exercises.length) emptyTable(exercises, 7, 'No exercise activity in this date range.');
-            if (this.studentId !== null) await this.loadStudent(this.studentId);
+            if (this.studentId !== null) {
+                if (report.students.some(student => student.id === this.studentId)) {
+                    await this.loadStudent(this.studentId, false);
+                } else {
+                    this.studentId = null;
+                }
+            }
         } catch (error) {
             if (generation === this.generation) this.status(`Could not load activity: ${error.message}. Previously loaded results remain below.`, true);
         }
@@ -284,6 +336,7 @@ class ActivityPage {
             : sort === 'lastSubmission' ? (b.lastSubmission || '').localeCompare(a.lastSubmission || '')
                 : b[sort] - a[sort] || a.name.localeCompare(b.name));
         const body = element('activity-students');
+        element('activity-student-count').textContent = `${students.length} of ${this.report.students.length}`;
         body.replaceChildren();
         for (const student of students) {
             const row = document.createElement('tr');
@@ -298,24 +351,48 @@ class ActivityPage {
             row.append(name);
             for (const value of [student.practiceDays, student.submissions, student.exercisesAttempted,
                 student.completed, student.configurationErrors, this.date(student.lastSubmission)]) row.append(cell(value));
+            const view = document.createElement('button');
+            view.type = 'button';
+            view.id = `activity-student-${student.id}`;
+            view.className = 'activity-view-student';
+            view.textContent = 'View activity →';
+            view.setAttribute('aria-label', `View activity for ${student.name}`);
+            view.addEventListener('click', () => this.loadStudent(student.id));
+            name.append(view);
             body.append(row);
         }
         if (!students.length) emptyTable(body, 7, 'No students match these filters.');
     }
 
-    async loadStudent(id) {
+    async loadStudent(id, reveal = true) {
         this.studentId = id;
         const generation = ++this.detailGeneration;
         const query = this.reportQuery;
+        if (reveal) this.showView('students');
         element('activity-detail').hidden = false;
-        element('detail-heading').textContent = this.report.students.find(s => s.id === id)?.name || 'Student detail';
+        element('activity-student-list').hidden = true;
+        const student = this.report.students.find(s => s.id === id);
+        element('detail-heading').textContent = `${student?.name || 'Student detail'}${student?.archived ? ' (archived)' : ''}`;
+        element('activity-student-email').textContent = student?.email || '';
         element('activity-detail-status').textContent = 'Loading student activity…';
+        element('activity-student-summary').replaceChildren();
         element('activity-heatmap').replaceChildren();
         element('activity-timeline').replaceChildren();
+        if (reveal) this.reveal(element('activity-detail'), element('detail-heading'));
         try {
             const detail = await this.api._get(`/api/admin/activity/students/${encodeURIComponent(id)}?${query}`);
             if (generation !== this.detailGeneration) return;
             element('activity-detail-status').textContent = `${detail.students[0].practiceDays} practice days · ${detail.students[0].exercisesAttempted} exercises attempted`;
+            for (const [key, label] of [['practiceDays', 'Practice days'], ['exercisesAttempted', 'Exercises attempted'],
+                ['submissions', 'Submissions'], ['completed', 'First completions']]) {
+                const card = document.createElement('div');
+                const number = document.createElement('strong');
+                number.textContent = detail.students[0][key];
+                const text = document.createElement('span');
+                text.textContent = label;
+                card.append(number, text);
+                element('activity-student-summary').append(card);
+            }
             this.renderCalendar('activity-heatmap', detail.daily);
             const timeline = element('activity-timeline');
             for (const attempt of detail.timeline) {

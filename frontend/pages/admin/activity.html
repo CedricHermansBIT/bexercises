@@ -12,8 +12,15 @@
 <body>
     <div id="navbar-container"></div>
     <main class="activity-page" hidden>
-        <h1>Student activity</h1>
-        <p class="activity-note">Practice days and exercises attempted help show consistency. Submissions record runs, not time spent studying.</p>
+        <header class="activity-page-header">
+            <div><p class="activity-eyebrow">Admin reports</p><h1>Student activity</h1>
+            <p class="activity-note">See class practice trends, inspect a student, or compare exercises.</p></div>
+        </header>
+        <nav class="activity-tabs" role="tablist" aria-label="Activity reports">
+            <button id="activity-tab-overview" type="button" role="tab" aria-selected="true" aria-controls="activity-view-overview">Class overview</button>
+            <button id="activity-tab-students" type="button" role="tab" aria-selected="false" aria-controls="activity-view-students" tabindex="-1">Students</button>
+            <button id="activity-tab-exercises" type="button" role="tab" aria-selected="false" aria-controls="activity-view-exercises" tabindex="-1">Exercises</button>
+        </nav>
         <form id="activity-filters" class="activity-panel activity-filters">
             <label>Period<select id="activity-period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="365">Last year</option><option value="custom">Custom</option></select></label>
             <label>From<input type="date" id="activity-start" required></label>
@@ -25,23 +32,27 @@
             <button type="submit" class="action-btn" id="activity-refresh">Refresh</button>
         </form>
         <p id="activity-status" role="status" aria-live="polite"></p>
-        <p id="activity-history" class="activity-note"></p>
+        <div id="activity-view-overview" role="tabpanel" aria-labelledby="activity-tab-overview">
+        <h2>Class overview</h2>
         <div id="activity-summary" class="activity-summary"></div>
         <section class="activity-panel" aria-labelledby="calendar-heading">
-            <h2 id="calendar-heading">Practice calendar</h2>
+            <h2 id="calendar-heading">Class practice calendar</h2>
             <p class="activity-note">More exercises practiced means a stronger colour, relative to the busiest day in this range. Each student’s work on an exercise counts once per day; repeated runs do not increase the colour. Choose “Last year” for a full calendar.</p>
             <div id="activity-calendar" class="activity-calendar" aria-label="Class practice calendar"></div>
             <div class="activity-calendar-key" aria-label="Practice intensity from less to more"><span>Less</span><span class="activity-day" data-level="0"></span><span class="activity-day" data-level="1"></span><span class="activity-day" data-level="2"></span><span class="activity-day" data-level="3"></span><span class="activity-day" data-level="4"></span><span>More</span></div>
             <p id="activity-calendar-selection" class="activity-note" aria-live="polite">Hover over or focus a square for daily totals. Click a day to filter the report.</p>
         </section>
         <section class="activity-panel" aria-labelledby="daily-heading">
-            <h2 id="daily-heading">Daily activity</h2>
+            <h2 id="daily-heading">Class activity over time</h2>
             <p class="activity-note">Hover over bars for daily totals. Configuration errors are included in submissions, but do not count as practice.</p>
             <div class="activity-legend"><span class="runs">Submissions</span><span class="students">Active students</span><span class="completions">First completions</span></div>
             <div id="activity-chart" class="activity-chart"></div>
         </section>
-        <section class="activity-panel" aria-labelledby="students-heading">
-            <h2 id="students-heading">Students</h2>
+        </div>
+        <div id="activity-view-students" role="tabpanel" aria-labelledby="activity-tab-students" hidden>
+        <section id="activity-student-list" class="activity-panel" aria-labelledby="students-heading">
+            <h2 id="students-heading">Students <span id="activity-student-count" class="activity-count"></span></h2>
+            <p class="activity-note">Choose “View activity” to open a student’s calendar and submission history.</p>
             <div class="activity-table-controls">
                 <label>Find a student<input type="search" id="activity-search" placeholder="Name or email"></label>
                 <label>Sort by<select id="activity-sort"><option value="practiceDays">Practice days</option><option value="exercisesAttempted">Exercises attempted</option><option value="submissions">Submissions</option><option value="completed">First completions</option><option value="lastSubmission">Last submission</option><option value="name">Name</option></select></label>
@@ -49,18 +60,30 @@
             <div class="activity-table-scroll"><table class="activity-table"><thead><tr><th>Student</th><th>Practice days</th><th>Submissions</th><th>Exercises attempted</th><th>First completions</th><th>Configuration errors</th><th>Last submission in range</th></tr></thead><tbody id="activity-students"></tbody></table></div>
         </section>
         <section id="activity-detail" class="activity-panel" hidden aria-labelledby="detail-heading">
-            <h2 id="detail-heading"></h2>
-            <p id="activity-detail-status" role="status"></p>
+            <button id="activity-back-students" type="button" class="activity-back-button">← Back to students</button>
+            <div class="activity-student-header"><div><p class="activity-eyebrow">Student detail</p>
+                <h2 id="detail-heading" tabindex="-1"></h2><p id="activity-student-email" class="activity-note"></p></div></div>
+            <p id="activity-detail-status" role="status" aria-live="polite"></p>
+            <div id="activity-student-summary" class="activity-summary"></div>
+            <h3 class="activity-detail-section-title">Practice calendar</h3>
             <div id="activity-heatmap" class="activity-calendar" aria-label="Student activity calendar"></div>
             <p class="activity-note">Each square is one calendar day; stronger colours indicate more distinct exercises practiced, relative to this student’s busiest day in the range.</p>
             <h3>Recent submissions</h3>
             <p class="activity-note">Showing up to the 200 most recent submissions within the selected filters.</p>
             <div class="activity-table-scroll"><table class="activity-table"><thead><tr><th>When</th><th>Exercise</th><th>Outcome</th><th>Runtime</th><th>Failed test</th></tr></thead><tbody id="activity-timeline"></tbody></table></div>
         </section>
+        </div>
+        <div id="activity-view-exercises" role="tabpanel" aria-labelledby="activity-tab-exercises" hidden>
         <section class="activity-panel" aria-labelledby="exercises-heading">
-            <h2 id="exercises-heading">Exercises</h2>
+            <h2 id="exercises-heading">Exercise activity</h2>
+            <p class="activity-note">Compare participation and outcomes for exercises within the selected filters.</p>
             <div class="activity-table-scroll"><table class="activity-table"><thead><tr><th>Exercise</th><th>Language</th><th>Students practicing</th><th>Submissions</th><th>Successful runs</th><th>First completions</th><th>Configuration errors</th></tr></thead><tbody id="activity-exercises"></tbody></table></div>
         </section>
+        </div>
+        <details class="activity-methodology"><summary>About these numbers and recorded history</summary>
+            <p id="activity-history" class="activity-note"></p>
+            <p class="activity-note">Practice days and distinct exercises indicate consistency. Submissions record runs, not time spent studying. Successful reruns do not add first completions.</p>
+        </details>
     </main>
     <script type="module" src="../../js/pages/admin/activityPage.js"></script>
 </body>

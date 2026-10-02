@@ -6,6 +6,13 @@ timelines, and exercise totals. Reports support a date range of up to 366 days,
 language/chapter filters, and optional inclusion of archived students. Student
 names and emails can be searched, and the overview can be sorted by each metric.
 
+The page has three tabs: **Class overview**, **Students**, and **Exercises**.
+Filters apply to all three. In Students, select a name or **View activity** to
+open a dedicated student view with their name, summary, calendar and submission
+history. The page moves focus to that view immediately. **Back to students**
+returns to the list and restores focus to the selected student's action. The
+history explanation is available under **About these numbers and recorded history**.
+
 The overview and student detail include a GitHub-style practice calendar with
 weekday and month labels. Each square represents a day; colour intensity is
 relative to the busiest day in the selected range. The overview counts distinct

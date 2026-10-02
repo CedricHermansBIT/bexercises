@@ -43,4 +43,23 @@ body:has(.activity-page) { overflow: auto; }
 .activity-calendar-key { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: .5rem; color: var(--text-secondary); font-size: 12px; }
 button.activity-day { padding: 0; cursor: pointer; }
 .activity-error { color: var(--accent-red); }
+.activity-page [hidden] { display: none !important; }
+.activity-page-header { display: flex; justify-content: space-between; gap: 1rem; }
+.activity-eyebrow { color: var(--accent-lavender); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .35rem; }
+.activity-tabs { display: flex; gap: .4rem; border-bottom: 1px solid var(--border-color); margin: 1rem 0; }
+.activity-tabs button { font: inherit; padding: .9rem 1.2rem; color: var(--text-secondary); background: transparent; border: 0; border-bottom: 3px solid transparent; cursor: pointer; }
+.activity-tabs button[aria-selected="true"] { color: var(--accent-blue); border-bottom-color: var(--accent-blue); background: var(--bg-secondary); }
+.activity-tabs button:hover { color: var(--text-primary); background: var(--surface); }
+.activity-tabs button:focus-visible, .activity-view-student:focus-visible, .activity-back-button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+.activity-count { font-size: .85rem; font-weight: normal; color: var(--text-secondary); margin-left: .5rem; }
+.activity-view-student, .activity-back-button { border: 1px solid var(--border-color); border-radius: 5px; padding: .6rem .8rem; background: var(--bg-primary); color: var(--accent-blue); font: inherit; cursor: pointer; white-space: nowrap; }
+.activity-view-student:hover, .activity-back-button:hover { background: var(--surface); border-color: var(--accent-blue); }
+.activity-view-student { display: block; margin-top: .65rem; }
+.activity-back-button { margin-bottom: 1.4rem; }
+.activity-student-header h2 { font-size: 1.8rem; }
+.activity-detail-section-title { margin-top: 1.6rem; }
+#activity-detail, #activity-student-list { scroll-margin-top: 4.5rem; }
+.activity-methodology { color: var(--text-secondary); border-top: 1px solid var(--border-color); padding: 1rem 0; margin-top: 1rem; }
+.activity-methodology summary { cursor: pointer; }
+@media (max-width: 700px) { .activity-tabs button { padding: .8rem .65rem; } .activity-student-header h2 { font-size: 1.4rem; } }
 @media (max-width: 700px) { .activity-page { padding: 1rem; } .activity-filters label { flex: 1 1 140px; } .activity-table { min-width: 700px; } }
