@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="../../js/utils/themeBootstrap.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Activity - BITLab Admin</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../../admin.css">
+    <link rel="stylesheet" href="../../activity.css">
+</head>
+<body>
+    <div id="navbar-container"></div>
+    <main class="activity-page" hidden>
+        <h1>Student activity</h1>
+        <p class="activity-note">Practice days and exercises attempted help show consistency. Submissions record runs, not time spent studying.</p>
+        <form id="activity-filters" class="activity-panel activity-filters">
+            <label>Period<select id="activity-period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="custom">Custom</option></select></label>
+            <label>From<input type="date" id="activity-start" required></label>
+            <label>Through<input type="date" id="activity-end" required></label>
+            <label>Language<select id="activity-language"><option value="">All languages</option></select></label>
+            <label>Chapter<select id="activity-chapter"><option value="">All chapters</option></select></label>
+            <label>Timezone<select id="activity-timezone"></select></label>
+            <label class="activity-checkbox"><input type="checkbox" id="activity-archived">Include archived students</label>
+            <button type="submit" class="action-btn" id="activity-refresh">Refresh</button>
+        </form>
+        <p id="activity-status" role="status" aria-live="polite"></p>
+        <p id="activity-history" class="activity-note"></p>
+        <div id="activity-summary" class="activity-summary"></div>
+        <section class="activity-panel" aria-labelledby="daily-heading">
+            <h2 id="daily-heading">Daily activity</h2>
+            <p class="activity-note">Hover over bars for daily totals. Configuration errors are included in submissions, but do not count as practice.</p>
+            <div class="activity-legend"><span class="runs">Submissions</span><span class="students">Active students</span><span class="completions">First completions</span></div>
+            <div id="activity-chart" class="activity-chart"></div>
+        </section>
+        <section class="activity-panel" aria-labelledby="students-heading">
+            <h2 id="students-heading">Students</h2>
+            <div class="activity-table-controls">
+                <label>Find a student<input type="search" id="activity-search" placeholder="Name or email"></label>
+                <label>Sort by<select id="activity-sort"><option value="practiceDays">Practice days</option><option value="exercisesAttempted">Exercises attempted</option><option value="submissions">Submissions</option><option value="completed">First completions</option><option value="lastSubmission">Last submission</option><option value="name">Name</option></select></label>
+            </div>
+            <div class="activity-table-scroll"><table class="activity-table"><thead><tr><th>Student</th><th>Practice days</th><th>Submissions</th><th>Exercises attempted</th><th>First completions</th><th>Configuration errors</th><th>Last submission in range</th></tr></thead><tbody id="activity-students"></tbody></table></div>
+        </section>
+        <section id="activity-detail" class="activity-panel" hidden aria-labelledby="detail-heading">
+            <h2 id="detail-heading"></h2>
+            <p id="activity-detail-status" role="status"></p>
+            <div id="activity-heatmap" class="activity-heatmap" aria-label="Student activity calendar"></div>
+            <p class="activity-note">Each square is one calendar day; darker squares indicate more practice submissions.</p>
+            <h3>Recent submissions</h3>
+            <p class="activity-note">Showing up to the 200 most recent submissions within the selected filters.</p>
+            <div class="activity-table-scroll"><table class="activity-table"><thead><tr><th>When</th><th>Exercise</th><th>Outcome</th><th>Runtime</th><th>Failed test</th></tr></thead><tbody id="activity-timeline"></tbody></table></div>
+        </section>
+        <section class="activity-panel" aria-labelledby="exercises-heading">
+            <h2 id="exercises-heading">Exercises</h2>
+            <div class="activity-table-scroll"><table class="activity-table"><thead><tr><th>Exercise</th><th>Language</th><th>Students practicing</th><th>Submissions</th><th>Successful runs</th><th>First completions</th><th>Configuration errors</th></tr></thead><tbody id="activity-exercises"></tbody></table></div>
+        </section>
+    </main>
+    <script type="module" src="../../js/pages/admin/activityPage.js"></script>
+</body>
+</html>

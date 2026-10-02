@@ -1,0 +1,38 @@
+body:has(.activity-page) { overflow: auto; }
+.activity-page { max-width: 1500px; margin: 0 auto; padding: 2rem; }
+.activity-page h1, .activity-page h2, .activity-page h3 { color: var(--text-primary); margin-bottom: .8rem; }
+.activity-note { color: var(--text-secondary); margin: .6rem 0 1rem; }
+.activity-panel { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 1.2rem; margin: 1.2rem 0; }
+.activity-filters, .activity-table-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+.activity-page label { display: flex; flex-direction: column; gap: .4rem; color: var(--text-secondary); }
+.activity-page input, .activity-page select { font: inherit; color: var(--text-primary); background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 5px; padding: .5rem; }
+.activity-page .activity-checkbox { flex-direction: row; align-items: center; padding: .5rem 0; }
+.activity-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+.activity-summary div { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 1rem; }
+.activity-summary strong { display: block; font-size: 1.8rem; color: var(--accent-lavender); }
+.activity-summary span { color: var(--text-secondary); }
+.activity-chart, .activity-table-scroll, .activity-heatmap { overflow-x: auto; }
+.activity-chart svg { display: block; min-width: 100%; height: 260px; }
+.activity-chart text { fill: var(--text-secondary); font: 11px monospace; }
+.activity-chart .axis { stroke: var(--border-color); }
+.activity-chart .runs { fill: var(--accent-lavender); }
+.activity-chart .students { fill: var(--accent-blue); }
+.activity-chart .completions { fill: var(--accent-green); }
+.activity-legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.activity-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: .4rem; background: var(--accent-lavender); }
+.activity-legend .students::before { background: var(--accent-blue); }
+.activity-legend .completions::before { background: var(--accent-green); }
+.activity-table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 1rem; }
+.activity-table th, .activity-table td { padding: .8rem; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+.activity-table th { color: var(--text-secondary); font-size: .85rem; }
+.activity-table tbody tr:hover { background: var(--surface); }
+.activity-student-button { background: none; border: none; color: var(--accent-blue); cursor: pointer; font: inherit; text-align: left; text-decoration: underline; }
+.activity-table small { display: block; color: var(--text-secondary); }
+.activity-heatmap { display: grid; grid-template-rows: repeat(7, 16px); grid-auto-flow: column; grid-auto-columns: 16px; gap: 4px; padding: .5rem 0; justify-content: start; }
+.activity-day { width: 16px; height: 16px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--surface); }
+.activity-day[data-level="1"] { background: color-mix(in srgb, var(--accent-green) 35%, var(--bg-secondary)); }
+.activity-day[data-level="2"] { background: color-mix(in srgb, var(--accent-green) 65%, var(--bg-secondary)); }
+.activity-day[data-level="3"] { background: var(--accent-green); }
+.activity-day:focus { outline: 2px solid var(--accent-blue); }
+.activity-error { color: var(--accent-red); }
+@media (max-width: 700px) { .activity-page { padding: 1rem; } .activity-filters label { flex: 1 1 140px; } .activity-table { min-width: 700px; } }
