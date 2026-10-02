@@ -19,6 +19,17 @@ const router = express.Router();
 router.use(requireAdmin);
 router.use(require('../middleware/adminExecutionQueue'));
 
+// Student practice reports are protected by the admin middleware above.
+router.get('/activity/filters', asyncHandler(async (_req, res) => {
+	res.json(await require('../services/activityService').getFilters());
+}));
+router.get('/activity/students/:id', asyncHandler(async (req, res) => {
+	res.json(await require('../services/activityService').getActivity(req.query, req.params.id));
+}));
+router.get('/activity', asyncHandler(async (req, res) => {
+	res.json(await require('../services/activityService').getActivity(req.query));
+}));
+
 
 /**
  * GET /api/admin/exercises

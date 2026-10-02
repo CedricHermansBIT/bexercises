@@ -196,6 +196,8 @@ class DatabaseService {
 				ON submission_attempts(exercise_id, user_id, created_at);
 		`);
 
+		await require('./activityService').ensureActivityIndexes(this.db);
+
 		// Older databases have a submission_attempts table without foreign keys.
 		// Triggers enforce the same relationship for new writes without rebuilding
 		// or deleting any existing history rows.
