@@ -15,7 +15,7 @@
         <h1>Student activity</h1>
         <p class="activity-note">Practice days and exercises attempted help show consistency. Submissions record runs, not time spent studying.</p>
         <form id="activity-filters" class="activity-panel activity-filters">
-            <label>Period<select id="activity-period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="custom">Custom</option></select></label>
+            <label>Period<select id="activity-period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="365">Last year</option><option value="custom">Custom</option></select></label>
             <label>From<input type="date" id="activity-start" required></label>
             <label>Through<input type="date" id="activity-end" required></label>
             <label>Language<select id="activity-language"><option value="">All languages</option></select></label>
@@ -27,6 +27,13 @@
         <p id="activity-status" role="status" aria-live="polite"></p>
         <p id="activity-history" class="activity-note"></p>
         <div id="activity-summary" class="activity-summary"></div>
+        <section class="activity-panel" aria-labelledby="calendar-heading">
+            <h2 id="calendar-heading">Practice calendar</h2>
+            <p class="activity-note">More exercises practiced means a stronger colour, relative to the busiest day in this range. Each student’s work on an exercise counts once per day; repeated runs do not increase the colour. Choose “Last year” for a full calendar.</p>
+            <div id="activity-calendar" class="activity-calendar" aria-label="Class practice calendar"></div>
+            <div class="activity-calendar-key" aria-label="Practice intensity from less to more"><span>Less</span><span class="activity-day" data-level="0"></span><span class="activity-day" data-level="1"></span><span class="activity-day" data-level="2"></span><span class="activity-day" data-level="3"></span><span class="activity-day" data-level="4"></span><span>More</span></div>
+            <p id="activity-calendar-selection" class="activity-note" aria-live="polite">Hover over or focus a square for daily totals. Click a day to filter the report.</p>
+        </section>
         <section class="activity-panel" aria-labelledby="daily-heading">
             <h2 id="daily-heading">Daily activity</h2>
             <p class="activity-note">Hover over bars for daily totals. Configuration errors are included in submissions, but do not count as practice.</p>
@@ -44,8 +51,8 @@
         <section id="activity-detail" class="activity-panel" hidden aria-labelledby="detail-heading">
             <h2 id="detail-heading"></h2>
             <p id="activity-detail-status" role="status"></p>
-            <div id="activity-heatmap" class="activity-heatmap" aria-label="Student activity calendar"></div>
-            <p class="activity-note">Each square is one calendar day; darker squares indicate more practice submissions.</p>
+            <div id="activity-heatmap" class="activity-calendar" aria-label="Student activity calendar"></div>
+            <p class="activity-note">Each square is one calendar day; stronger colours indicate more distinct exercises practiced, relative to this student’s busiest day in the range.</p>
             <h3>Recent submissions</h3>
             <p class="activity-note">Showing up to the 200 most recent submissions within the selected filters.</p>
             <div class="activity-table-scroll"><table class="activity-table"><thead><tr><th>When</th><th>Exercise</th><th>Outcome</th><th>Runtime</th><th>Failed test</th></tr></thead><tbody id="activity-timeline"></tbody></table></div>

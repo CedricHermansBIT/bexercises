@@ -6,6 +6,14 @@ timelines, and exercise totals. Reports support a date range of up to 366 days,
 language/chapter filters, and optional inclusion of archived students. Student
 names and emails can be searched, and the overview can be sorted by each metric.
 
+The overview and student detail include a GitHub-style practice calendar with
+weekday and month labels. Each square represents a day; colour intensity is
+relative to the busiest day in the selected range. The overview counts distinct
+student/exercise pairs per day, so repeated runs on one exercise by the same
+student do not increase intensity. Configuration errors are excluded. Hover or
+focus a square for totals, click an overview square to filter to that day, or
+choose **Last year** to view a full year.
+
 All reporting endpoints require the shared admin role check:
 
 - `GET /api/admin/activity/filters`

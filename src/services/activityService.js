@@ -110,7 +110,8 @@ async function getActivity(query = {}, userId = null) {
 	`, params);
 	const daily = new Map();
 	for (let day = start; day <= end; day = shiftDay(day, 1)) {
-		daily.set(day, { date: day, submissions: 0, configurationErrors: 0, firstCompletions: 0, users: new Set() });
+		daily.set(day, { date: day, submissions: 0, configurationErrors: 0, firstCompletions: 0,
+			users: new Set(), practicedExercises: new Set() });
 	}
 	const exercises = new Map();
 	const exerciseSummary = (id, title, language) => {
@@ -138,6 +139,7 @@ async function getActivity(query = {}, userId = null) {
 			student.practiceDays.add(day);
 			student.exercises.add(row.exercise_id);
 			bucket.users.add(row.user_id);
+			bucket.practicedExercises.add(`${row.user_id}:${row.exercise_id}`);
 			exercise.users.add(row.user_id);
 		}
 	}
@@ -184,7 +186,8 @@ async function getActivity(query = {}, userId = null) {
 			.slice(0, 200).map(row => ({ ...row, created_at: utcTimestamp(row.created_at) }));
 	}
 	return { range: { start, end, timezone: options.timezone }, historyStartsAt, summary,
-		daily: [...daily.values()].map(day => ({ ...day, activeStudents: day.users.size, users: undefined })),
+		daily: [...daily.values()].map(day => ({ ...day, activeStudents: day.users.size,
+			exercisesPracticed: day.practicedExercises.size, users: undefined, practicedExercises: undefined })),
 		students: studentList, exercises: [...exercises.values()].map(ex => ({ ...ex, activeStudents: ex.users.size, users: undefined }))
 			.sort((a, b) => b.submissions - a.submissions), timeline };
 }

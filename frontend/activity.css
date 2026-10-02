@@ -32,7 +32,15 @@ body:has(.activity-page) { overflow: auto; }
 .activity-day { width: 16px; height: 16px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--surface); }
 .activity-day[data-level="1"] { background: color-mix(in srgb, var(--accent-green) 35%, var(--bg-secondary)); }
 .activity-day[data-level="2"] { background: color-mix(in srgb, var(--accent-green) 65%, var(--bg-secondary)); }
-.activity-day[data-level="3"] { background: var(--accent-green); }
+.activity-day[data-level="3"] { background: color-mix(in srgb, var(--accent-green) 80%, var(--bg-secondary)); }
+.activity-day[data-level="4"] { background: var(--accent-green); }
 .activity-day:focus { outline: 2px solid var(--accent-blue); }
+.activity-calendar { overflow-x: auto; padding: .5rem 0; }
+.activity-calendar-months { display: grid; grid-auto-columns: 16px; gap: 4px; margin-left: 40px; min-height: 22px; font-size: 11px; color: var(--text-secondary); }
+.activity-calendar-month { width: 60px; }
+.activity-calendar-body { display: flex; gap: 8px; width: max-content; }
+.activity-calendar-weekdays { display: grid; grid-template-rows: repeat(7, 16px); gap: 4px; width: 32px; padding: .5rem 0; font-size: 10px; color: var(--text-secondary); }
+.activity-calendar-key { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: .5rem; color: var(--text-secondary); font-size: 12px; }
+button.activity-day { padding: 0; cursor: pointer; }
 .activity-error { color: var(--accent-red); }
 @media (max-width: 700px) { .activity-page { padding: 1rem; } .activity-filters label { flex: 1 1 140px; } .activity-table { min-width: 700px; } }

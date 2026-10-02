@@ -146,6 +146,9 @@ class ActivityPage {
                 summary.append(card);
             }
             this.renderChart(report.daily);
+            this.renderCalendar('activity-calendar', report.daily, {
+                interactive: true, readoutId: 'activity-calendar-selection'
+            });
             this.renderStudents();
             const exercises = element('activity-exercises');
             exercises.replaceChildren();
@@ -166,6 +169,71 @@ class ActivityPage {
         if (!value) return '—';
         return new Intl.DateTimeFormat('en-GB', { timeZone: this.report.range.timezone,
             dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    }
+
+    renderCalendar(containerId, days, { interactive = false, readoutId = null } = {}) {
+        const container = element(containerId);
+        container.replaceChildren();
+        if (!days.length) return;
+        const months = document.createElement('div');
+        months.className = 'activity-calendar-months';
+        const body = document.createElement('div');
+        body.className = 'activity-calendar-body';
+        const weekdays = document.createElement('div');
+        weekdays.className = 'activity-calendar-weekdays';
+        for (const name of ['Mon', '', 'Wed', '', 'Fri', '', 'Sun']) {
+            const label = document.createElement('span');
+            label.textContent = name;
+            weekdays.append(label);
+        }
+        const heatmap = document.createElement('div');
+        heatmap.className = 'activity-heatmap';
+        const offset = (new Date(`${days[0].date}T00:00:00Z`).getUTCDay() + 6) % 7;
+        for (let index = 0; index < offset; index++) heatmap.append(document.createElement('span'));
+        const maximum = Math.max(1, ...days.map(day => day.exercisesPracticed));
+        let previousMonth = null;
+        let previousMonthLabel = null;
+        days.forEach((day, index) => {
+            const month = day.date.slice(0, 7);
+            if (month !== previousMonth) {
+                const label = document.createElement('span');
+                label.className = 'activity-calendar-month';
+                label.style.gridColumn = String(Math.floor((index + offset) / 7) + 1);
+                label.textContent = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' })
+                    .format(new Date(`${day.date}T00:00:00Z`));
+                if (previousMonthLabel?.style.gridColumn === label.style.gridColumn) {
+                    previousMonthLabel.textContent += `/${label.textContent}`;
+                } else {
+                    months.append(label);
+                    previousMonthLabel = label;
+                }
+                previousMonth = month;
+            }
+            const square = document.createElement(interactive ? 'button' : 'span');
+            square.className = 'activity-day';
+            square.dataset.level = String(day.exercisesPracticed === 0 ? 0 : Math.ceil(day.exercisesPracticed / maximum * 4));
+            square.tabIndex = 0;
+            const description = `${day.date}: ${day.exercisesPracticed} exercises practiced across ${day.activeStudents} students, ${day.submissions} submissions, ${day.firstCompletions} first completions, ${day.configurationErrors} configuration errors`;
+            square.title = description;
+            square.setAttribute('aria-label', description);
+            if (readoutId) {
+                const describe = () => { element(readoutId).textContent = description; };
+                square.addEventListener('mouseenter', describe);
+                square.addEventListener('focus', describe);
+            }
+            if (interactive) {
+                square.type = 'button';
+                square.addEventListener('click', () => {
+                    element('activity-period').value = 'custom';
+                    element('activity-start').value = day.date;
+                    element('activity-end').value = day.date;
+                    this.load();
+                });
+            } else square.setAttribute('role', 'img');
+            heatmap.append(square);
+        });
+        body.append(weekdays, heatmap);
+        container.append(months, body);
     }
 
     renderChart(days) {
@@ -248,20 +316,7 @@ class ActivityPage {
             const detail = await this.api._get(`/api/admin/activity/students/${encodeURIComponent(id)}?${query}`);
             if (generation !== this.detailGeneration) return;
             element('activity-detail-status').textContent = `${detail.students[0].practiceDays} practice days · ${detail.students[0].exercisesAttempted} exercises attempted`;
-            const heatmap = element('activity-heatmap');
-            const offset = (new Date(`${detail.range.start}T00:00:00Z`).getUTCDay() + 6) % 7;
-            for (let index = 0; index < offset; index++) heatmap.append(document.createElement('span'));
-            for (const day of detail.daily) {
-                const square = document.createElement('span');
-                const practice = day.submissions - day.configurationErrors;
-                square.className = 'activity-day';
-                square.dataset.level = practice === 0 ? '0' : practice < 3 ? '1' : practice < 8 ? '2' : '3';
-                square.tabIndex = 0;
-                square.title = `${day.date}: ${practice} practice submissions, ${day.configurationErrors} configuration errors, ${day.firstCompletions} first completions`;
-                square.setAttribute('role', 'img');
-                square.setAttribute('aria-label', square.title);
-                heatmap.append(square);
-            }
+            this.renderCalendar('activity-heatmap', detail.daily);
             const timeline = element('activity-timeline');
             for (const attempt of detail.timeline) {
                 const row = document.createElement('tr');

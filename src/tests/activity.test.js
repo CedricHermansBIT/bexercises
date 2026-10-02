@@ -48,11 +48,14 @@ test('activity migration preserves records and reports local practice days witho
 		const report = await activity.getActivity(query);
 		assert.deepEqual(report.summary, { students: 2, activeStudents: 1, submissions: 4, configurationErrors: 1, firstCompletions: 1 });
 		assert.equal(report.daily[0].activeStudents, 1);
+		assert.equal(report.daily[0].exercisesPracticed, 1, 'reruns and configuration errors do not add practiced exercises');
 		assert.equal(report.students[0].practiceDays, 1);
 		assert.equal(report.students[0].exercisesAttempted, 1);
 		assert.equal(report.students[1].submissions, 0);
 		assert.equal(report.exercises.find(ex => ex.id === 'e2').activeStudents, 0);
 		assert.equal((await activity.getActivity({ ...query, includeArchived: 'true' })).summary.students, 3);
+		assert.equal((await activity.getActivity({ ...query, includeArchived: 'true' })).daily[0].exercisesPracticed, 2,
+			'two students practicing the same exercise each count once');
 		assert.equal((await activity.getActivity({ ...query, language: 'python' })).summary.submissions, 1);
 		assert.equal((await activity.getActivity({ ...query, chapter: 'c1' })).summary.submissions, 3);
 		const detail = await activity.getActivity(query, '1');
