@@ -350,6 +350,7 @@ class ApiService {
 				input: testCase.input || [],
 				fixtures: testCase.fixtures || [],
 				outputFiles: testCase.outputFiles || [],
+				useDynamicOutput: !!testCase.useDynamicOutput,
 				validationQuery: testCase.validationQuery || null
 			})
 		});

@@ -173,3 +173,37 @@ test('failed database validation is a configuration error even with empty expect
 		delete require.cache[runnerPath];
 	}
 });
+
+test('dynamic output paths use fresh reference hashes and reject incorrect or missing files', async () => {
+	const dockerPath = require.resolve('../services/dockerService');
+	const runnerPath = require.resolve('../services/testRunner');
+	const original = require(dockerPath);
+	const calls = [];
+	require.cache[dockerPath].exports = {
+		...original,
+		runScriptInContainer: async (dir, filename, _language, _args, _inputs, _timeout, options) => {
+			calls.push(options);
+			const code = await fs.readFile(path.join(dir, filename), 'utf8');
+			if (code !== 'missing') await fs.writeFile(path.join(dir, 'listing.txt'), code === 'wrong' ? 'wrong' : 'current listing');
+			return { stdout: '', stderr: '', exitCode: 0 };
+		}
+	};
+	delete require.cache[runnerPath];
+	try {
+		const exercise = { id: 'dynamic-files', language_id: 'bash', solution: 'reference',
+			testCases: [{ useDynamicOutput: true,
+				expectedOutputFiles: [{ filename: 'listing.txt', type: 'file', sha256: 'stale' }] }] };
+		const { runTests } = require(runnerPath);
+		assert.equal((await runTests(exercise, 'student'))[0].passed, true);
+		assert.equal((await runTests(exercise, 'wrong'))[0].passed, false);
+		assert.equal((await runTests(exercise, 'missing'))[0].passed, false);
+		assert.ok(calls.every(options => options.isolateScript === true));
+		exercise.solution = 'missing';
+		const broken = (await runTests(exercise, 'student'))[0];
+		assert.equal(broken.passed, false);
+		assert.match(broken.configurationError, /did not create/);
+	} finally {
+		require.cache[dockerPath].exports = original;
+		delete require.cache[runnerPath];
+	}
+});

@@ -205,7 +205,7 @@ router.post('/run-test-case', async (req, res) => {
 		}
 
 		// Handle regular (non-database) exercises
-		if (outputFiles && outputFiles.length > 0) {
+		if ((outputFiles && outputFiles.length > 0) || req.body.useDynamicOutput) {
 			// Manual tmpdir management for output file verification
 			const { createTempScript, copyFixtures, runScriptInContainer, hashOutputFiles, removeRecursive } = require('../services/dockerService');
 			const config = require('../config');
@@ -218,7 +218,8 @@ router.post('/run-test-case', async (req, res) => {
 				}
 
 				// Run script to generate output
-				result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, input, config.docker.timeout);
+				result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, input, config.docker.timeout,
+                    { isolateScript: !!req.body.useDynamicOutput });
 
 				// Expand command substitutions in output filenames (e.g., $(date +%Y%m%d))
 				const expandedOutputFiles = outputFiles.map(filename =>

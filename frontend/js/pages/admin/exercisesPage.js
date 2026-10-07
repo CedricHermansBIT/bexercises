@@ -580,7 +580,12 @@ class ExercisesPage {
             this.testCases = exercise.testCases || [];
 
             // Store current language info for database detection
+            this.selectedLanguage = exercise.language_id;
+            localStorage.setItem('admin-selected-language', this.selectedLanguage);
+            document.getElementById('admin-language-select').value = this.selectedLanguage;
             this.currentLanguageId = exercise.language_id;
+            this.updateNewExerciseButton();
+            this.populateExerciseList();
             const language = this.languages.find(l => l.id === exercise.language_id);
             this.currentExerciseType = language?.exercise_type || 'programming';
 
@@ -588,7 +593,7 @@ class ExercisesPage {
             document.getElementById('exercise-id').value = exercise.id;
             document.getElementById('exercise-id').disabled = true;
             document.getElementById('exercise-title').value = exercise.title;
-            document.getElementById('exercise-chapter').value = exercise.chapter || 'Shell scripting';
+            this.updateChapterOptions(exercise.chapter);
             document.getElementById('exercise-description').value = exercise.description;
 
             // Set CodeMirror mode based on exercise language
@@ -600,7 +605,6 @@ class ExercisesPage {
             this.solutionEditor.setValue(exercise.solution);
 
             this.renderTestCases();
-            this.updateChapterOptions();
 
             document.getElementById('admin-welcome').style.display = 'none';
             document.getElementById('exercise-editor').style.display = 'block';
@@ -682,6 +686,7 @@ class ExercisesPage {
                     input: testCase.input || [],
                     fixtures: fixtures,
                     outputFiles: testCase.outputFiles || [],
+                    useDynamicOutput: !!testCase.useDynamicOutput,
                     validationQuery: (isDatabaseExercise && testCase.validationQuery) ? testCase.validationQuery : null
                 });
 
@@ -696,6 +701,7 @@ class ExercisesPage {
                 }
 
                 // Store file hashes if any output files were specified
+                this.testCases[i].expectedOutputFiles = [];
                 if (result.fileHashes && result.fileHashes.length > 0) {
                     this.testCases[i].expectedOutputFiles = result.fileHashes.map(fh => ({
                         filename: fh.filename,
@@ -1063,7 +1069,7 @@ class ExercisesPage {
                     <div class="form-group-inline">
                         <label>Expected Output Paths (comma-separated names to verify)</label>
                         <input type="text" class="form-input" data-field="outputFiles" data-index="${index}"
-                                value="${(testCase.outputFiles || []).join(', ')}" placeholder="output.txt, result.tar.gz">
+                                value="${escapeHtml((testCase.outputFiles || []).join(', '))}" placeholder="output.txt, result.tar.gz">
                         <small style="color: var(--text-muted); font-size: 0.85rem;">Files are hash-verified; directories and symbolic links are verified by type</small>
                     </div>
                     ` : ''}
@@ -1098,8 +1104,8 @@ class ExercisesPage {
                             <span>Use Dynamic Output (re-run solution each time)</span>
                         </label>
                         <small style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
-                            Enable this for exercises with time-dependent or random output (e.g., date commands). 
-                            The exercise solution will be executed to generate expected output dynamically.
+                            Enable this for changing output (e.g., date commands or directory listings).
+                            The solution regenerates expected text and output path contents for each run. The runner script is kept outside the working directory.
                         </small>
                     </div>
                 </div>
@@ -1156,9 +1162,9 @@ class ExercisesPage {
         }
     }
 
-    updateChapterOptions() {
+    updateChapterOptions(savedChapter = null) {
         const select = document.getElementById('exercise-chapter');
-        const currentValue = select.value;
+        const currentValue = savedChapter ?? select.value;
 
         // Only show chapters for the currently selected language
         const languageExercises = this.selectedLanguage
@@ -1177,6 +1183,10 @@ class ExercisesPage {
                 });
             }
         });
+
+        if (savedChapter && !chaptersSet.has(savedChapter)) {
+            chaptersData.push({ name: savedChapter, order: 0 });
+        }
 
         // Sort chapters by order
         chaptersData.sort((a, b) => a.order - b.order);

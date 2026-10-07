@@ -244,8 +244,11 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 				// Preserve permissions
 				const stat = await fs.stat(srcPath);
 				await fs.chmod(destPath, stat.mode);
+				await fs.utimes(destPath, stat.atime, stat.mtime);
 			}
 		}
+		const directoryStat = await fs.stat(src);
+		await fs.utimes(dest, directoryStat.atime, directoryStat.mtime);
 	}
 
 	for (const fixtureName of fixtures) {
@@ -282,6 +285,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 					? fixturePermissions[fixtureName]
 					: stat.mode;
 				await fs.chmod(destPath, permissionMode(mode));
+				await fs.utimes(destPath, stat.atime, stat.mtime);
 
 				copiedFiles.push(fixtureName);
 				console.log(`✓ Copied folder with contents: ${fixtureName} -> ${destPath}`);
@@ -297,6 +301,7 @@ async function copyFixtures(tmpdir, fixtures = [], fixturePermissions = {}) {
 					mode = stat.mode;
 				}
 				await fs.chmod(destPath, permissionMode(mode));
+				await fs.utimes(destPath, stat.atime, stat.mtime);
 
 				copiedFiles.push(fixtureName);
 				console.log(`✓ Copied fixture: ${fixtureName} -> ${destPath}`);
@@ -406,7 +411,7 @@ async function removeRunnerContainer(runtime, containerName, mayStillBeStarting)
  * the script only writes to container tmpfs mounts. Copy output back while the
  * container is still running so file grading sees its final filesystem state.
  */
-async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args = [], inputs = [], timeoutMs = config.docker.timeout) {
+async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args = [], inputs = [], timeoutMs = config.docker.timeout, options = {}) {
 	const containerName = `bex-run-${crypto.randomUUID()}`;
 	const containerWorkdir = '/home/runner';
 	const containerInputs = '/tmp/.bitlab-inputs';
@@ -416,7 +421,8 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 	let containerStarted = false;
 	const stdin = inputs && Array.isArray(inputs) && inputs.length > 0
 		? inputs.map(String).join('\n') + '\n' : null;
-	const shellCommand = `${languageConfig.interpreter} ./${scriptFilename} "$@"${stdin === null ? ' < /dev/null' : ''}`;
+	const scriptLocation = options.isolateScript ? `${containerInputs}/${scriptFilename}` : `./${scriptFilename}`;
+	const shellCommand = `${languageConfig.interpreter} ${scriptLocation} "$@"${stdin === null ? ' < /dev/null' : ''}`;
 	try {
 		const start = await runContainerCommand(runtime, [
 			'run', '-d', '--name', containerName,
@@ -448,8 +454,8 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 				: a.inode < b.inode ? -1 : a.inode > b.inode ? 1 : a.name.localeCompare(b.name));
 		const staged = await runContainerCommand(runtime, [
 			'exec', '-w', containerWorkdir, containerName, '/bin/sh', '-c',
-			`for file do cp -R "${containerInputs}/$file" . || exit 125; done`, '--',
-			...inputEntries.reverse().map(entry => entry.name)
+			`for file do cp -Rp "${containerInputs}/$file" . || exit 125; done`, '--',
+			...inputEntries.reverse().filter(entry => !options.isolateScript || entry.name !== scriptFilename).map(entry => entry.name)
 		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes);
 		if (staged.exitCode !== 0 || staged.error || staged.timedOut || staged.outputLimited) {
 			return { ...staged, exitCode: null,
@@ -479,6 +485,12 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 			return { ...result, exitCode: null,
 				error: copied.error || copied.stderr || 'Could not collect output files' };
 		}
+		// Retain the isolated input script for subsequent test cases, without exposing it to listings.
+		if (options.isolateScript) {
+            const retainedScript = path.join(outputDir, scriptFilename);
+            await fs.rm(retainedScript, { recursive: true, force: true });
+            await fs.copyFile(path.join(tmpdir, scriptFilename), retainedScript);
+        }
 		await fs.chmod(outputDir, 0o777);
 		await fs.rm(tmpdir, { recursive: true, force: true });
 		await fs.rename(outputDir, tmpdir);

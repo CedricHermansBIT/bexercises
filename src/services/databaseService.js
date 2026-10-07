@@ -105,6 +105,7 @@ class DatabaseService {
 				expected_stderr TEXT DEFAULT '',
 				expected_exit_code INTEGER DEFAULT 0,
 				expected_output_files TEXT DEFAULT '[]', -- JSON array of {filename, type, sha256, linkTarget}; hashes cover files and directory trees
+				output_files TEXT, -- JSON array of paths; NULL falls back to legacy expected states
 				use_dynamic_output INTEGER DEFAULT 0, -- If 1, run exercise solution to get expected output
 				validation_query TEXT, -- For database exercises: query to validate database state
 				expected_validation_output TEXT, -- Expected output of validation query
@@ -263,6 +264,12 @@ class DatabaseService {
 		// Add expected_output_files column to test_cases if it doesn't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE test_cases ADD COLUMN expected_output_files TEXT DEFAULT '[]'`);
+		} catch (e) {
+			// Column already exists
+		}
+
+		try {
+			await this.db.exec('ALTER TABLE test_cases ADD COLUMN output_files TEXT');
 		} catch (e) {
 			// Column already exists
 		}
@@ -905,6 +912,8 @@ class DatabaseService {
 				expectedStderr: tc.expected_stderr || '',
 				expectedExitCode: tc.expected_exit_code != null ? tc.expected_exit_code : 0,
 				expectedOutputFiles: tc.expected_output_files ? JSON.parse(tc.expected_output_files) : [],
+				outputFiles: tc.output_files != null ? JSON.parse(tc.output_files)
+					: (tc.expected_output_files ? JSON.parse(tc.expected_output_files).map(file => file.filename) : []),
 				useDynamicOutput: tc.use_dynamic_output === 1,
 				validationQuery: tc.validation_query || null,
                 expectedValidationOutput: tc.expected_validation_output || null,
@@ -964,8 +973,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -974,6 +983,7 @@ class DatabaseService {
 					tc.expectedStderr || '',
 					tc.expectedExitCode || 0,
 					JSON.stringify(tc.expectedOutputFiles || []),
+					JSON.stringify(tc.outputFiles ?? (tc.expectedOutputFiles || []).map(file => file.filename)),
 					tc.useDynamicOutput ? 1 : 0,
 					tc.validationQuery || null,
 					tc.expectedValidationOutput || null,
@@ -1049,8 +1059,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -1059,6 +1069,7 @@ class DatabaseService {
 					tc.expectedStderr || '',
 					tc.expectedExitCode || 0,
 					JSON.stringify(tc.expectedOutputFiles || []),
+					JSON.stringify(tc.outputFiles ?? (tc.expectedOutputFiles || []).map(file => file.filename)),
 					tc.useDynamicOutput ? 1 : 0,
 					tc.validationQuery || null,
 					tc.expectedValidationOutput || null,

@@ -39,3 +39,24 @@ test('runner passes literal backslash sequences to stdin', {
 		await removeRecursive(temp.tmpdir);
 	}
 });
+
+test('dynamic ls redirection grades current file contents independently of student script length', {
+	skip: process.env.RUN_CONTAINER_TESTS !== '1' ? 'Set RUN_CONTAINER_TESTS=1 for container integration tests' : false
+}, async () => {
+	const { runTests } = require('../services/testRunner');
+	const exercise = {
+		id: 'redirect-output', language_id: 'bash', solution: '#!/bin/bash\nls -l > listing.txt',
+		testCases: [0, 1].map(() => ({ useDynamicOutput: true, outputFiles: ['listing.txt'],
+			expectedOutputFiles: [{ filename: 'listing.txt', type: 'file', sha256: 'stale' }] }))
+	};
+	const correct = await runTests(exercise, '#!/bin/bash\n# A longer student script with different whitespace\nls   -l > listing.txt\n');
+	assert.deepEqual(correct.map(result => result.passed), [true, true]);
+	assert.ok(correct.every(result => result.outputFiles[0].matches));
+	exercise.testCases = exercise.testCases.slice(0, 1);
+	assert.equal((await runTests(exercise, 'echo incorrect > listing.txt'))[0].passed, false);
+	assert.equal((await runTests(exercise, 'ls -l'))[0].passed, false);
+	exercise.solution = 'true';
+	const broken = (await runTests(exercise, 'ls -l > listing.txt'))[0];
+	assert.equal(broken.passed, false);
+	assert.match(broken.configurationError, /did not create/);
+});

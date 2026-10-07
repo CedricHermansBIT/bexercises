@@ -160,7 +160,8 @@ async function runTests(exercise, script) {
                     languageConfig,
                     tc.arguments || [],
                     tc.input || [],
-                    config.docker.timeout
+                    config.docker.timeout,
+                    { isolateScript: !!tc.useDynamicOutput }
                 );
             }
 
@@ -169,6 +170,13 @@ async function runTests(exercise, script) {
             let expectedStderr = normalizeOutput(tc.expectedStderr || '').trim();
             let expectedExitCode = (tc.expectedExitCode != null) ? tc.expectedExitCode : 0;
 			let configurationError = null;
+            let expectedOutputFiles = tc.expectedOutputFiles || [];
+            const outputPaths = tc.outputFiles ?? expectedOutputFiles.map(file => file.filename);
+            const expandedOutputPaths = outputPaths.map(expandCommandSubstitution);
+            if (!tc.useDynamicOutput && outputPaths.some((filename, index) =>
+                !expectedOutputFiles.some(file => file.filename === filename || file.filename === expandedOutputPaths[index]))) {
+                configurationError = 'Expected output paths changed; test the reference solution before saving';
+            }
 
             // For database exercises with validation queries, run the validation query AFTER user script
             // to check the actual database state rather than just the command output
@@ -261,12 +269,16 @@ async function runTests(exercise, script) {
                         }
                         solutionResult = await runScriptInContainer(
                             solutionTmpdir, reference.scriptFilename, reference.languageConfig,
-                            tc.arguments || [], tc.input || [], config.docker.timeout
+                            tc.arguments || [], tc.input || [], config.docker.timeout, { isolateScript: true }
                         );
                     }
                     if (solutionResult.exitCode !== 0 || solutionResult.timedOut ||
                         solutionResult.outputLimited || solutionResult.error) {
                         throw new Error(`Reference solution failed: ${solutionResult.error || solutionResult.stderr || solutionResult.exitCode}`);
+                    }
+                    expectedOutputFiles = await hashOutputFiles(solutionTmpdir, expandedOutputPaths);
+                    if (expectedOutputFiles.some(file => !file.exists)) {
+                        throw new Error('Reference solution did not create all expected output paths');
                     }
                     expected = normalizeOutput(solutionResult.stdout).trim();
                     expectedStderr = normalizeOutput(solutionResult.stderr || '').trim();
@@ -284,12 +296,12 @@ async function runTests(exercise, script) {
 			// Hash output files if specified
 			let outputFilesResult = [];
 			let outputFilesMatch = true;
-			if (tc.expectedOutputFiles && tc.expectedOutputFiles.length > 0) {
+			if (outputPaths.length > 0) {
 				// Expand command substitutions in filenames (e.g., $(date +%Y%m%d))
-				const expandedFiles = tc.expectedOutputFiles.map(f => ({
-					...f,
-					filename: expandCommandSubstitution(f.filename)
-				}));
+				const expandedFiles = outputPaths.map((filename, index) => ({
+                    ...expectedOutputFiles.find(file => file.filename === filename || file.filename === expandedOutputPaths[index]),
+                    filename: expandedOutputPaths[index]
+                }));
 
 				const filenames = expandedFiles.map(f => f.filename);
 				const actualFileHashes = await hashOutputFiles(tmpdir, filenames);

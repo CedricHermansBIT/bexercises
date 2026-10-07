@@ -41,3 +41,28 @@ test('exercise edits roll back all test and order changes on failure', async () 
 		await service.db.close();
 	}
 });
+
+test('output paths survive create, edit and legacy test-case loading', async () => {
+	const service = new DatabaseService();
+	service.db = await open({ filename: ':memory:', driver: sqlite3.Database });
+	try {
+		await service.createTables();
+		await service.createLanguage({ id: 'bash', name: 'Bash' });
+		await service.createChapter({ id: 'io', language_id: 'bash', name: 'I/O' });
+		await service.createExercise({ id: 'redirect', chapter_id: 'io', title: 'Redirect',
+			testCases: [{ outputFiles: ['listing.txt', 'backup-$(date +%Y%m%d).txt'], useDynamicOutput: true }] });
+		let exercise = await service.getExerciseWithTests('redirect');
+		assert.deepEqual(exercise.testCases[0].outputFiles, ['listing.txt', 'backup-$(date +%Y%m%d).txt']);
+		await service.updateExercise('redirect', { testCases: [{ outputFiles: ['changed.txt'] }] });
+		assert.deepEqual((await service.getExerciseWithTests('redirect')).testCases[0].outputFiles, ['changed.txt']);
+		await service.db.run(`UPDATE test_cases SET output_files = NULL, expected_output_files = ? WHERE exercise_id = ?`,
+			[JSON.stringify([{ filename: 'legacy.txt', type: 'file', sha256: 'old' }]), 'redirect']);
+		exercise = await service.getExerciseWithTests('redirect');
+		assert.deepEqual(exercise.testCases[0].outputFiles, ['legacy.txt']);
+		await service.updateExercise('redirect', { testCases: [{ outputFiles: [], expectedOutputFiles: [{ filename: 'legacy.txt' }] }] });
+		assert.deepEqual((await service.getExerciseWithTests('redirect')).testCases[0].outputFiles, []);
+	} finally {
+		service.cache.clear();
+		await service.db.close();
+	}
+});
