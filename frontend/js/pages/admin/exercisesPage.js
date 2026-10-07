@@ -259,10 +259,15 @@ class ExercisesPage {
             this.discardChanges();
         });
 
-        // Back to workspace button
+        // Save the current exercise before opening its workspace
         document.getElementById('back-to-workspace-btn')?.addEventListener('click', () => {
             this.returnToWorkspace();
         });
+
+        document.getElementById('exercise-editor')?.addEventListener('input', () => {
+            this.setSaveStatus('Unsaved changes');
+        });
+        this.solutionEditor?.on('change', () => this.setSaveStatus('Unsaved changes'));
 
         // Test cases
         document.getElementById('add-test-case-btn')?.addEventListener('click', () => {
@@ -517,7 +522,8 @@ class ExercisesPage {
         document.getElementById('test-preview').style.display = 'none';
 
         // Reset save button text
-        document.getElementById('save-exercise-btn').textContent = 'Save Exercise';
+        document.getElementById('save-exercise-btn').textContent = 'Save exercise';
+        this.setSaveStatus('');
 
         setTimeout(() => {
             this.solutionEditor.refresh();
@@ -589,7 +595,7 @@ class ExercisesPage {
             const language = this.languages.find(l => l.id === exercise.language_id);
             this.currentExerciseType = language?.exercise_type || 'programming';
 
-            document.getElementById('editor-title').textContent = 'Edit Exercise';
+            document.getElementById('editor-title').textContent = `Edit: ${exercise.title}`;
             document.getElementById('exercise-id').value = exercise.id;
             document.getElementById('exercise-id').disabled = true;
             document.getElementById('exercise-title').value = exercise.title;
@@ -610,12 +616,8 @@ class ExercisesPage {
             document.getElementById('exercise-editor').style.display = 'block';
             document.getElementById('test-preview').style.display = 'none';
 
-            // Show back to workspace button if we came from workspace
-            const returnToExercise = sessionStorage.getItem('returnToExercise');
-            const backToWorkspaceBtn = document.getElementById('back-to-workspace-btn');
-            if (backToWorkspaceBtn) {
-                backToWorkspaceBtn.style.display = returnToExercise ? 'inline-block' : 'none';
-            }
+            document.getElementById('save-exercise-btn').textContent = 'Save changes';
+            this.setSaveStatus('');
 
             setTimeout(() => {
                 this.solutionEditor.refresh();
@@ -637,13 +639,12 @@ class ExercisesPage {
     }
 
     returnToWorkspace() {
-        const returnToExercise = sessionStorage.getItem('returnToExercise');
-        if (returnToExercise) {
-            // Clear the return marker
-            sessionStorage.removeItem('returnToExercise');
-            // Navigate back to workspace with the exercise
-            navigateTo(`workspace.html?exercise=${returnToExercise}`);
-        }
+        return this.saveExercise(true);
+    }
+
+    setSaveStatus(message) {
+        const status = document.getElementById('exercise-save-status');
+        if (status) status.textContent = message;
     }
 
     async testSolution() {
@@ -803,7 +804,8 @@ class ExercisesPage {
             document.getElementById('test-results-container').innerHTML = resultsHtml;
             document.getElementById('test-preview').style.display = 'block';
             document.getElementById('save-exercise-btn').textContent =
-                this.currentExercise ? 'Update Exercise' : 'Create Exercise';
+                this.currentExercise ? 'Save changes' : 'Save exercise';
+            this.setSaveStatus('Unsaved changes');
         } catch (error) {
             alert('Failed to test solution: ' + error.message);
         } finally {
@@ -812,7 +814,7 @@ class ExercisesPage {
         }
     }
 
-    async saveExercise() {
+    async saveExercise(openWorkspace = false) {
         const id = document.getElementById('exercise-id').value.trim();
         const title = document.getElementById('exercise-title').value.trim();
         const chapterSelect = document.getElementById('exercise-chapter');
@@ -907,7 +909,11 @@ class ExercisesPage {
         }
 
         const saveBtn = document.getElementById('save-exercise-btn');
+        if (saveBtn.disabled) return;
+        const workspaceBtn = document.getElementById('back-to-workspace-btn');
         saveBtn.disabled = true;
+        workspaceBtn.disabled = true;
+        this.setSaveStatus('Saving…');
 
         try {
             if (this.currentExercise) {
@@ -916,18 +922,27 @@ class ExercisesPage {
                 await this.apiService.createExercise(exerciseData);
             }
 
-            alert('Exercise saved successfully!');
+            this.currentExercise = exerciseData;
+            document.getElementById('exercise-id').disabled = true;
+            document.getElementById('editor-title').textContent = `Edit: ${title}`;
+            saveBtn.textContent = 'Save changes';
+            this.setSaveStatus('Saved. You can keep editing or select another exercise.');
             await this.loadExercises();
-            this.discardChanges();
+            if (openWorkspace) {
+                sessionStorage.removeItem('returnToExercise');
+                navigateTo(`workspace.html?exercise=${encodeURIComponent(id)}`);
+            }
         } catch (error) {
+            this.setSaveStatus('Save failed. Your edits are still here.');
             alert('Failed to save exercise: ' + error.message);
         } finally {
             saveBtn.disabled = false;
+            workspaceBtn.disabled = false;
         }
     }
 
     discardChanges() {
-        if (confirm('Discard all changes?')) {
+        if (confirm('Close the editor? Any unsaved changes will be lost.')) {
             this.cancelEdit();
         }
     }
@@ -963,6 +978,7 @@ class ExercisesPage {
 
     // Test Cases Management
     addTestCase() {
+        this.setSaveStatus('Unsaved changes');
         this.testCases.push({
             arguments: [],
             input: [],
@@ -978,6 +994,7 @@ class ExercisesPage {
     }
 
     removeTestCase(index) {
+        this.setSaveStatus('Unsaved changes');
         this.testCases.splice(index, 1);
         this.renderTestCases();
     }
