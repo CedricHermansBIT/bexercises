@@ -62,8 +62,9 @@ function createMcpServer(deps = { database, exercises, runner, authoring }) {
 			if (fixture.type !== 'file' || fixture.size > 262144) throw new Error('Only text files up to 256 KiB can be read through MCP');
 			return fixture;
 		});
-	tool('bitlab_create_fixture', 'Create a new UTF-8 fixture file. Existing fixtures cannot be overwritten.', {
-		filename: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/).max(200), content: z.string().max(262144)
+	tool('bitlab_create_fixture', 'Create a new UTF-8 fixture file. Filenames may include spaces. Existing fixtures cannot be overwritten.', {
+		filename: z.string().regex(/^[a-zA-Z0-9 ][a-zA-Z0-9 ._-]*$/).max(200)
+            .refine(filename => filename.trim().length > 0, 'Filename cannot contain only spaces'), content: z.string().max(262144)
 	}, false, async ({ filename, content }) => {
 		if (Buffer.byteLength(content, 'utf8') > 262144) throw new Error('Fixture exceeds 256 KiB');
 		const root = await fs.realpath(config.paths.fixtures);

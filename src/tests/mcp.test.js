@@ -55,6 +55,8 @@ test('real MCP client initializes, discovers schemas, calls tools and receives t
 		assert.equal(invalid.isError, true);
 		const traversal = await client.callTool({ name: 'bitlab_create_fixture', arguments: { filename: '../escape', content: 'no' } });
 		assert.equal(traversal.isError, true);
+        const blank = await client.callTool({ name: 'bitlab_create_fixture', arguments: { filename: '   ', content: 'no' } });
+        assert.equal(blank.isError, true);
 	} finally { await client.close(); await live.close(); }
 });
 
@@ -106,19 +108,20 @@ test('MCP creates, edits and grades exercises through the real sandbox without s
 		await client.connect(new StreamableHTTPClientTransport(new URL(live.url), {
 			requestInit: { headers: { Authorization: `Bearer ${token}` } }
 		}));
-        let fixtureResult = await client.callTool({ name: 'bitlab_create_fixture', arguments: { filename: 'mcp-seed.txt', content: 'seed' } });
+        let fixtureResult = await client.callTool({ name: 'bitlab_create_fixture', arguments: { filename: 'mcp seed file.txt', content: 'seed' } });
         assert.ok(!fixtureResult.isError, JSON.stringify(fixtureResult));
-        assert.equal(await fs.readFile(path.join(fixtureRoot, 'mcp-seed.txt'), 'utf8'), 'seed');
-        fixtureResult = await client.callTool({ name: 'bitlab_create_fixture', arguments: { filename: 'mcp-seed.txt', content: 'overwrite' } });
+        assert.equal(await fs.readFile(path.join(fixtureRoot, 'mcp seed file.txt'), 'utf8'), 'seed');
+        fixtureResult = await client.callTool({ name: 'bitlab_create_fixture', arguments: { filename: 'mcp seed file.txt', content: 'overwrite' } });
         assert.equal(fixtureResult.isError, true);
-        fixtureResult = await client.callTool({ name: 'bitlab_get_fixture', arguments: { filename: 'mcp-seed.txt' } });
+        fixtureResult = await client.callTool({ name: 'bitlab_get_fixture', arguments: { filename: 'mcp seed file.txt' } });
         assert.equal(JSON.parse(fixtureResult.content[0].text).content, 'seed');
 		const exercise = { id: 'mcp-created', title: 'Generated exercise', language_id: 'bash', chapter: 'MCP tests',
-			description: 'Print hello', solution: 'echo hello', testCases: [{}] };
+			description: 'Read a filename containing spaces', solution: 'cat "$1"',
+            testCases: [{ fixtures: ['mcp seed file.txt'], arguments: ['mcp seed file.txt'] }] };
 		let result = await client.callTool({ name: 'bitlab_save_exercise', arguments: { mode: 'create', exercise } });
 		assert.ok(!result.isError, JSON.stringify(result));
-		assert.equal(JSON.parse(result.content[0].text).exercise.testCases[0].expectedOutput, 'hello');
-		result = await client.callTool({ name: 'bitlab_run_exercise', arguments: { id: exercise.id, script: 'echo wrong' } });
+		assert.equal(JSON.parse(result.content[0].text).exercise.testCases[0].expectedOutput, 'seed');
+		result = await client.callTool({ name: 'bitlab_run_exercise', arguments: { id: exercise.id, script: 'cat $1' } });
 		assert.equal(JSON.parse(result.content[0].text).allPassed, false);
 		exercise.solution = 'echo updated';
 		result = await client.callTool({ name: 'bitlab_save_exercise', arguments: { mode: 'update', exercise } });
