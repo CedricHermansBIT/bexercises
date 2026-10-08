@@ -22,6 +22,7 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.32.1",
 		"body-parser": "^2.3.0",
 		"dotenv": "^17.2.3",
 		"express": "^4.22.3",
@@ -31,7 +32,8 @@
 		"passport-google-oauth20": "^2.0.0",
 		"sqlite": "^5.1.1",
 		"sqlite3": "^6.0.1",
-		"which": "^5.0.0"
+		"which": "^5.0.0",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"eslint": "^9.38.0",

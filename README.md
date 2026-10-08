@@ -170,3 +170,10 @@ For issues or questions:
 
 **BITLab** - Learn to code through practice and instant feedback.
 
+
+### Codex exercise authoring through MCP
+
+BITLab has an optional authenticated MCP endpoint for generating, editing and
+verifying exercises with Codex. It reuses the student runner without changing
+student progress. See [MCP setup and examples](docs/MCP.md) for server activation,
+Codex configuration and the tool catalog.

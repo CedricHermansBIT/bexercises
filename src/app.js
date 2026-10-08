@@ -41,6 +41,8 @@ function createApp() {
 	// Logging
 	app.use(morgan('combined'));
 	app.use(securityHeaders);
+	// MCP uses its own bearer authentication; browser sessions cannot grant access.
+	mountAtBothPaths('/mcp', require('./mcp/router')());
 
 	if (config.server.trustProxy) app.set('trust proxy', 1);
 
