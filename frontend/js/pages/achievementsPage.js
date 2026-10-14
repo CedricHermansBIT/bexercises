@@ -315,7 +315,7 @@ class AchievementsPage {
             const list = document.createElement('div'); list.className = 'achievement-reward-list';
             for (const item of rewards) {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
-                const locked = !item.unlocked;
+                const locked = !achievement.earned || !item.unlocked;
                 button.classList.toggle('reward-locked', locked);
                 button.disabled = locked;
                 button.setAttribute('aria-label', `${locked ? 'Locked reward' : 'Preview'}: ${item.name}`);
