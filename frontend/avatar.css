@@ -62,3 +62,9 @@ body.avatar-studio-page { overflow-y: auto; overflow-x: hidden; }
 .wardrobe-grid[data-swatches="true"] .wardrobe-item-art { width: 64px; height: 64px; }
 .wardrobe-grid[data-swatches="true"] .wardrobe-item { padding: 12px; }
 @media (max-width: 420px) { .wardrobe-grid[data-swatches="true"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.avatar-preview-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 12px 0; }
+.avatar-preview-tools button { border: 1px solid var(--border-color); border-radius: 8px; background: transparent; color: var(--text-primary); padding: 6px 9px; font: inherit; font-size: 11px; cursor: pointer; }
+.avatar-preview-tools button:disabled { opacity: 0.4; cursor: default; }
+#avatar-fit-note { color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+#avatar-fit-note:empty { display: none; }

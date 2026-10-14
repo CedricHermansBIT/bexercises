@@ -267,3 +267,90 @@ test('helmets cover hair without changing the saved hairstyle and space suits hi
         if (object.userData.avatar_hide_outfits) assert.equal(object.visible, true);
     });
 });
+
+async function loadWardrobe() {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const bundle = fs.readFileSync('frontend/js/vendor/avatar3d.bundle.js', 'utf8');
+    const viewer = await import(`data:text/javascript;base64,${Buffer.from(bundle).toString('base64')}`);
+    const motionSource = fs.readFileSync('frontend/js/utils/avatarMotion.js', 'utf8');
+    const motion = await import(`data:text/javascript;base64,${Buffer.from(motionSource).toString('base64')}`);
+    const data = fs.readFileSync('frontend/assets/avatars/wardrobe.glb');
+    const { scene } = await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset, data.byteOffset + data.length), '');
+    const find = predicate => { let found; scene.traverse(object => { if (predicate(object)) found = object; }); return found; };
+    return { scene, find, ...viewer, ...motion };
+}
+
+test('headwear choices replace conflicts without corrupting saved selections', async () => {
+    const source = fs.readFileSync('frontend/js/utils/avatarFit.js', 'utf8');
+    const { chooseAvatarItem, getAvatarFit } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+    const original = { ...DEFAULT_SELECTION, accessory: 'headphones' };
+    assert.equal(chooseAvatarItem(original, 'hat', 'space-helmet').selection.accessory, 'none');
+    assert.equal(original.accessory, 'headphones');
+    assert.equal(chooseAvatarItem({ ...original, hat: 'wizard' }, 'accessory', 'crown').selection.hat, 'hat-none');
+    assert.equal(getAvatarFit({ ...original, hat: 'runner' }).hideAccessory, false);
+    assert.equal(getAvatarFit({ ...original, hat: 'space-helmet' }).notes.length, 1);
+    assert.equal(getAvatarFit({ ...original, accessory: 'glasses-69', hat: 'space-helmet' }).hideAccessory, false);
+});
+
+test('large hair fits headwear, backpack clears wings, and repeated selections do not drift', async () => {
+    const { scene, find, applyAvatarSelection } = await loadWardrobe();
+    const crown = find(o => o.userData.avatar_id === 'crown');
+    const band = find(o => o.userData.avatar_fit === 'headband');
+    const wings = find(o => o.userData.avatar_id === 'wings');
+    const hood = find(o => o.userData.avatar_hide_hair);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'long-waves', outfit: 'hoodie' });
+    assert.equal(hood.visible, false);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'long-waves', outfit: 'hoodie', hat: 'cap' });
+    assert.equal(hood.visible, true);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'afro', accessory: 'crown' });
+    const high = crown.position.y;
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'afro', accessory: 'crown' });
+    assert.equal(crown.position.y, high);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'bald', accessory: 'crown' });
+    assert.ok(crown.position.y < high - 0.2);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'afro', accessory: 'headphones' });
+    assert.ok(band.scale.y > 1.4);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'space-suit', accessory: 'wings' });
+    const backpackOffset = wings.position.z;
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'tee', accessory: 'wings' });
+    assert.ok(wings.position.z > backpackOffset + 0.1);
+});
+
+test('propeller animation rotates only its pivot, pauses hidden parts, and honors reduced motion', async () => {
+    const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hat: 'propeller' });
+    const rotor = find(o => o.userData.avatar_motion === 'spin');
+    const hat = find(o => o.userData.avatar_id === 'propeller');
+    const rest = rotor.rotation.y;
+    const position = rotor.position.toArray();
+    const hatRotation = hat.rotation.toArray();
+    const animator = createAvatarAnimator(scene);
+    animator.update(0.25); const angle = rotor.rotation.y;
+    animator.update(0.25); assert.equal(rotor.rotation.y, angle);
+    animator.update(0.5); assert.notEqual(rotor.rotation.y, angle);
+    assert.deepEqual(rotor.position.toArray(), position);
+    assert.deepEqual(hat.rotation.toArray(), hatRotation);
+    animator.update(0.5, true); assert.equal(rotor.rotation.y, rest);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hat: 'duck' });
+    animator.update(1); assert.equal(rotor.rotation.y, rest);
+    const duck = find(o => o.userData.avatar_motion === 'duck');
+    const duckRest = duck.rotation.z; animator.update(2); assert.notEqual(duck.rotation.z, duckRest);
+});
+
+test('character gestures, blinks, wings and decorations animate and return to their rest pose', async () => {
+    const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
+    const required = ['spin', 'duck', 'bird', 'tassel', 'wing', 'head', 'arm', 'flame', 'sparkle', 'pulse', 'blink'];
+    for (const kind of required) assert.ok(find(o => o.userData.avatar_motion === kind), kind);
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, accessory: 'wings', hat: 'flame' });
+    const wing = find(o => o.userData.avatar_motion === 'wing');
+    const flame = find(o => o.userData.avatar_motion === 'flame');
+    const head = find(o => o.userData.avatar_motion === 'head');
+    const rest = { wing: wing.rotation.y, flame: flame.scale.y, head: head.rotation.y };
+    const animator = createAvatarAnimator(scene); animator.gesture('wave', 0); animator.update(1);
+    assert.notEqual(wing.rotation.y, rest.wing); assert.notEqual(flame.scale.y, rest.flame); assert.notEqual(head.rotation.y, rest.head);
+    let raised = false;
+    scene.traverse(o => { if (o.userData.avatar_motion === 'arm' && o.userData.avatar_side === 1 && o.visible && o.rotation.z > 1) raised = true; });
+    assert.equal(raised, true);
+    animator.update(2, true);
+    assert.equal(wing.rotation.y, rest.wing); assert.equal(flame.scale.y, rest.flame); assert.equal(head.rotation.y, rest.head);
+});

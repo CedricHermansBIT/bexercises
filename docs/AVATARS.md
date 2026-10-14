@@ -6,9 +6,21 @@ leaderboards do not display avatars yet.
 
 The preview uses original, rounded 3D human characters modeled in Blender. Drag
 the preview, use its arrow buttons, or focus the canvas and press left/right to
-rotate. Character, hairstyle, skin tone, hair color, outfit, top color, trouser
+rotate. Scroll, use the zoom buttons, or press +/− while focusing the canvas to
+zoom. Categories frame the relevant area: hats/hair/glasses focus on the head,
+trousers and shoes focus lower, and outfits/wings show the whole character.
+**Full view** restores the overview. **Wave** and **Celebrate** trigger brief
+gestures and return to the idle pose.
+
+Character, hairstyle, skin tone, hair color, outfit, top color, trouser
 color, shoe color and hats are independent choices. Helmets and covering hats hide
 hair without changing the chosen hairstyle; removing the hat reveals it again.
+Picking competing headwear replaces the conflicting item (for example, a helmet
+replaces headphones, and a crown replaces a hat). Old saved combinations retain
+their selection and show a fit note when an accessory is covered. Crowns and
+bird nests perch above taller hairstyles, headphones expand around large hair,
+and wings sit behind the space-suit backpack.
+
 Changing a character preserves customized colors and hair. The space suit has a
 life-support backpack, hose, gloves, pressure seals,
 armored knees and moon boots; its helmet can also be worn with other outfits.
@@ -86,7 +98,15 @@ bundle is committed so production does not need a compiler or development
 packages. After changing viewer source, run `npm run build:avatar`. WebGL failure
 falls back to a static character render; that fallback does not reflect every
 customized attribute. Offscreen/hidden previews pause rendering, and reduced
-motion disables the idle movement.
+motion disables idle movement, blinks, prop motions and gesture buttons.
+The propeller spins, wings flap, the duck bobs, the bird hops, the graduation
+tassel sways, the flame flickers, wizard stars sparkle and headphone accents
+pulse. Motion uses rest transforms to avoid drift, and pauses while hidden.
+
+Complete Mastery counts only nonempty chapters in enabled (published) languages.
+Disabled/locked languages do not block it. An empty published curriculum cannot
+award the achievement. Previously earned achievements and avatar unlocks remain
+permanent.
 
 See [the model source workflow](../src/avatar-models/README.md) for the editable
 Blender project and regeneration instructions. Blender is only needed to edit

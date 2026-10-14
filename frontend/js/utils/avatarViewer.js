@@ -1,16 +1,36 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { getAvatarFit } from './avatarFit.js';
+import { createAvatarAnimator } from './avatarMotion.js';
 import { AVATAR_PALETTES, AVATAR_OPTIONS } from './avatarRenderer.js';
+
+const fitTransforms = new WeakMap();
 
 export function applyAvatarSelection(model, selection) {
     const materialSlots = { Skin: 'skin', Hair: 'hairColor', Wardrobe: 'color', Denim: 'pantsColor', Shoes: 'shoesColor' };
-    let coversHair = false;
-    model.traverse(object => { if (object.userData.avatar_slot === 'hat' && object.userData.avatar_id === selection.hat) coversHair = !!object.userData.avatar_covers_hair; });
+    const fit = getAvatarFit(selection);
+    let coversHair = false, hairTop = 2.40, hairWidth = 0.355;
+    model.traverse(object => {
+        if (object.userData.avatar_slot === 'hat' && object.userData.avatar_id === selection.hat) coversHair = !!object.userData.avatar_covers_hair;
+        if (object.userData.avatar_slot === 'hair' && object.userData.avatar_id === selection.hair) {
+            hairTop = object.userData.avatar_hair_top || hairTop; hairWidth = object.userData.avatar_hair_width || hairWidth;
+        }
+    });
+    if (coversHair) { hairTop = 2.40; hairWidth = 0.355; }
     model.traverse(object => {
         const { avatar_slot: slot, avatar_id: id } = object.userData;
-        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id && !(slot === 'hair' && coversHair);
+        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id && !(slot === 'hair' && coversHair) && !(slot === 'accessory' && fit.hideAccessory);
+        if (object.userData.avatar_hide_hair) object.visible = coversHair || !object.userData.avatar_hide_hair.includes(selection.hair);
         if (object.userData.avatar_hide_outfits) object.visible = !object.userData.avatar_hide_outfits.includes(selection.outfit);
+        if (object.userData.avatar_fit) {
+            if (!fitTransforms.has(object)) fitTransforms.set(object, { position: object.position.clone(), scale: object.scale.clone() });
+            const rest = fitTransforms.get(object); object.position.copy(rest.position); object.scale.copy(rest.scale);
+            if (object.userData.avatar_fit === 'perch') object.position.y += Math.max(0, hairTop + 0.025 - 2.40);
+            if (object.userData.avatar_fit === 'headband') { object.scale.y *= Math.max(1, (hairTop + 0.07 - 2.02) / 0.47); object.scale.x *= Math.max(1, (hairWidth + 0.03) / 0.395); }
+            if (object.userData.avatar_fit === 'earcup') object.position.x += (object.userData.avatar_side || 1) * Math.max(0, hairWidth - 0.38);
+            if (object.userData.avatar_fit === 'backpack' && selection.outfit === 'space-suit') object.position.z -= 0.18;
+        }
         if (!object.isMesh) return;
         for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
             const palette = AVATAR_PALETTES[materialSlots[material.name]];
@@ -44,7 +64,7 @@ export async function createAvatarViewer(container, url, selection) {
         const camera = new THREE.OrthographicCamera(-1.4, 1.4, 1.6, -1.6, 0.1, 30);
         camera.position.set(3.1, 2.8, 6.8);
         controls = new OrbitControls(camera, canvas);
-        controls.target.set(0, 1.42, 0); controls.enablePan = false; controls.enableZoom = false;
+        controls.target.set(0, 1.42, 0); controls.enablePan = false; controls.enableZoom = true; controls.minZoom = 0.8; controls.maxZoom = 2.8;
         controls.enableDamping = true; controls.minPolarAngle = Math.PI / 3; controls.maxPolarAngle = Math.PI / 2;
         controls.update();
         scene.add(new THREE.HemisphereLight(0xf9f4e8, 0x8799ad, 2.3));
@@ -59,6 +79,19 @@ export async function createAvatarViewer(container, url, selection) {
         model = gltf.scene;
         model.traverse(object => { if (object.isMesh) { object.castShadow = true; object.receiveShadow = true; } });
         scene.add(model); applyAvatarSelection(model, selection);
+        const animator = createAvatarAnimator(model);
+        let elapsed = 0, lastTime = null;
+        let framing = { y: 1.42, zoom: 0.9 };
+        const frame = slot => {
+            const head = ['hair', 'hairColor', 'skin', 'character'].includes(slot);
+            const faceAccessory = !['wings', 'bow-tie', 'language-medal'].includes(selection.accessory);
+            if (slot === 'hat') framing = { y: 2.30, zoom: 1.6 };
+            else if (head || slot === 'accessory' && faceAccessory) framing = { y: 2.17, zoom: 1.8 };
+            else if (slot === 'shoesColor') framing = { y: 0.45, zoom: 1.8 };
+            else if (slot === 'pantsColor') framing = { y: 0.85, zoom: 1.4 };
+            else if (slot === 'color' || slot === 'accessory' && selection.accessory !== 'wings') framing = { y: 1.45, zoom: 1.5 };
+            else framing = { y: 1.42, zoom: 0.9 };
+        };
         let visible = true;
         const resize = () => {
             const width = container.clientWidth, height = container.clientHeight;
@@ -71,15 +104,32 @@ export async function createAvatarViewer(container, url, selection) {
         visibilityObserver = new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }); visibilityObserver.observe(container);
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
         renderer.setAnimationLoop(time => {
+            const delta = lastTime === null ? 0 : Math.min((time - lastTime) / 1000, 0.05); lastTime = time;
             if (document.hidden || !visible) return;
+            elapsed += delta;
+            animator.update(elapsed, reducedMotion.matches);
+            if (framing) {
+                const blend = reducedMotion.matches ? 1 : 1 - Math.exp(-delta * 9);
+                const target = framing.y - controls.target.y;
+                camera.position.y += target * blend; controls.target.y += target * blend;
+                camera.zoom += (framing.zoom - camera.zoom) * blend; camera.updateProjectionMatrix();
+                if (Math.abs(target) < 0.002 && Math.abs(framing.zoom - camera.zoom) < 0.002) framing = null;
+            }
             model.position.y = reducedMotion.matches ? 0 : Math.sin(time / 1100) * 0.006;
             controls.update(); renderer.render(scene, camera);
         });
         const rotate = delta => { model.rotation.y += delta; };
         canvas.addEventListener('keydown', event => {
+            if (['+', '=', '-'].includes(event.key)) {
+                event.preventDefault(); framing = null; camera.zoom = THREE.MathUtils.clamp(camera.zoom + (event.key === '-' ? -0.25 : 0.25), 0.8, 2.8); camera.updateProjectionMatrix(); return;
+            }
             if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
             event.preventDefault(); rotate(event.key === 'ArrowLeft' ? -0.25 : 0.25);
         });
-        return { update: value => applyAvatarSelection(model, value), rotate, dispose };
+        canvas.addEventListener('wheel', () => { framing = null; }, { passive: true });
+        return { update: value => { selection = value; applyAvatarSelection(model, value); }, rotate, dispose, frame,
+            zoom: delta => { framing = null; camera.zoom = THREE.MathUtils.clamp(camera.zoom + delta, 0.8, 2.8); camera.updateProjectionMatrix(); },
+            gesture: name => { framing = { y: 1.42, zoom: 0.9 }; animator.gesture(name, elapsed); },
+            fullView: () => { framing = { y: 1.42, zoom: 0.9 }; } };
     } catch (error) { dispose(); throw error; }
 }

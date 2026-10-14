@@ -32,3 +32,16 @@ parts to display. Accessories use the `none` selection by hiding all meshes.
 Browser rendering uses Three.js under its MIT license, copied with the generated
 bundle to `frontend/js/vendor/three.LICENSE.txt`. No Blender installation is
 required on the production server.
+
+Animation is procedural in the browser rather than baked into glTF clips.
+`avatar_motion` identifies separate propeller, duck, bird, tassel, flame, wing,
+head, blink and shoulder pivots; `avatar_side` identifies left/right limbs.
+`avatar_fit`, `avatar_hair_top` and `avatar_hair_width` support fitting headwear
+and backpack clearance. Preserve these custom properties when exporting manual
+edits. Child geometry must retain its rest transform relative to its pivot.
+The viewer restores those transforms for reduced motion and hidden props.
+
+For metadata or pivot-only edits, add `-- --skip-thumbnails` to the Blender command
+to rebuild the GLB and editable project while keeping existing PNG renders.
+`avatar_hide_hair` suppresses the hood beneath long hair without changing the
+selected outfit.

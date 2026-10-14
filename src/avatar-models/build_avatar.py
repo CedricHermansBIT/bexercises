@@ -1,7 +1,7 @@
 """Original modular human avatar. Run with Blender 4.5 LTS in background mode.
 Exports an editable .blend, a shared GLB wardrobe and product thumbnails.
 """
-import bpy, math, os
+import bpy, math, os, sys
 from mathutils import Vector
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 OUT = os.path.join(ROOT, 'frontend/assets/avatars')
@@ -167,7 +167,8 @@ for key in ['tee','hoodie','lab-coat','space-suit']:
     if key=='tee':
         line('Neck trim',[(-.106,-.105,1.642),(0,-.165,1.63),(.106,-.105,1.642)],.018,white,g)
     elif key=='hoodie':
-        ellipsoid('Hood',(0,.125,1.68),(.18,.18,.135),cloth,g)
+        hood=ellipsoid('Hood',(0,.125,1.68),(.18,.18,.135),cloth,g)
+        hood['avatar_hide_hair']=['bob','braid','long-waves','dreads']
         for x in [-.055,.055]: line('Drawstring',[(x,-.178,1.63),(x,-.177,1.47)],.012,white,g)
         box('Kangaroo pocket',(0,-.161,1.2),(.155,.027,.06),cloth,g,.035)
     elif key=='lab-coat':
@@ -285,7 +286,7 @@ for key in ACCESSORIES:
 
 for key in HATS:
     g=group('Hat_'+key,'hat',key); groups[key]=g
-    g['avatar_covers_hair']=key not in ['runner','early-bird-hat','duck','flame']
+    g['avatar_covers_hair']=key not in ['runner','early-bird-hat']
     if key in ['cap','beanie','propeller','duck','flame']:
         ellipsoid('Hat dome',(0,.02,2.30),(.375,.30,.16),cloth,g)
         if key=='cap': ellipsoid('Cap brim',(0,-.29,2.27),(.27,.23,.032),cloth,g)
@@ -352,14 +353,64 @@ for key in HATS:
         cone('Top hat ribbon',(0,0,2.36),.305,.307,.065,cloth,g)
         text_mesh('Thousandaire badge','$',(-.055,-.316,2.40),.18,gold,g)
     elif key=='runner':
-        ring('Sweatband front',(0,-.02,2.21),.35,.04,cloth,g,.023)
-        for side in [-1,1]: line('Sweatband side',[(side*.34,-.02,2.21),(side*.29,.20,2.21)],.023,cloth,g)
+        band=torus('Sweatband',(0,0,2.19),.35,.022,cloth,g); band.scale.y=.80
     elif key=='early-bird-hat':
         for z in [2.40,2.43,2.46]: torus('Nest',(0,.06,z),.15,.025,hair,g)
         ellipsoid('Bird body',(0,.02,2.56),(.095,.08,.09),cloth,g)
         ellipsoid('Bird head',(0,-.04,2.66),(.06,.06,.06),cloth,g)
         cone('Bird beak',(0,-.108,2.64),.035,.002,.065,gold,g).rotation_euler[0]=math.pi/2
         for side in [-1,1]: ellipsoid('Bird eye',(side*.035,-.087,2.68),(.009,.009,.009),eyes,g,12)
+
+# Semantic pivots keep animations and fitting independent of exported mesh names.
+def reparent_world(o,parent):
+    matrix=o.matrix_world.copy(); o.parent=parent; o.matrix_world=matrix
+
+def pivot(name,parent,loc,children,motion=None,side=None):
+    o=group(name); o.parent=parent; o.location=loc
+    bpy.context.view_layer.update()
+    for child in children: reparent_world(child,o)
+    if motion: o['avatar_motion']=motion
+    if side is not None: o['avatar_side']=side
+    return o
+bpy.context.view_layer.update()
+for key in HAIRS:
+    g=groups[key]
+    corners=[o.matrix_world @ Vector(c) for o in g.children_recursive if o.type=='MESH' for c in o.bound_box]
+    g['avatar_hair_top']=max([c.z for c in corners],default=2.40)
+    g['avatar_hair_width']=max([abs(c.x) for c in corners],default=.355)
+
+arch=next(o for o in groups['headphones'].children if o.name.startswith('Headband'))
+pivot('Headphone_arch',groups['headphones'],(0,0,2.02),[arch])['avatar_fit']='headband'
+for o in groups['headphones'].children:
+    if o.name.startswith('Ear cup'): o['avatar_fit']='earcup'; o['avatar_side']=1 if o.location.x>0 else -1
+    if o.name.startswith('Ear cup accent'): o['avatar_motion']='pulse'
+groups['crown']['avatar_fit']='perch'
+groups['early-bird-hat']['avatar_fit']='perch'
+groups['wings']['avatar_fit']='backpack'
+
+for key,motion,loc,prefixes in [
+    ('propeller','spin',(0,.02,2.62),('Propeller blades',)),
+    ('duck','duck',(0,.01,2.50),('Duck ',)),
+    ('early-bird-hat','bird',(0,.02,2.48),('Bird ',)),
+    ('graduation','tassel',(.32,-.23,2.46),('Tassel',)),
+    ('flame','flame',(0,.02,2.40),('Flame core','Golden flame'))]:
+    g=groups[key]; children=[o for o in g.children if o.name.startswith(prefixes)]
+    pivot('Motion_'+key,g,loc,children,motion)
+for side in [-1,1]:
+    children=[o for o in groups['wings'].children if o.location.x*side>0]
+    pivot('Wing_'+str(side),groups['wings'],(side*.29,.22,1.55),children,'wing',side)
+for o in groups['wizard'].children:
+    if o.name.startswith('Wizard star'): o['avatar_motion']='sparkle'
+
+# Articulated shoulder groups include skin, sleeves and suit gloves together.
+for parent in [body]+[groups[key] for key in ['tee','hoodie','lab-coat','space-suit']]:
+    for side in [-1,1]:
+        children=[o for o in parent.children if o.name.startswith(('Arm','Hand','Thumb','Sleeve','Pressure glove','Glove thumb','Suit wrist','Shoulder armor','Mission patch')) and o.location.x*side>0]
+        pivot('Shoulder_'+parent.name+'_'+str(side),parent,(side*.284,0,1.56),children,'arm',side)
+head_children=[o for o in bpy.context.scene.objects if o.get('avatar_slot') in ['character','hair','hat'] or o.get('avatar_slot')=='accessory' and o.get('avatar_id') in ['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','matrix-shades']]
+head=pivot('Head_pose',None,(0,0,1.78),head_children,'head')
+for o in bpy.context.scene.objects:
+    if o.name.startswith('Eye') and o.parent and o.parent.get('avatar_slot')=='character': o['avatar_motion']='blink'
 
 # Export wardrobe mesh groups in one file. The web viewer toggles groups by extras.
 bpy.ops.object.select_all(action='DESELECT')
@@ -399,7 +450,8 @@ for slot,ids in [('character',['robot','sprout','fox','cat']),('outfit',['tee','
         closeup=slot in ['hair','hat','accessory']
         camera.location=(2.8,-7,2.8) if closeup else (3.1,-6.8,3.05)
         target=Vector((0,0,2.17 if closeup else 1.28));camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler();camera.data.ortho_scale=1.6 if closeup else 3.05
-        args={'hair_style' if slot=='hair' else slot:item}; select(**args); scene.render.filepath=os.path.join(OUT,slot+'-'+item+'.png');bpy.ops.render.render(write_still=True)
+        args={'hair_style' if slot=='hair' else slot:item}; select(**args); scene.render.filepath=os.path.join(OUT,slot+'-'+item+'.png')
+        if '--skip-thumbnails' not in sys.argv: bpy.ops.render.render(write_still=True)
 bpy.context.preferences.filepaths.save_version=0
 select(); bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'src/avatar-models/wardrobe.blend'))
 print('Saved original Blender wardrobe, GLB and modular thumbnails.')

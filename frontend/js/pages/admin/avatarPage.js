@@ -2,6 +2,7 @@ import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
+import { getAvatarFit, chooseAvatarItem } from '../../utils/avatarFit.js';
 import { renderAvatar } from '../../utils/avatarRenderer.js';
 
 class AvatarPage {
@@ -38,7 +39,7 @@ class AvatarPage {
                 if (!button) return;
                 if (this.saving) return;
                 this.slot = button.dataset.slot;
-                this.render();
+                this.render(); this.viewer?.frame(this.slot);
             });
             document.getElementById('wardrobe-unlocked').addEventListener('change', () => this.render());
             document.getElementById('avatar-shuffle').addEventListener('click', () => {
@@ -46,7 +47,8 @@ class AvatarPage {
                     const choices = this.state.catalog.filter(item => item.slot === slot && item.unlocked);
                     if (choices.length) this.selection[slot] = choices[Math.floor(Math.random() * choices.length)].id;
                 }
-                this.render(); this.status('A fresh mix from your unlocked wardrobe. Save it or try another!');
+                if (getAvatarFit(this.selection).hideAccessory) this.selection.accessory = 'none';
+                this.render(); this.viewer?.fullView(); this.status('A fresh mix from your unlocked wardrobe. Save it or try another!');
             });
             document.getElementById('avatar-save').addEventListener('click', () => this.save());
             document.getElementById('avatar-reset').addEventListener('click', () => {
@@ -66,7 +68,21 @@ class AvatarPage {
             this.viewer = await createAvatarViewer(container,
                 new URL('../../../assets/avatars/wardrobe.glb', import.meta.url).href, this.selection);
             this.viewer.update(this.selection);
-            note.textContent = 'Drag to rotate · or use the arrow buttons';
+            note.textContent = 'Drag to rotate · scroll to zoom';
+            for (const [id, action] of Object.entries({ 'avatar-zoom-in': () => this.viewer.zoom(0.25), 'avatar-zoom-out': () => this.viewer.zoom(-0.25),
+                'avatar-full-view': () => this.viewer.fullView(), 'avatar-wave': () => this.viewer.gesture('wave'), 'avatar-celebrate': () => this.viewer.gesture('celebrate') })) {
+                const button = document.getElementById(id); button.disabled = false; button.addEventListener('click', action);
+            }
+            const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+            const syncMotion = () => {
+                for (const id of ['avatar-wave', 'avatar-celebrate']) {
+                    const button = document.getElementById(id); button.disabled = motionPreference.matches;
+                    button.title = motionPreference.matches ? 'Animations follow your device’s reduced-motion setting' : '';
+                }
+            };
+            syncMotion(); motionPreference.addEventListener('change', syncMotion);
+            window.addEventListener('pagehide', () => motionPreference.removeEventListener('change', syncMotion), { once: true });
+            this.viewer.frame(this.slot);
             document.getElementById('avatar-turn-left').disabled = false;
             document.getElementById('avatar-turn-right').disabled = false;
             document.getElementById('avatar-turn-left').addEventListener('click', () => this.viewer.rotate(-0.3));
@@ -90,6 +106,7 @@ class AvatarPage {
         }
         document.getElementById('avatar-name').textContent = character.name;
         document.getElementById('avatar-description').textContent = character.description;
+        document.getElementById('avatar-fit-note').textContent = getAvatarFit(this.selection).notes.join(' ');
         const unlocked = this.state.catalog.filter(item => item.unlocked).length;
         document.getElementById('avatar-progress').textContent = `${unlocked} / ${this.state.catalog.length} items unlocked · ${this.state.completed} exercises completed`;
         document.querySelectorAll('[data-slot]').forEach(button => {
@@ -120,9 +137,11 @@ class AvatarPage {
             if (!item.unlocked && item.progress !== null) detail.textContent += ` · ${item.progress}/${item.completions}`;
             button.append(picture, title, state, detail);
             button.addEventListener('click', () => {
-                this.selection[this.slot] = item.id; this.render();
+                const { selection, removedSlot } = chooseAvatarItem(this.selection, this.slot, item.id);
+                this.selection = selection; this.render(); this.viewer?.frame(this.slot);
+                const fitMessage = removedSlot ? `Removed the ${removedSlot === 'hat' ? 'hat' : 'accessory'} so your new choice fits. ` : '';
                 const locked = this.lockedSelections();
-                this.status(locked.length ? `Preview only. ${[...new Set(locked.map(item => item.requirement))].join('; ')} to save this look.` : 'Looking good. Save when you’re ready.');
+                this.status(fitMessage + (locked.length ? `Preview only. ${[...new Set(locked.map(item => item.requirement))].join('; ')} to save this look.` : 'Looking good. Save when you’re ready.'));
             });
             grid.appendChild(button);
         });
