@@ -86,6 +86,44 @@ def flared_skirt(name,parent,mat,hem=.60,flare=.40,pleats=0):
     bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=solid.name)
     return o
 
+def wrap_radius(z):
+    if z>=1.04: return .28-(z-1.04)/.06*.01
+    if z>=.665: return .28+(1.04-z)/.375*.09
+    return .37
+
+def wrap_front(x,z,offset=.012):
+    return (x,-.65*math.sqrt(max(.001,wrap_radius(z)**2-x*x))-offset,z)
+
+def wrap_panel(parent):
+    vertices=[];faces=[];edge=[];rows=24;columns=28
+    for row in range(rows+1):
+        t=row/rows;z=1.095-.445*t;r=wrap_radius(z)+.030
+        edge_x=-.16+.34*t
+        start=-math.acos(edge_x/wrap_radius(z))
+        for col in range(columns+1):
+            a=start+(.4-start)*col/columns
+            vertices.append((math.cos(a)*r,math.sin(a)*r*.65,z))
+        x,y,z=vertices[-columns-1];edge.append((x,y-.007,z))
+    for row in range(rows):
+        for col in range(columns):
+            i=row*(columns+1)+col
+            faces.append((i,i+1,i+columns+2,i+columns+1))
+    mesh=bpy.data.meshes.new('Wrap overlap');mesh.from_pydata(vertices,[],faces);mesh.update()
+    o=bpy.data.objects.new('Wrap overlap',mesh);bpy.context.collection.objects.link(o);assign(o,'Wrap overlap',denim,parent)
+    solid=o.modifiers.new('Wrap fabric thickness','SOLIDIFY');solid.thickness=.005
+    bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=solid.name)
+    line('Wrap bound edge',edge,.0055,white,parent)
+    belt=[((wrap_radius(1.065)+.030)*math.cos(a), (wrap_radius(1.065)+.030)*.65*math.sin(a),1.065) for a in [2*math.pi*i/64 for i in range(65)]]
+    line('Wrap waist tie',belt,.013,denim,parent)
+    x,y,z=wrap_front(-.16,1.035,.045)
+    for side in [-1,1]:
+        bow=ellipsoid('Wrap bow loop',(x+side*.038,y,z),(.047,.023,.026),white,parent,16)
+        bow.rotation_euler[1]=side*.22
+    ellipsoid('Wrap bow knot',(x,y-.009,z),(.018,.024,.023),white,parent,16)
+    for side in [-1,1]:
+        points=[wrap_front(-.16+side*(.008+.025*t),1.025-.115*t,.040) for t in [i/12 for i in range(13)]]
+        line('Wrap ribbon tail',points,.010,white,parent)
+
 def bare_legs(parent):
     for side in [-1,1]: limb('Bare leg',(side*.145,0,1.04),(side*.155,.018,.255),.096,skin,parent)
 
@@ -114,11 +152,10 @@ for key in PANTS:
             line('Skirt button seam',[(0,-.186,1.05),(0,-.245,.65)],.007,sole,g)
             for z in [.96,.85,.74]: ellipsoid('Skirt button',(0,-(.186+(1.05-z)*.15),z),(.014,.012,.014),gold,g,12)
         elif key=='wrap-skirt':
-            line('Wrap diagonal',[(-.16,-.17,1.07),(.18,-.225,.66)],.009,white,g)
-            for side in [-1,1]: ellipsoid('Skirt ribbon bow',(.17+side*.04,-.20,1.04),(.05,.022,.03),white,g,16)
+            wrap_panel(g)
         elif key=='tulle-skirt':
             flared_skirt('Tulle upper tier',g,denim,hem=.77,flare=.36,pleats=.075)
-        box('Skirt waistband',(0,0,1.075),(.27,.17,.035),denim,g,.025)
+        if key!='wrap-skirt': box('Skirt waistband',(0,0,1.075),(.27,.17,.035),denim,g,.025)
     for side in ([] if key in SKIRTS else [-1,1]):
         x=side*.155
         if key=='shorts':
@@ -141,7 +178,7 @@ for key in PANTS:
             elif key=='joggers':
                 box('Jogger cuff',(x,.018,.29),(.105,.112,.05),denim,g,.035)
                 line('Sport stripe',[(side*.263,.005,.99),(side*.27,.012,.36)],.012,white,g)
-    box('Waistband',(0,0,1.025),(.268,.12,.035),denim,g,.025)
+    if key!='wrap-skirt': box('Waistband',(0,0,1.025),(.268,.12,.035),denim,g,.025)
     for o in g.children: o['avatar_hide_outfits']=['space-suit']
 for key in SHOES:
     g=group('Shoes_'+key,'shoes',key); groups[key]=g

@@ -74,3 +74,7 @@ the existing articulated waist and elbow pivots.
 Legacy accessory thumbnail filenames stay compatible after slot migrations. The
 Blender selector maps these IDs to their current slots before rendering and
 asserts that each rendered subject has visible geometry.
+
+The ribbon wrap skirt has an outer overlap panel. Its bound edge and ribbon
+tails follow the curved skirt surface with clearance for fabric thickness;
+its waist tie is elliptical rather than a box intersecting the skirt.
