@@ -630,7 +630,7 @@ class DatabaseService {
 
 			// Chapter Completion
 			{ id: 'chapter-complete', name: 'Chapter Master', description: 'Complete all exercises in a chapter', icon: '📖', category: 'mastery', points: 50, requirement_type: 'chapter_complete', requirement_value: 1 },
-			{ id: 'all-chapters', name: 'Complete Mastery', description: 'Complete all chapters', icon: '🎓', category: 'mastery', points: 500, requirement_type: 'all_chapters_complete', requirement_value: 1 },
+			{ id: 'all-chapters', name: 'Complete Mastery', description: 'Complete all chapters in published languages', icon: '🎓', category: 'mastery', points: 500, requirement_type: 'all_chapters_complete', requirement_value: 1 },
 
 			// Hidden Easter Eggs
 			{ id: 'rickrolled', name: 'Never Gonna Give You Up', description: 'You found the secret! You\'ve been rickrolled.', icon: '🕺', category: 'secret', points: 100, requirement_type: 'easter_egg', requirement_value: 1, hidden: 1 },
@@ -657,6 +657,9 @@ class DatabaseService {
 				// Achievement already exists
 			}
 		}
+
+		// Update the built-in wording without replacing instructor-customized descriptions.
+		await this.db.run("UPDATE achievements SET description = 'Complete all chapters in published languages' WHERE id = 'all-chapters' AND description = 'Complete all chapters'");
 
 		// Create dynamic language-specific achievements
 		try {
@@ -2041,6 +2044,7 @@ class DatabaseService {
 						WHEN chapter_stats.total = chapter_stats.completed THEN c.id 
 					END) as completed_chapters
 				FROM chapters c
+				JOIN languages l ON l.id = c.language_id AND l.enabled = 1
 				JOIN exercises e ON c.id = e.chapter_id
 				LEFT JOIN (
 					SELECT 
@@ -2053,7 +2057,8 @@ class DatabaseService {
 				) as chapter_stats ON c.id = chapter_stats.chapter_id
 			`, [userId]);
 
-			if (allChaptersProgress.total_chapters === allChaptersProgress.completed_chapters) {
+			if (allChaptersProgress.total_chapters > 0 &&
+			    allChaptersProgress.total_chapters === allChaptersProgress.completed_chapters) {
 				const hasAllChaptersAchievement = await this.db.get(`
 					SELECT * FROM user_achievements WHERE user_id = ? AND achievement_id = 'all-chapters'
 				`, [userId]);
