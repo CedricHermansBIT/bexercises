@@ -26,9 +26,12 @@ def group(name,slot=None,item=None):
     return o
 body=group('Body'); groups={}
 ITEM_SLOTS={'headphones':'audio','crown':'hat','lightning':'jewellery','bow-tie':'jewellery','language-medal':'jewellery','wings':'back'}
+OUTFITS=['tee','hoodie','lab-coat','space-suit','dungarees','bomber','varsity','rugby','cardigan','raincoat','chef-jacket','pumpkin-knit','festive-knit']
+PANTS=['straight','chinos','cargo','shorts','joggers','wide-leg']
+SHOES=['sneakers','high-tops','boots','loafers','sandals','trainers','clogs','elf-shoes']
 HAIRS=['crop','curls','bob','bun','mohawk','braid','bald','buzz','pixie','afro','ponytail','twin-buns','spiky','long-waves','dreads','pompadour']
-ACCESSORIES=['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','bow-tie','wings','language-medal','matrix-shades']
-HATS=['cap','beanie','duck','propeller','wizard','graduation','space-helmet','viking','centurion-helmet','mushroom','top-hat','runner','early-bird-hat','flame','database-hat']
+ACCESSORIES=['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','bow-tie','wings','language-medal','matrix-shades','safety-goggles']
+HATS=['cap','beanie','duck','propeller','wizard','graduation','space-helmet','viking','centurion-helmet','mushroom','top-hat','runner','early-bird-hat','flame','database-hat','chef-hat','welding-visor','pumpkin-hat','santa-hat']
 def assign(obj,name,mat,parent):
     obj.name=name; obj.data.materials.append(mat); obj.parent=parent
     for p in obj.data.polygons: p.use_smooth=True
@@ -74,12 +77,75 @@ for side in [-1,1]:
     limb('Forearm',(side*.385,0,1.285),(side*.455,-.01,1.065),.087,skin,body)
     ellipsoid('Hand',(side*.46,-.025,1.01),(.087,.085,.108),skin,body)
     ellipsoid('Thumb',(side*.395,-.075,1.03),(.04,.042,.065),skin,body,16)
-    limb('Trouser leg',(side*.145,0,1.04),(side*.155,.018,.255),.123,denim,body)
-    box('Sneaker',(side*.16,-.075,.13),(.13,.22,.11),shoe,body,.075)
-    box('Shoe sole',(side*.16,-.077,.06),(.133,.223,.035),sole,body,.028)
-    box('Sneaker accent',(side*.16,-.294,.135),(.065,.006,.023),cloth,body,.006)
 ellipsoid('Nose',(0,-.286,1.98),(.053,.06,.063),skin,body,16)
 line('Smile',[(-.075,-.27,1.9),(0,-.281,1.881),(.075,-.27,1.9)],.008,eyes,body)
+
+# Independent lower-body silhouettes. The original straight trousers and sneakers
+# retain their dimensions so older saved characters keep their appearance.
+for key in PANTS:
+    g=group('Pants_'+key,'pants',key); groups[key]=g
+    for side in [-1,1]:
+        x=side*.155
+        if key=='shorts':
+            limb('Bare shin',(x,.012,.62),(x,.018,.255),.096,skin,g)
+            box('Shorts leg',(x,0,.83),(.137,.14,.235),denim,g,.065)
+            box('Shorts hem',(x,-.005,.625),(.143,.145,.026),denim,g,.018)
+        elif key=='wide-leg':
+            box('Wide leg',(x,0,.65),(.148,.15,.405),denim,g,.045)
+            line('Pressed seam',[(x,-.153,1.0),(x,-.153,.28)],.004,sole,g)
+        else:
+            radius=.123 if key=='straight' else .13 if key=='cargo' else .116
+            limb('Trouser leg',(side*.145,0,1.04),(x,.018,.255),radius,denim,g)
+            if key=='chinos':
+                box('Rolled cuff',(x,.018,.285),(.125,.13,.045),denim,g,.025)
+                line('Pocket seam',[(x-side*.07,-.09,1.02),(x+side*.055,-.11,.91)],.006,sole,g)
+            elif key=='cargo':
+                box('Cargo pocket',(side*.255,-.025,.70),(.054,.12,.115),denim,g,.025)
+                box('Cargo flap',(side*.26,-.03,.79),(.059,.125,.028),denim,g,.015)
+                ellipsoid('Pocket snap',(side*.315,-.03,.77),(.008,.014,.014),gold,g,12)
+            elif key=='joggers':
+                box('Jogger cuff',(x,.018,.29),(.105,.112,.05),denim,g,.035)
+                line('Sport stripe',[(side*.263,.005,.99),(side*.27,.012,.36)],.012,white,g)
+    box('Waistband',(0,0,1.025),(.268,.12,.035),denim,g,.025)
+    for o in g.children: o['avatar_hide_outfits']=['space-suit']
+for key in SHOES:
+    g=group('Shoes_'+key,'shoes',key); groups[key]=g
+    for side in [-1,1]:
+        x=side*.16
+        if key=='sandals':
+            ellipsoid('Sandal foot',(x,-.075,.12),(.108,.19,.078),skin,g)
+            box('Sandal sole',(x,-.077,.05),(.125,.215,.025),sole,g,.025)
+            for y in [-.19,-.035]: box('Sandal strap',(x,y,.165),(.12,.034,.022),shoe,g,.018)
+            box('Heel strap',(x,.085,.16),(.117,.024,.05),shoe,g,.016)
+        else:
+            boot=key=='boots'; high=key=='high-tops'
+            box('Sneaker',(x,-.075,.13),(.13,.22,.11 if key not in ['loafers','clogs'] else .075),shoe,g,.075)
+            box('Shoe sole',(x,-.077,.06),(.133,.223,.035),sole if not boot else dark,g,.028)
+            if boot or high:
+                box('Ankle upper',(x,.025,.265),(.125,.13,.16 if boot else .12),shoe,g,.04)
+                box('Ankle collar',(x,.025,.39 if boot else .365),(.13,.135,.025),dark if boot else white,g,.018)
+            if key in ['sneakers','high-tops','boots','trainers']:
+                for z,y in [(.20,-.12),(.215,-.08),(.23,-.04)]:
+                    line('Laces',[(x-.065,y,z),(x+.065,y,z)],.009,white,g)
+            if key=='sneakers': box('Sneaker accent',(x,-.294,.135),(.065,.006,.023),cloth,g,.006)
+            elif key=='loafers':
+                box('Penny strap',(x,-.11,.211),(.105,.03,.014),shoe,g,.008)
+                box('Penny buckle',(x,-.11,.228),(.035,.022,.008),gold,g,.006)
+            elif key=='elf-shoes':
+                line('Curled elf toe',[(x,-.22,.14),(x,-.34,.15),(x,-.39,.23)],.065,shoe,g)
+                ellipsoid('Elf bell',(x,-.39,.25),(.035,.035,.035),gold,g,12)
+                for i in [-1,0,1]:
+                    box('Elf ankle trim',(x+i*.075,.04,.24),(.035,.07,.035),white,g,.016)
+            elif key=='clogs':
+                for dx in [-.055,0,.055]:
+                    for y in [-.19,-.14]: ellipsoid('Clog vent',(x+dx,y,.227),(.013,.013,.004),dark,g,12)
+                line('Clog heel strap',[(x-.11,.01,.20),(x,.11,.21),(x+.11,.01,.20)],.018,shoe,g)
+            elif key=='trainers':
+                for i in range(3):
+                    stripe=box('Track stripe',(x+side*.127,-.13+i*.065,.145),(.009,.015,.055),white,g,.006)
+                    stripe.rotation_euler[0]=-.35
+                box('Track heel',(x,.12,.105),(.125,.045,.05),dark,g,.02)
+    for o in g.children: o['avatar_hide_outfits']=['space-suit']
 
 # Independent face shapes keep characters distinct when hair/skin are customized.
 face_parts=[o for o in body.children if o.name.startswith(('Head','Ear','Eye','Brow','Nose','Smile'))]
@@ -160,13 +226,13 @@ for key in HAIRS:
         ellipsoid('Retro quiff',(0,-.12,2.42),(.32,.22,.21),hair,g)
         for side in [-1,1]: box('Retro sideburn',(side*.326,0,2.07),(.032,.075,.13),hair,g,.022)
 
-for key in ['tee','hoodie','lab-coat','space-suit','dungarees']:
+for key in OUTFITS:
     g=group('Outfit_'+key,'outfit',key); groups[key]=g
-    m=white if key in ['lab-coat','space-suit'] else cloth
-    box('Torso',(0,.006,1.355),(.30,.165,.30 if key!='lab-coat' else .405),m,g,.12)
+    m=white if key in ['lab-coat','space-suit','chef-jacket'] else cloth
+    box('Torso',(0,.006,1.355),(.30,.165,.405 if key in ['lab-coat','raincoat'] else .30),m,g,.12)
     for side in [-1,1]:
-        end=(side*.335,0,1.44) if key=='tee' else (side*.44,-.01,1.105)
-        if key=='tee': limb('Sleeve',(side*.284,0,1.56),end,.10,m,g)
+        end=(side*.335,0,1.44) if key in ['tee','rugby'] else (side*.44,-.01,1.105)
+        if key in ['tee','rugby']: limb('Sleeve',(side*.284,0,1.56),end,.10,m,g)
         else:
             limb('Sleeve',(side*.284,0,1.56),(side*.385,0,1.285),.10,m,g)
             limb('Sleeve forearm',(side*.385,0,1.285),end,.10,m,g)
@@ -189,6 +255,58 @@ for key in ['tee','hoodie','lab-coat','space-suit','dungarees']:
             lapel=box('Lapel',(side*.077,-.178,1.52),(.044,.012,.15),white,g,.007); lapel.rotation_euler[1]=side*.23
             box('Coat pocket',(side*.178,-.169,1.15),(.065,.015,.06),white,g,.018)
         line('Coat seam',[(0,-.171,1.40),(0,-.171,.977)],.007,sole,g)
+    elif key=='pumpkin-knit':
+        orange=material('Pumpkin orange',(.95,.22,.025))
+        ellipsoid('Chest pumpkin',(0,-.177,1.38),(.17,.035,.14),orange,g)
+        for side in [-1,1]:
+            eye=box('Chest pumpkin eye',(side*.064,-.213,1.41),(.025,.008,.025),dark,g,.003); eye.rotation_euler[1]=side*.3
+        line('Chest pumpkin grin',[(-.09,-.213,1.34),(-.045,-.217,1.31),(0,-.217,1.335),(.045,-.217,1.31),(.09,-.213,1.34)],.008,dark,g)
+        line('Chest pumpkin stem',[(0,-.19,1.51),(.025,-.19,1.56)],.015,denim,g)
+    elif key=='festive-knit':
+        for z in [1.17,1.54]: box('Chest winter stripe',(0,-.166,z),(.276,.012,.025),white,g,.01)
+        for x in [-.17,0,.17]:
+            for angle in [0,math.pi/3,-math.pi/3]:
+                dx,dz=math.cos(angle)*.043,math.sin(angle)*.043
+                line('Chest snowflake',[(x-dx,-.183,1.37-dz),(x+dx,-.183,1.37+dz)],.007,white,g)
+        for side in [-1,1]: limb('Sleeve knit cuff',(side*.43,-.01,1.13),(side*.445,-.01,1.09),.104,white,g)
+    elif key=='chef-jacket':
+        for side in [-1,1]:
+            for z in [1.23,1.39,1.55]: ellipsoid('Jacket chef button',(side*.075,-.174,z),(.015,.01,.015),dark,g,12)
+            collar=box('Chest chef collar',(side*.066,-.14,1.65),(.065,.035,.04),white,g,.013); collar.rotation_euler[1]=side*.24
+        box('Jacket apron',(0,-.183,1.08),(.235,.025,.14),cloth,g,.035)
+        line('Jacket apron belt',[(-.28,-.12,1.19),(0,-.215,1.19),(.28,-.12,1.19)],.016,dark,g)
+    elif key in ['bomber','varsity','rugby','cardigan','raincoat']:
+        if key=='rugby':
+            for z in [1.19,1.39,1.57]: box('Chest rugby stripe',(0,-.163,z),(.276,.012,.035),white,g,.012)
+            for side in [-1,1]:
+                collar=box('Chest polo collar',(side*.055,-.15,1.635),(.06,.03,.025),white,g,.012); collar.rotation_euler[1]=side*.30
+        elif key in ['bomber','varsity']:
+            box('Jacket ribbed hem',(0,0,1.09),(.29,.17,.04),dark,g,.025)
+            line('Jacket zip',[(0,-.173,1.12),(0,-.173,1.62)],.009,sole,g)
+            for side in [-1,1]:
+                box('Jacket pocket',(side*.18,-.166,1.25),(.07,.02,.035),dark,g,.018)
+                limb('Sleeve cuff',(side*.43,-.01,1.13),(side*.445,-.01,1.09),.105,dark,g)
+            if key=='varsity':
+                for o in g.children:
+                    if o.name.startswith('Sleeve') and not o.name.startswith('Sleeve cuff'):
+                        o.data.materials.clear(); o.data.materials.append(white)
+                line('Chest varsity B',[(-.18,-.185,1.53),(-.18,-.185,1.39),(-.10,-.185,1.40),(-.09,-.185,1.44),(-.17,-.185,1.46),(-.10,-.185,1.48),(-.11,-.185,1.52),(-.18,-.185,1.53)],.012,white,g)
+            else:
+                tab=box('Jacket zipper pull',(0,-.192,1.55),(.018,.014,.045),gold,g,.009)
+        elif key=='cardigan':
+            box('Chest undershirt',(0,-.17,1.51),(.085,.012,.13),white,g,.012)
+            for side in [-1,1]:
+                line('Chest cardigan trim',[(side*.12,-.173,1.64),(side*.045,-.183,1.36),(side*.045,-.183,1.08)],.016,dark,g)
+                box('Jacket knit pocket',(side*.18,-.17,1.20),(.07,.022,.065),cloth,g,.02)
+            for z in [1.18,1.28,1.38]: ellipsoid('Jacket button',(0,-.192,z),(.013,.008,.013),gold,g,12)
+        else:
+            hood=ellipsoid('Hood raincoat',(0,.13,1.69),(.20,.19,.15),cloth,g)
+            hood['avatar_hide_hair']=['bob','braid','long-waves','dreads']
+            line('Jacket storm seam',[(0,-.175,.98),(0,-.175,1.62)],.012,white,g)
+            for side in [-1,1]:
+                box('Jacket storm pocket',(side*.17,-.174,1.17),(.075,.023,.075),cloth,g,.02)
+                line('Drawstring raincoat',[(side*.07,-.18,1.66),(side*.07,-.195,1.47)],.012,white,g)
+                box('Jacket reflective tape',(side*.17,-.185,1.35),(.11,.008,.014),white,g,.006)
     else:
         box('Suit control panel',(0,-.18,1.42),(.13,.032,.085),cloth,g,.022)
         for x in [-.07,0,.07]: ellipsoid('Panel light',(x,-.215,1.44),(.012,.008,.012),gold,g,12)
@@ -245,11 +363,17 @@ def torus(name,loc,major,minor,mat,parent):
 def cone(name,loc,r1,r2,depth,mat,parent,vertices=24):
     bpy.ops.mesh.primitive_cone_add(vertices=vertices,radius1=r1,radius2=r2,depth=depth,location=loc)
     return assign(bpy.context.object,name,mat,parent)
-def text_mesh(name,value,loc,size,mat,parent,center=False):
+def text_mesh(name,value,loc,size,mat,parent,center=False,extrude=.007,bevel=.003):
     bpy.ops.object.text_add(location=loc); o=bpy.context.object; o.data.body=value; o.data.size=size
-    o.data.align_x='CENTER' if center else 'LEFT'; o.data.extrude=.007; o.data.bevel_depth=.003; o.rotation_euler[0]=math.pi/2
+    o.data.align_x='CENTER' if center else 'LEFT'; o.data.extrude=extrude; o.data.bevel_depth=bevel; o.rotation_euler[0]=math.pi/2
     bpy.ops.object.convert(target='MESH'); return assign(bpy.context.object,name,mat,parent)
 ruby=material('Ruby',(.8,.045,.075)); emerald=material('Emerald',(.035,.55,.24))
+code_green=material('Code glow',(.008,.28,.015))
+code_green.node_tree.nodes.get('Principled BSDF').inputs['Emission Color'].default_value=(.005,.4,.015,1)
+code_green.node_tree.nodes.get('Principled BSDF').inputs['Emission Strength'].default_value=.7
+exhaust_blue=material('Exhaust blue',(.06,.50,.95))
+exhaust_blue.node_tree.nodes.get('Principled BSDF').inputs['Emission Color'].default_value=(.06,.50,.95,1)
+exhaust_blue.node_tree.nodes.get('Principled BSDF').inputs['Emission Strength'].default_value=2
 visor=material('Visor',(.82,.54,.11),.25)
 visor.diffuse_color=(.82,.54,.11,.22); visor.node_tree.nodes.get('Principled BSDF').inputs['Alpha'].default_value=.22
 visor.surface_render_method='DITHERED'
@@ -269,10 +393,20 @@ for key in ACCESSORIES:
         for side in [-1,1]:
             x=side*.12
             for dx,z,w,h in [(0,2.14,.10,.023),(0,2.00,.10,.023),(-.08,2.07,.023,.065),(.08,2.07,.023,.065)]:
-                box('Pixel frame',(x+dx,-.332,z),(w,.012,h),emerald if key=='matrix-shades' else dark,g,.002)
+                box('Pixel frame',(x+dx,-.332,z),(w,.012,h),dark,g,.002)
             if key=='matrix-shades':
                 box('Matrix lens',(x,-.33,2.07),(.065,.009,.047),dark,g,.001)
-                for dx in [-.04,0,.04]: box('Code glint',(x+dx,-.346,2.085),(.005,.003,.015),emerald,g,.001)
+                for col,dx in enumerate([-.043,-.014,.014,.043]):
+                    for row in range(3):
+                        glyph=text_mesh('Matrix falling code', '01'[row%2], (x+dx,-.347,2.04+row*.023),.022,code_green,g,True,extrude=.0004,bevel=.0002)
+                        glyph['avatar_motion']='code'; glyph['avatar_phase']=col*.37+row*.23+(0 if side==1 else .19); glyph['avatar_code_row']=row
+
+    elif key=='safety-goggles':
+        for side in [-1,1]:
+            box('Goggle safety lens',(side*.125,-.325,2.07),(.105,.018,.071),visor,g,.024)
+            ring('Goggle rim',(side*.125,-.35,2.07),.105,.072,cloth,g,.016)
+            line('Goggle strap',[(side*.23,-.28,2.07),(side*.355,.02,2.07),(side*.20,.23,2.07)],.018,dark,g)
+        box('Goggle bridge',(0,-.34,2.08),(.03,.023,.018),cloth,g,.01)
     elif key=='owl-glasses':
         for side in [-1,1]:
             ring('Owl eye',(side*.13,-.34,2.07),.108,.106,gold,g,.018)
@@ -299,7 +433,30 @@ for key in ACCESSORIES:
 for key in HATS:
     g=group('Hat_'+key,'hat',key); groups[key]=g
     g['avatar_covers_hair']=key not in ['runner','early-bird-hat']
-    if key in ['cap','beanie','propeller','duck','flame']:
+    if key=='pumpkin-hat':
+        pumpkin=material('Pumpkin shell',(.95,.22,.025))
+        for i in range(8):
+            a=i*math.pi/4
+            ellipsoid('Pumpkin rib',(math.cos(a)*.14,math.sin(a)*.12+.02,2.43),(.24,.20,.17),pumpkin,g)
+        line('Pumpkin stalk',[(0,.02,2.56),(.025,.02,2.67),(.075,.02,2.69)],.035,emerald,g)
+        for side in [-1,1]:
+            cone('Pumpkin face eye',(side*.10,-.29,2.47),.04,0,.06,dark,g,3).rotation_euler[0]=math.pi/2
+        line('Pumpkin smile',[(-.11,-.30,2.38),(0,-.315,2.35),(.11,-.30,2.38)],.012,dark,g)
+    elif key=='santa-hat':
+        torus('Santa fluffy brim',(0,.02,2.31),.31,.06,white,g)
+        cone('Santa red cap',(0,.02,2.53),.32,.045,.42,ruby,g)
+        tip=ellipsoid('Santa drooping tip',(.16,.02,2.69),(.18,.12,.095),ruby,g); tip.rotation_euler[1]=.45
+        ellipsoid('Santa pompom',(.29,.02,2.62),(.085,.085,.085),white,g)
+    elif key=='chef-hat':
+        box('Toque band',(0,.015,2.36),(.33,.25,.09),white,g,.04)
+        for x,y,z in [(-.22,0,2.57),(0,-.05,2.65),(.22,0,2.57),(0,.13,2.60)]:
+            ellipsoid('Toque puff',(x,y,z),(.20,.20,.17),white,g)
+    elif key=='welding-visor':
+        torus('Workshop headband',(0,.015,2.32),.31,.035,dark,g)
+        plate=box('Raised welding shield',(0,-.13,2.48),(.29,.065,.24),cloth,g,.06); plate.rotation_euler[0]=-.45
+        glass=box('Welding window',(0,-.20,2.49),(.16,.025,.065),dark,g,.015); glass.rotation_euler[0]=-.45
+        for side in [-1,1]: ellipsoid('Visor hinge',(side*.31,0,2.30),(.04,.04,.04),gold,g,12)
+    elif key in ['cap','beanie','propeller','duck','flame']:
         ellipsoid('Hat dome',(0,.02,2.30),(.375,.30,.16),cloth,g)
         if key=='cap': ellipsoid('Cap brim',(0,-.29,2.27),(.27,.23,.032),cloth,g)
         elif key=='beanie':
@@ -431,7 +588,9 @@ for key in ['rocket-pack','bookbag','turtle-shell']:
             cone('Rocket tank',(side*.15,.36,1.44),.11,.11,.50,white,g)
             ellipsoid('Rocket cap',(side*.15,.36,1.72),(.11,.11,.12),cloth,g)
             cone('Rocket nozzle',(side*.15,.36,1.15),.055,.09,.11,dark,g)
-            cone('Rocket exhaust',(side*.15,.36,.98),.003,.065,.24,gold,g)['avatar_motion']='flame'
+            cone('Rocket exhaust',(side*.15,.36,.93),.003,.07,.34,exhaust_blue,g)
+            cone('Rocket inner flame',(side*.15,.36,1.00),.003,.04,.20,white,g)
+
     elif key=='bookbag':
         box('Bookbag',(0,.30,1.38),(.26,.14,.29),cloth,g,.09)
         box('Bag flap',(0,.455,1.54),(.24,.023,.095),denim,g,.04)
@@ -521,19 +680,32 @@ for side in [-1,1]:
 for o in groups['wizard'].children:
     if o.name.startswith('Wizard star'): o['avatar_motion']='sparkle'
 
+# Thrusters stretch from the nozzle; their attachment stays fixed.
+pivot('Santa_pom_sway',groups['santa-hat'],(.20,.02,2.68),[o for o in groups['santa-hat'].children if o.name.startswith('Santa pompom')],'cloth')
+for side in [-1,1]:
+    jets=[o for o in groups['rocket-pack'].children if o.name.startswith(('Rocket exhaust','Rocket inner flame')) and o.location.x*side>0]
+    pivot('Rocket_jet_'+str(side),groups['rocket-pack'],(side*.15,.36,1.10),jets,'jet',side)
+
+for key in ['hoodie','raincoat','bomber']:
+    for o in list(groups[key].children):
+        if o.name.startswith(('Drawstring','Jacket zipper pull')):
+            corners=[o.matrix_world @ Vector(c) for c in o.bound_box]
+            attach=((min(c.x for c in corners)+max(c.x for c in corners))/2,(min(c.y for c in corners)+max(c.y for c in corners))/2,max(c.z for c in corners))
+            pivot('Cloth_sway_'+o.name,groups[key],attach,[o],'cloth')
+
 # Articulated shoulder groups include skin, sleeves and suit gloves together.
-for parent in [body]+[groups[key] for key in ['tee','hoodie','lab-coat','space-suit','dungarees']]:
+for parent in [body]+[groups[key] for key in OUTFITS]:
     for side in [-1,1]:
         children=[o for o in parent.children if o.name.startswith(('Arm','Forearm','Hand','Thumb','Sleeve','Pressure glove','Glove thumb','Suit wrist','Shoulder armor','Mission patch')) and o.location.x*side>0]
         shoulder=pivot('Shoulder_'+parent.name+'_'+str(side),parent,(side*.284,0,1.56),children,'arm',side)
-        forearms=[o for o in shoulder.children if o.name.startswith(('Forearm','Hand','Thumb','Sleeve forearm','Pressure glove','Glove thumb','Suit wrist'))]
+        forearms=[o for o in shoulder.children if o.name.startswith(('Forearm','Hand','Thumb','Sleeve forearm','Sleeve cuff','Sleeve knit cuff','Pressure glove','Glove thumb','Suit wrist'))]
         pivot('Elbow_'+parent.name+'_'+str(side),shoulder,(side*.101,0,-.275),forearms,'elbow',side)
-head_children=[o for o in bpy.context.scene.objects if o.get('avatar_slot') in ['character','hair','hat','audio'] or o.get('avatar_slot') in ['accessory','audio','jewellery'] and o.get('avatar_id') in ['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','matrix-shades']]
+head_children=[o for o in bpy.context.scene.objects if o.get('avatar_slot') in ['character','hair','hat','audio'] or o.get('avatar_slot') in ['accessory','audio','jewellery'] and o.get('avatar_id') in ['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','matrix-shades','safety-goggles']]
 head=pivot('Head_pose',None,(0,0,1.78),head_children,'head')
 # Torso pivots allow a real waist bow without tipping the feet or podium.
 pivot('Waist_head',None,(0,0,1.05),[head],'torso')
-for parent in [body]+[groups[key] for key in ['tee','hoodie','lab-coat','space-suit','dungarees']]:
-    top=[o for o in parent.children if o.name.startswith(('Neck','Shoulder','Torso','Hood','Drawstring','Kangaroo','Inner shirt','Lapel','Coat','Suit control','Suit belt','Life support','Oxygen','Pressure collar','Overall','Suspender','Bib'))]
+for parent in [body]+[groups[key] for key in OUTFITS]:
+    top=[o for o in parent.children if o.name.startswith(('Neck','Shoulder','Torso','Hood','Drawstring','Kangaroo','Inner shirt','Lapel','Coat','Suit control','Suit belt','Life support','Oxygen','Pressure collar','Overall','Suspender','Bib','Jacket','Chest','Cloth_sway'))]
     pivot('Waist_'+parent.name,parent,(0,0,1.05),top,'torso')
 for key in ['wings','terminal-pack','rocket-pack','bookbag','turtle-shell','python-snake','owl-pal','duck-pal','robot-pal','cat-pal','bow-tie','language-medal','star-pin','scarf']:
     g=groups[key]; pivot('Waist_'+key,None,(0,0,1.05),[g],'torso')
@@ -561,28 +733,34 @@ camera.rotation_euler=(Vector((0,0,1.28))-camera.location).to_track_quat('-Z','Y
 scene.view_settings.view_transform='Standard'
 profiles={'robot':((.67,.40,.25),(.10,.055,.035)),'sprout':((.31,.17,.105),(.035,.025,.025)),'fox':((.88,.64,.46),(.23,.10,.055)),'cat':((.60,.42,.30),(.06,.065,.075)),'nova':((.78,.51,.36),(.10,.055,.035))}
 colors={'sky':(.12,.36,.72),'mint':(.10,.56,.40),'rose':(.74,.22,.40),'amber':(.87,.48,.12),'violet':(.43,.27,.73),'slate':(.25,.34,.45)}
-def select(character='robot',outfit='tee',accessory='none',color='sky',hair_style=None,hat='hat-none',back='back-none',companion='companion-none',audio='audio-none',jewellery='jewel-none'):
+def select(character='robot',outfit='tee',accessory='none',color='sky',hair_style=None,hat='hat-none',back='back-none',companion='companion-none',audio='audio-none',jewellery='jewel-none',pants='straight',shoes='sneakers'):
     hair_style=hair_style or {'robot':'crop','sprout':'curls','fox':'bob','cat':'bun','nova':'crop'}[character]
-    for key,g in groups.items():
-        shown=key in [hair_style,outfit,accessory,hat,back,companion,audio,jewellery]
-        if g.get('avatar_slot')=='hair' and groups.get(hat) and groups[hat].get('avatar_covers_hair'): shown=False
-        for o in g.children_recursive: o.hide_render=not shown
+    chosen={'character':character,'outfit':outfit,'accessory':accessory,'hair':hair_style,'hat':hat,'back':back,'companion':companion,'audio':audio,'jewellery':jewellery,'pants':pants,'shoes':shoes}
+    covers_hair=bool(groups.get(hat) and groups[hat].get('avatar_covers_hair'))
     for o in bpy.context.scene.objects:
-        if o.get('avatar_hide_back'): o.hide_render=back in o['avatar_hide_back']
-        if o.get('avatar_hide_outfits'): o.hide_render=outfit in o['avatar_hide_outfits']
-        if o.get('avatar_slot')=='character':
-            for child in o.children_recursive: child.hide_render=o.get('avatar_id')!=character
+        if o.type!='MESH': continue
+        owner=o
+        while owner and not owner.get('avatar_slot'): owner=owner.parent
+        shown=not owner or chosen.get(owner.get('avatar_slot'))==owner.get('avatar_id')
+        if owner and owner.get('avatar_slot')=='hair' and covers_hair: shown=False
+        if o.get('avatar_hide_back') and back in o['avatar_hide_back']: shown=False
+        if o.get('avatar_hide_outfits') and outfit in o['avatar_hide_outfits']: shown=False
+        if o.get('avatar_hide_hair') and hair_style in o['avatar_hide_hair'] and not covers_hair: shown=False
+        o.hide_render=not shown
     for m,value in [(skin,profiles[character][0]),(hair,profiles[character][1]),(cloth,colors[color])]:
         m.diffuse_color=(*value,1);m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(*value,1)
-for slot,ids in [('character',['robot','sprout','fox','cat','nova']),('outfit',['tee','hoodie','lab-coat','space-suit','dungarees']),('accessory',['none']+ACCESSORIES),('hair',HAIRS),('hat',['hat-none']+HATS),('audio',['studio-headset','cat-headphones','earbuds','retro-headphones','gamer-headset']),('jewellery',['star-pin','scarf']),('back',['terminal-pack','rocket-pack','bookbag','turtle-shell']),('companion',['python-snake','owl-pal','duck-pal','robot-pal','cat-pal']),('color',list(colors))]:
+for slot,ids in [('character',['robot','sprout','fox','cat','nova']),('outfit',OUTFITS),('pants',PANTS),('shoes',SHOES),('accessory',['none']+ACCESSORIES),('hair',HAIRS),('hat',['hat-none']+HATS),('audio',['studio-headset','cat-headphones','earbuds','retro-headphones','gamer-headset']),('jewellery',['star-pin','scarf']),('back',['terminal-pack','rocket-pack','bookbag','turtle-shell']),('companion',['python-snake','owl-pal','duck-pal','robot-pal','cat-pal']),('color',list(colors))]:
     for item in ids:
         closeup=slot in ['hair','hat','accessory','companion','audio']
         camera.location=(2.8,-7,2.8) if closeup else (3.1,-6.8,3.05)
         target=Vector((0,0,2.17 if closeup else 1.28));camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler();camera.data.ortho_scale=1.6 if closeup else 3.05
+        if slot in ['pants','shoes']:
+            target=Vector((0,0,.65 if slot=='pants' else .22)); camera.location=(2,-5,1.9 if slot=='pants' else 1.2)
+            camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler(); camera.data.ortho_scale=1.4 if slot=='pants' else .9
         args={'hair_style' if slot=='hair' else slot:item}; select(**args); scene.render.filepath=os.path.join(OUT,slot+'-'+item+'.png')
         if slot=='back':
             camera.location=(3.1,6.8,3.05);camera.rotation_euler=(Vector((0,0,1.28))-camera.location).to_track_quat('-Z','Y').to_euler()
-        if '--skip-thumbnails' not in sys.argv and (THUMBNAIL_ONLY is None or item==THUMBNAIL_ONLY): bpy.ops.render.render(write_still=True)
+        if '--skip-thumbnails' not in sys.argv and (THUMBNAIL_ONLY is None or item==THUMBNAIL_ONLY) and ('--thumbnail-missing' not in sys.argv or not os.path.exists(scene.render.filepath)): bpy.ops.render.render(write_still=True)
 bpy.context.preferences.filepaths.save_version=0
 select(); bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'src/avatar-models/wardrobe.blend'))
 print('Saved original Blender wardrobe, GLB and modular thumbnails.')

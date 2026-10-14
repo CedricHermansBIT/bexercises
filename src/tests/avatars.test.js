@@ -112,17 +112,17 @@ test('Blender wardrobe exports all modular selections and local thumbnails', asy
     assert.equal(data.toString('utf8', 0, 4), 'glTF');
     assert.equal(data.readUInt32LE(4), 2);
     assert.equal(data.readUInt32LE(8), data.length);
-    assert.ok(data.length < 6 * 1024 * 1024);
+    assert.ok(data.length < 10 * 1024 * 1024);
     const jsonLength = data.readUInt32LE(12);
     const gltf = JSON.parse(data.subarray(20, 20 + jsonLength).toString());
     assert.ok(gltf.buffers.every(buffer => !buffer.uri));
     const ids = gltf.nodes.filter(node => node.extras?.avatar_slot).map(node => node.extras.avatar_id).sort();
     const { CATALOG } = require('../services/avatarService');
-    assert.deepEqual(ids, CATALOG.filter(item => ['character', 'outfit', 'accessory', 'audio', 'jewellery', 'back', 'companion', 'hair', 'hat'].includes(item.slot) && !['none', 'hat-none', 'audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(item.id)).map(item => item.id).sort());
+    assert.deepEqual(ids, CATALOG.filter(item => ['character', 'outfit', 'accessory', 'audio', 'jewellery', 'back', 'companion', 'hair', 'hat', 'pants', 'shoes'].includes(item.slot) && !['none', 'hat-none', 'audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(item.id)).map(item => item.id).sort());
     assert.ok(gltf.materials.some(material => material.name === 'Skin'));
     const renderSource = fs.readFileSync('frontend/js/utils/avatarRenderer.js', 'utf8');
     const { AVATAR_ASSET_SLOTS } = await import(`data:text/javascript;base64,${Buffer.from(renderSource).toString('base64')}`);
-    for (const item of CATALOG.filter(item => ['character', 'outfit', 'accessory', 'audio', 'jewellery', 'back', 'companion', 'hair', 'hat'].includes(item.slot) && !['audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(item.id))) {
+    for (const item of CATALOG.filter(item => ['character', 'outfit', 'accessory', 'audio', 'jewellery', 'back', 'companion', 'hair', 'hat', 'pants', 'shoes'].includes(item.slot) && !['audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(item.id))) {
         const png = fs.readFileSync(`frontend/assets/avatars/${AVATAR_ASSET_SLOTS[item.id] || item.slot}-${item.id}.png`);
         assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     }
@@ -140,7 +140,7 @@ test('3D selections toggle model groups and apply only trusted skin and clothing
     applyAvatarSelection(scene, chosen);
     const active = [];
     scene.traverse(object => { if (object.userData.avatar_slot && object.visible) active.push(object.userData.avatar_id); });
-    assert.deepEqual(active.sort(), ['fox', 'braid', 'lab-coat', 'crown'].sort());
+    assert.deepEqual(active.sort(), ['fox', 'braid', 'lab-coat', 'crown', 'straight', 'sneakers'].sort());
     const paletteSource = fs.readFileSync('frontend/js/utils/avatarRenderer.js', 'utf8');
     const { AVATAR_PALETTES } = await import(`data:text/javascript;base64,${Buffer.from(paletteSource).toString('base64')}`);
     const slots = { Skin: 'skin', Hair: 'hairColor', Wardrobe: 'color', Denim: 'pantsColor', Shoes: 'shoesColor' };
@@ -156,7 +156,7 @@ test('3D selections toggle model groups and apply only trusted skin and clothing
     applyAvatarSelection(scene, DEFAULT_SELECTION);
     const original = [];
     scene.traverse(object => { if (object.userData.avatar_slot && object.visible) original.push(object.userData.avatar_id); });
-    assert.deepEqual(original.sort(), ['robot', 'crop', 'tee'].sort());
+    assert.deepEqual(original.sort(), ['robot', 'crop', 'tee', 'straight', 'sneakers'].sort());
 });
 
 
@@ -410,4 +410,89 @@ test('public appearances contain only equipped IDs, migrate legacy records, and 
         assert.deepEqual(await db.db.all('SELECT * FROM user_avatar_unlocks'), before);
         assert.deepEqual([...await service.getAppearances([])], []);
     } finally { db.cache.clear(); await db.db.close(); }
+});
+
+test('pants and shoes switch independently, support item previews, and hide inside space suits', async () => {
+    const { scene, applyAvatarSelection, selectAvatarReward } = await loadWardrobe();
+    for (const [slot, ids] of Object.entries({ pants: ['straight','chinos','cargo','shorts','joggers','wide-leg'], shoes: ['sneakers','high-tops','boots','loafers','sandals','trainers','clogs','elf-shoes'] })) {
+        for (const id of ids) {
+            const selection = { ...DEFAULT_SELECTION, [slot]: id, pantsColor: 'pants-plum', shoesColor: 'shoes-mint' };
+            applyAvatarSelection(scene, selection);
+            const active = [];
+            scene.traverse(o => { if (o.userData.avatar_slot === slot && o.visible) active.push(o.userData.avatar_id); });
+            assert.deepEqual(active, [id]);
+            const bounds = selectAvatarReward(scene, selection, { slot, id });
+            assert.ok(!bounds.isEmpty(), id);
+            // Restore visibility after item isolation, as the production portrait renderer does.
+            scene.traverse(o => { o.visible = true; });
+            applyAvatarSelection(scene, { ...selection, outfit: 'space-suit' });
+            let hidden = 0;
+            scene.traverse(o => { if (o.userData.avatar_hide_outfits) { assert.equal(o.visible, false); hidden++; } });
+            assert.ok(hidden > 0);
+            applyAvatarSelection(scene, selection);
+            scene.traverse(o => { if (o.userData.avatar_hide_outfits) assert.equal(o.visible, true); });
+        }
+    }
+});
+
+test('Matrix code, rocket jets and clothing details animate without drift and respect reduced motion', async () => {
+    const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'bomber', accessory: 'matrix-shades', back: 'rocket-pack' });
+    const code = find(o => o.userData.avatar_motion === 'code');
+    const jet = find(o => o.userData.avatar_motion === 'jet');
+    const cloth = find(o => o.userData.avatar_motion === 'cloth' && o.name.includes('Jacket'));
+    assert.ok(code); assert.ok(jet); assert.ok(cloth);
+    const rest = [code.position.toArray(), jet.scale.toArray(), cloth.rotation.toArray()];
+    const animator = createAvatarAnimator(scene);
+    animator.update(0.4); const first = [code.position.toArray(), jet.scale.toArray(), cloth.rotation.toArray()];
+    assert.notDeepEqual(first[0], rest[0]); assert.notDeepEqual(first[1], rest[1]); assert.notDeepEqual(first[2], rest[2]);
+    animator.update(0.4); assert.deepEqual([code.position.toArray(), jet.scale.toArray(), cloth.rotation.toArray()], first);
+    animator.update(0.8); assert.notDeepEqual(code.position.toArray(), first[0]); assert.notDeepEqual(jet.scale.toArray(), first[1]);
+    animator.update(0.8, true); assert.deepEqual([code.position.toArray(), jet.scale.toArray(), cloth.rotation.toArray()], rest);
+    applyAvatarSelection(scene, DEFAULT_SELECTION); animator.update(1);
+    assert.deepEqual([code.position.toArray(), jet.scale.toArray(), cloth.rotation.toArray()], rest);
+});
+
+test('new gestures and personalities have distinct poses and gestures end cleanly', async () => {
+    const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
+    applyAvatarSelection(scene, DEFAULT_SELECTION);
+    const arm = find(o => o.userData.avatar_motion === 'arm' && o.userData.avatar_side === 1 && o.name.includes('Body'));
+    const elbow = find(o => o.userData.avatar_motion === 'elbow' && o.userData.avatar_side === 1 && o.name.includes('Body'));
+    const head = find(o => o.userData.avatar_motion === 'head');
+    const signature = () => JSON.stringify([arm.rotation.toArray(), elbow.rotation.toArray(), head.rotation.toArray()]);
+    const animator = createAvatarAnimator(scene);
+    const poses = [];
+    for (const name of ['wave','celebrate','bounce','dance','bow','salute','dab','clap']) {
+        animator.gesture(name, 0); animator.update(1, false, DEFAULT_SELECTION); poses.push(signature());
+    }
+    assert.equal(new Set(poses).size, 8);
+    // Applause stays in front of the shirt and hands meet without crossing through it.
+    for (const seconds of [1, 1.1, 1.2]) {
+        animator.update(seconds, false, DEFAULT_SELECTION); scene.updateMatrixWorld(true);
+        const hands = [];
+        scene.traverse(o => { if (o.isMesh && o.name.startsWith('Hand')) hands.push(o.matrixWorld.elements.slice(12, 15)); });
+        assert.equal(hands.length, 2);
+        for (const [, y, z] of hands) { assert.ok(y > 1.2); assert.ok(z > 0.17); }
+        assert.ok(Math.abs(hands[0][0] - hands[1][0]) > 0.14);
+    }
+    animator.update(4, false, DEFAULT_SELECTION); const ended = signature();
+    animator.gesture('clap', 4); animator.update(5, true, DEFAULT_SELECTION);
+    animator.update(4, false, DEFAULT_SELECTION); assert.equal(signature(), ended);
+    const idles = [];
+    for (const idle of ['idle-relaxed','idle-confident','idle-shy','idle-bouncy','idle-drowsy','idle-curious','idle-groovy']) {
+        animator.update(1, true, { ...DEFAULT_SELECTION, idle }); idles.push(signature());
+    }
+    assert.equal(new Set(idles).size, 7);
+});
+
+test('matching set models contain their distinctive details rather than generic tops', async () => {
+    const { scene, find } = await loadWardrobe();
+    for (const [id, prefix] of [['pumpkin-knit','Chest_pumpkin'], ['festive-knit','Chest_snowflake'], ['chef-jacket','Jacket_chef_button'], ['varsity','Chest_varsity_B'], ['raincoat','Jacket_reflective_tape'], ['safety-goggles','Goggle_safety_lens'], ['santa-hat','Santa_pompom'], ['pumpkin-hat','Pumpkin_rib'], ['welding-visor','Welding_window']]) {
+        const group = find(o => o.userData.avatar_id === id);
+        assert.ok(group, id);
+        let detail = false;
+        group.traverse(o => { if (o.isMesh && o.name.startsWith(prefix)) detail = true; });
+        assert.equal(detail, true, `${id} needs ${prefix}`);
+    }
+    assert.ok(scene);
 });

@@ -118,3 +118,27 @@ test('unlock speed counters and awards agree for SQLite and ISO submission times
         assert.equal((await service.getState(1)).catalog.find(i => i.id === 'lightning').unlocked, true);
     } finally { await close(); }
 });
+
+test('older complete selections and saved looks migrate while old clients preserve pants and shoes', async () => {
+    const { service, database, close } = await setup();
+    try {
+        const old = Object.fromEntries(Object.entries(DEFAULT_SELECTION).filter(([slot]) => !['pants', 'shoes'].includes(slot)));
+        await database.db.run('INSERT INTO user_avatars(user_id,selection) VALUES(1,?)', [JSON.stringify(old)]);
+        await database.db.run('INSERT INTO user_avatar_looks(user_id,slot,name,selection) VALUES(1,1,?,?)', ['Old favourite', JSON.stringify(old)]);
+        const state = await service.getState(1);
+        assert.equal(state.selection.pants, 'straight'); assert.equal(state.selection.shoes, 'sneakers');
+        assert.equal(state.looks[0].selection.pants, 'straight'); assert.equal(state.looks[0].selection.shoes, 'sneakers');
+        const selection = { ...state.selection, outfit: 'bomber', pants: 'cargo', shoes: 'boots', pantsColor: 'pants-sand', shoesColor: 'shoes-ink' };
+        assert.deepEqual((await service.saveSelection(1, selection)).selection, selection);
+        const updated = await service.saveSelection(1, { ...old, color: 'mint' });
+        assert.equal(updated.selection.pants, 'cargo'); assert.equal(updated.selection.shoes, 'boots');
+        const incomplete = { ...selection }; delete incomplete.shoes;
+        assert.throws(() => validateSelection(incomplete), /complete/);
+        assert.throws(() => validateSelection({ ...old, pants: 'shorts' }), /complete/);
+        assert.throws(() => validateSelection({ ...selection, shoes: 'imaginary' }), /Unknown/);
+        await assert.rejects(service.saveSelection(1, { ...selection, shoes: 'clogs' }), /Unlock/);
+        await database.awardAchievement(1, 'first-steps');
+        const lab = { ...selection, outfit: 'lab-coat', accessory: 'safety-goggles', shoes: 'clogs' };
+        assert.deepEqual((await service.saveSelection(1, lab)).selection, lab);
+    } finally { await close(); }
+});

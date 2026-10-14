@@ -20,12 +20,13 @@ export const AVATAR_SHOES_COLORS = { 'shoes-cream': [0.92, 0.92, 0.85], 'shoes-i
     ...Object.fromEntries(['crimson','orange','lemon','violet','cyan','white','chocolate'].map(id => [`shoes-${id}`, AVATAR_COLORS[id]])), 'shoes-silver': [.60,.65,.70] };
 export const AVATAR_PALETTES = { color: AVATAR_COLORS, skin: AVATAR_SKINS, hairColor: AVATAR_HAIR_COLORS,
     pantsColor: AVATAR_PANTS_COLORS, shoesColor: AVATAR_SHOES_COLORS };
-export const AVATAR_OPTIONS = { character: ['robot', 'sprout', 'fox', 'cat', 'nova'], outfit: ['tee', 'hoodie', 'lab-coat', 'space-suit', 'dungarees'],
-    accessory: ['none', 'glasses', 'glasses-69', 'glasses-67', 'star-glasses', 'pixel-shades', 'owl-glasses', 'matrix-shades'],
+export const AVATAR_OPTIONS = { character: ['robot', 'sprout', 'fox', 'cat', 'nova'], outfit: ['tee', 'hoodie', 'lab-coat', 'space-suit', 'dungarees', 'bomber', 'varsity', 'rugby', 'cardigan', 'raincoat', 'chef-jacket', 'pumpkin-knit', 'festive-knit'],
+    pants: ['straight', 'chinos', 'cargo', 'shorts', 'joggers', 'wide-leg'], shoes: ['sneakers', 'high-tops', 'boots', 'loafers', 'sandals', 'trainers', 'clogs', 'elf-shoes'],
+    accessory: ['none', 'glasses', 'glasses-69', 'glasses-67', 'star-glasses', 'pixel-shades', 'owl-glasses', 'matrix-shades', 'safety-goggles'],
     audio: ['audio-none', 'headphones', 'studio-headset', 'cat-headphones', 'earbuds', 'retro-headphones', 'gamer-headset'], jewellery: ['jewel-none', 'lightning', 'bow-tie', 'language-medal', 'star-pin', 'scarf'],
     back: ['back-none', 'wings', 'terminal-pack', 'rocket-pack', 'bookbag', 'turtle-shell'], companion: ['companion-none', 'python-snake', 'owl-pal', 'duck-pal', 'robot-pal', 'cat-pal'],
-    idle: ['idle-relaxed', 'idle-confident', 'idle-shy', 'idle-bouncy', 'idle-drowsy'], celebration: ['cel-wave', 'cel-celebrate', 'cel-bounce', 'cel-dance', 'cel-bow'], hair: ['crop', 'curls', 'bob', 'bun', 'mohawk', 'braid', 'bald', 'buzz', 'pixie', 'afro', 'ponytail', 'twin-buns', 'spiky', 'long-waves', 'dreads', 'pompadour'],
-    hat: ['hat-none', 'crown', 'database-hat', 'cap', 'beanie', 'duck', 'propeller', 'wizard', 'graduation', 'space-helmet', 'viking', 'centurion-helmet', 'mushroom', 'top-hat', 'runner', 'early-bird-hat', 'flame'],
+    idle: ['idle-relaxed', 'idle-confident', 'idle-shy', 'idle-bouncy', 'idle-drowsy', 'idle-curious', 'idle-groovy'], celebration: ['cel-wave', 'cel-celebrate', 'cel-bounce', 'cel-dance', 'cel-bow', 'cel-salute', 'cel-dab', 'cel-clap'], hair: ['crop', 'curls', 'bob', 'bun', 'mohawk', 'braid', 'bald', 'buzz', 'pixie', 'afro', 'ponytail', 'twin-buns', 'spiky', 'long-waves', 'dreads', 'pompadour'],
+    hat: ['hat-none', 'crown', 'database-hat', 'cap', 'beanie', 'duck', 'propeller', 'wizard', 'graduation', 'space-helmet', 'viking', 'centurion-helmet', 'mushroom', 'top-hat', 'runner', 'early-bird-hat', 'flame', 'chef-hat', 'welding-visor', 'pumpkin-hat', 'santa-hat'],
     ...Object.fromEntries(Object.entries(AVATAR_PALETTES).map(([slot, palette]) => [slot, Object.keys(palette)])) };
 
 export const AVATAR_ASSET_SLOTS = Object.fromEntries(['headphones', 'crown', 'lightning', 'bow-tie', 'wings', 'language-medal'].map(id => [id, 'accessory']));
@@ -36,7 +37,7 @@ export function renderAvatar(selection, label = 'Your character', slot = 'charac
     const safeLabel = String(label).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     if (['audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(id)) return `<span class="avatar-choice-symbol" aria-hidden="true">∅</span>`;
     if (slot === 'idle' || slot === 'celebration') {
-        const symbol = { 'idle-relaxed': '☕', 'idle-confident': '😎', 'idle-shy': '☺️', 'idle-bouncy': '✨', 'idle-drowsy': '💤', 'cel-wave': '👋', 'cel-celebrate': '🙌', 'cel-bounce': '🎉', 'cel-dance': '🕺', 'cel-bow': '🎩' }[id];
+        const symbol = { 'idle-relaxed': '☕', 'idle-confident': '😎', 'idle-shy': '☺️', 'idle-bouncy': '✨', 'idle-drowsy': '💤', 'idle-curious': '🤔', 'idle-groovy': '🎧', 'cel-wave': '👋', 'cel-celebrate': '🙌', 'cel-bounce': '🎉', 'cel-dance': '🕺', 'cel-bow': '🎩', 'cel-salute': '🫡', 'cel-dab': '⚡', 'cel-clap': '👏' }[id];
         return `<span class="avatar-choice-symbol" aria-hidden="true">${symbol}</span>`;
     }
     const palette = AVATAR_PALETTES[slot];

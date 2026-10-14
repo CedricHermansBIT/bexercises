@@ -1,7 +1,7 @@
 const { getAvatarProgress, progressFor } = require('./avatarProgressService');
 const DEFAULT_SELECTION = Object.freeze({ character: 'robot', outfit: 'tee', accessory: 'none', color: 'sky',
     skin: 'skin-warm', hair: 'crop', hairColor: 'hair-chestnut', pantsColor: 'pants-navy', shoesColor: 'shoes-cream', hat: 'hat-none',
-    audio: 'audio-none', jewellery: 'jewel-none', back: 'back-none', companion: 'companion-none', idle: 'idle-relaxed', celebration: 'cel-wave' });
+    audio: 'audio-none', jewellery: 'jewel-none', back: 'back-none', companion: 'companion-none', idle: 'idle-relaxed', celebration: 'cel-wave', pants: 'straight', shoes: 'sneakers' });
 const CHARACTER_PRESETS = { robot: {}, sprout: { skin: 'skin-deep', hair: 'curls', hairColor: 'hair-black' },
     fox: { skin: 'skin-fair', hair: 'bob', hairColor: 'hair-copper' }, cat: { skin: 'skin-brown', hair: 'bun', hairColor: 'hair-black' } };
 const LEGACY_SLOTS = { headphones: 'audio', crown: 'hat', lightning: 'jewellery', 'bow-tie': 'jewellery', 'language-medal': 'jewellery', wings: 'back' };
@@ -16,6 +16,23 @@ const CATALOG = Object.freeze([
     { id: 'hoodie', slot: 'outfit', name: 'Cosy hoodie' },
     { id: 'lab-coat', slot: 'outfit', name: 'Lab coat', achievement: 'first-steps' },
     { id: 'space-suit', slot: 'outfit', name: 'Space suit', achievement: 'master' },
+    { id: 'pumpkin-knit', slot: 'outfit', name: 'Midnight pumpkin jumper', achievement: 'night-owl' },
+    { id: 'festive-knit', slot: 'outfit', name: 'Streak-season festive knit', achievement: 'streak-starter' },
+    { id: 'pumpkin-hat', slot: 'hat', name: 'Little pumpkin patch', achievement: 'night-owl' },
+    { id: 'santa-hat', slot: 'hat', name: 'Committed Claus', achievement: 'committed' },
+    { id: 'elf-shoes', slot: 'shoes', name: 'Curly elf shoes', achievement: 'committed' },
+    { id: 'chef-jacket', slot: 'outfit', name: 'Chef’s double-breasted jacket', achievement: 'perfectionist' },
+    { id: 'safety-goggles', slot: 'accessory', name: 'Lab safety goggles', achievement: 'first-steps' },
+    { id: 'chef-hat', slot: 'hat', name: 'Chef’s toque', achievement: 'perfectionist' },
+    { id: 'welding-visor', slot: 'hat', name: 'Workshop welding visor', achievement: 'persistent' },
+    { id: 'clogs', slot: 'shoes', name: 'Lab & kitchen clogs', achievement: 'first-steps' },
+    { id: 'bomber', slot: 'outfit', name: 'Campus bomber jacket' },
+    { id: 'varsity', slot: 'outfit', name: 'Chapter varsity jacket', achievement: 'chapter-complete' },
+    { id: 'rugby', slot: 'outfit', name: 'Striped rugby shirt' },
+    { id: 'cardigan', slot: 'outfit', name: 'Library cardigan' },
+    { id: 'raincoat', slot: 'outfit', name: 'Rainy-day explorer', achievement: 'dedicated' },
+    ...[['straight', 'Classic trousers'], ['chinos', 'Turn-up chinos'], ['cargo', 'Cargo trousers'], ['shorts', 'Summer shorts'], ['joggers', 'Campus joggers'], ['wide-leg', 'Wide-leg trousers']].map(([id, name]) => ({ id, slot: 'pants', name })),
+    ...[['sneakers', 'Everyday sneakers'], ['high-tops', 'High-top sneakers'], ['boots', 'Trail boots'], ['loafers', 'Smart loafers'], ['sandals', 'Summer sandals'], ['trainers', 'Track trainers']].map(([id, name]) => ({ id, slot: 'shoes', name })),
     { id: 'none', slot: 'accessory', name: 'Keep it simple' },
     { id: 'glasses', slot: 'accessory', name: 'Bright ideas', achievement: 'helpful-nudge' },
     { id: 'headphones', slot: 'accessory', name: 'Focus headphones', achievement: 'persistent' },
@@ -82,8 +99,8 @@ const CATALOG = Object.freeze([
     { id: 'python-snake', slot: 'companion', name: 'Python shoulder pal', languageIds: ['python'] },
     { id: 'terminal-pack', slot: 'back', name: 'Bash terminal backpack', languageIds: ['bash'] },
     { id: 'database-hat', slot: 'hat', name: 'SQL database hat', languageIds: ['sql', 'mysql', 'mariadb', 'postgresql'] },
-    ...[['relaxed', 'Relaxed', 'Easy breathing and relaxed arms.'], ['confident', 'Confident', 'Hands on hips, chin lifted.'], ['shy', 'Shy', 'Arms folded forward, head lowered.'], ['bouncy', 'Happy bounce', 'Raised arms and gentle hops.'], ['drowsy', 'Sleepy daydreamer', 'Closed eyes and sleepy nods.']].map(([id, name, description]) => ({ id: `idle-${id}`, slot: 'idle', name, description })),
-    ...[['wave', 'Friendly wave'], ['celebrate', 'Victory cheer'], ['bounce', 'Happy bounce'], ['dance', 'Victory dance'], ['bow', 'Take a bow']].map(([id, name]) => ({ id: `cel-${id}`, slot: 'celebration', name })),
+    ...[['relaxed', 'Relaxed', 'Easy breathing and relaxed arms.'], ['confident', 'Confident', 'Hands on hips, chin lifted.'], ['shy', 'Shy', 'Arms folded forward, head lowered.'], ['bouncy', 'Happy bounce', 'Raised arms and gentle hops.'], ['drowsy', 'Sleepy daydreamer', 'Closed eyes and sleepy nods.'], ['curious', 'Curious thinker', 'A tilted head and one hand by your chin.'], ['groovy', 'Headphone groove', 'A little shoulder sway, even between exercises.']].map(([id, name, description]) => ({ id: `idle-${id}`, slot: 'idle', name, description })),
+    ...[['wave', 'Friendly wave'], ['celebrate', 'Victory cheer'], ['bounce', 'Happy bounce'], ['dance', 'Victory dance'], ['bow', 'Take a bow'], ['salute', 'Ready for launch'], ['dab', 'Victory dab'], ['clap', 'Round of applause']].map(([id, name]) => ({ id: `cel-${id}`, slot: 'celebration', name })),
     ...['sky', 'mint', 'rose', 'amber', 'violet', 'slate', 'crimson', 'orange', 'lemon', 'lime', 'forest', 'teal', 'cyan', 'ocean', 'navy', 'lavender', 'magenta', 'chocolate', 'sand', 'cream', 'white', 'black'].map(id => ({ id, slot: 'color', name: id[0].toUpperCase() + id.slice(1) })),
     { id: 'golden', slot: 'color', name: 'Learner gold', achievement: 'quick-learner' },
     ...['fair', 'warm', 'olive', 'brown', 'deep', 'porcelain', 'peach', 'umber', 'ebony'].map(id => ({ id: `skin-${id}`, slot: 'skin', name: id[0].toUpperCase() + id.slice(1) })),
@@ -99,8 +116,8 @@ function validateSelection(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)
         || Object.keys(value).some(key => !Object.hasOwn(DEFAULT_SELECTION, key))) throw new Error('Choose a complete avatar selection');
     const keys = Object.keys(value);
-    const legacy = [4, 9, 10].includes(keys.length);
-    const required = legacy ? oldKeys.slice(0, keys.length) : Object.keys(DEFAULT_SELECTION);
+    const legacy = [4, 9, 10, 16].includes(keys.length);
+    const required = legacy ? (keys.length === 16 ? Object.keys(DEFAULT_SELECTION).slice(0, 16) : oldKeys.slice(0, keys.length)) : Object.keys(DEFAULT_SELECTION);
     if (keys.length !== required.length || !required.every(key => Object.hasOwn(value, key))) throw new Error('Choose a complete avatar selection');
     const selection = { ...DEFAULT_SELECTION, ...(keys.length === 4 ? CHARACTER_PRESETS[value.character] : {}), ...value };
     if (legacy && LEGACY_SLOTS[value.accessory]) { selection[LEGACY_SLOTS[value.accessory]] = value.accessory; selection.accessory = 'none'; }

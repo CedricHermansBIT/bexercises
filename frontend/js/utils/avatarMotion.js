@@ -12,7 +12,7 @@ export function createAvatarAnimator(model) {
         return true;
     };
     return {
-        gesture(name, seconds) { if (['wave', 'celebrate', 'bounce', 'dance', 'bow'].includes(name)) gesture = { name, start: seconds }; },
+        gesture(name, seconds) { if (['wave', 'celebrate', 'bounce', 'dance', 'bow', 'salute', 'dab', 'clap'].includes(name)) gesture = { name, start: seconds }; },
         update(seconds, reducedMotion = false, selection = {}) {
             const progress = gesture ? (seconds - gesture.start) / 3.2 : 1;
             if (progress >= 1 || reducedMotion) gesture = null;
@@ -20,38 +20,59 @@ export function createAvatarAnimator(model) {
             const raised = amount * amount * (3 - 2 * amount);
             const personality = selection.idle || 'idle-relaxed';
             for (const { object, motion, side, position, rotation, scale } of parts) {
-                if (['spin', 'duck', 'bird', 'tassel', 'wing', 'head', 'arm', 'elbow', 'torso'].includes(motion)) object.rotation.copy(rotation);
-                if (['duck', 'bird', 'snake'].includes(motion)) object.position.copy(position);
-                if (['flame', 'sparkle', 'pulse', 'blink'].includes(motion)) object.scale.copy(scale);
+                if (['spin', 'duck', 'bird', 'tassel', 'wing', 'head', 'arm', 'elbow', 'torso', 'cloth'].includes(motion)) object.rotation.copy(rotation);
+                if (['duck', 'bird', 'snake', 'code'].includes(motion)) object.position.copy(position);
+                if (['flame', 'sparkle', 'pulse', 'blink', 'jet'].includes(motion)) object.scale.copy(scale);
                 if (!visible(object)) continue;
                 // Reduced motion retains the chosen static personality, but removes movement.
-                if (motion === 'arm') object.rotation.z += side * ({ 'idle-confident': 0.38, 'idle-shy': -0.17, 'idle-bouncy': 0.65 }[personality] || 0);
+                if (motion === 'arm') object.rotation.z += side * ({ 'idle-confident': 0.38, 'idle-shy': -0.17, 'idle-bouncy': 0.65, 'idle-curious': side === 1 ? 1.0 : 0, 'idle-groovy': 0.22 }[personality] || 0);
                 if (motion === 'elbow') {
-                    object.rotation.z += side * ({ 'idle-confident': -0.95, 'idle-bouncy': 0.75 }[personality] || 0);
-                    object.rotation.x += ({ 'idle-confident': -0.50, 'idle-shy': -1.25, 'idle-drowsy': -0.15 }[personality] || 0);
+                    object.rotation.z += side * ({ 'idle-confident': -0.95, 'idle-bouncy': 0.75, 'idle-curious': side === 1 ? 2.8 : 0, 'idle-groovy': 0.65 }[personality] || 0);
+                    object.rotation.x += ({ 'idle-confident': -0.50, 'idle-shy': -1.25, 'idle-drowsy': -0.15, 'idle-curious': side === 1 ? -0.15 : 0 }[personality] || 0);
                 }
                 if (motion === 'head') {
                     object.rotation.x += ({ 'idle-shy': 0.13, 'idle-drowsy': 0.20, 'idle-confident': -0.04 }[personality] || 0);
                     if (personality === 'idle-shy') object.rotation.y += 0.14;
+                    if (personality === 'idle-curious') object.rotation.z += 0.16;
                 }
                 if (motion === 'blink' && personality === 'idle-drowsy') object.scale.y *= 0.15;
                 if (reducedMotion) continue;
                 if (gesture && motion === 'arm') {
                     object.rotation.copy(rotation);
                     const angles = { wave: side === 1 ? 0.80 : 0, celebrate: 2.35, bounce: 0.70,
-                        dance: 0.55 + Math.sin(seconds * 5 + side) * 0.65, bow: 0.08 };
+                        dance: 0.55 + Math.sin(seconds * 5 + side) * 0.65, bow: 0.08, salute: side === 1 ? 0.95 : 0, dab: side === 1 ? 2.1 : 1.0, clap: -0.35 };
                     object.rotation.z += side * raised * angles[gesture.name];
+                    if (gesture.name === 'clap') object.rotation.x -= raised * 1.2;
                 }
                 if (gesture && motion === 'elbow') {
                     object.rotation.copy(rotation);
                     object.rotation.z += side * raised * ({ wave: side === 1 ? 1.25 + Math.sin(seconds * 9) * 0.15 : 0,
-                        celebrate: 0.35, bounce: 1.1, dance: 0.9 + Math.cos(seconds * 5 + side) * 0.75, bow: 0 }[gesture.name]);
+                        celebrate: 0.35, bounce: 1.1, dance: 0.9 + Math.cos(seconds * 5 + side) * 0.75, bow: 0, salute: side === 1 ? 1.55 : 0, dab: side === 1 ? 0.10 : 1.65, clap: -0.6 - (1 + Math.sin(seconds * 11)) * 0.1 }[gesture.name]);
                     if (gesture.name === 'bow' && side === 1) object.rotation.x -= raised * 0.8;
+                    if (gesture.name === 'salute' && side === 1) object.rotation.x -= raised * 0.65;
+                    if (gesture.name === 'dab') object.rotation.x -= raised * (side === -1 ? 0.8 : 0.10);
+                    if (gesture.name === 'clap') object.rotation.x += raised * 0.8;
                 }
-                if (motion === 'torso') object.rotation.x += gesture?.name === 'bow' ? raised * 0.48 : personality === 'idle-shy' ? 0.045 : 0;
+                if (motion === 'torso') {
+                    object.rotation.x += gesture?.name === 'bow' ? raised * 0.48 : personality === 'idle-shy' ? 0.045 : Math.sin(seconds * 1.4) * 0.008;
+                    if (personality === 'idle-groovy' && !gesture) object.rotation.z += Math.sin(seconds * 2.6) * 0.045;
+                    if (gesture?.name === 'dab') object.rotation.z += raised * 0.10;
+                }
+                if (motion === 'arm' && personality === 'idle-groovy' && !gesture) object.rotation.x += Math.sin(seconds * 2.6 + side) * 0.12;
                 if (motion === 'head') {
-                    if (gesture?.name === 'bow') object.rotation.x += raised * 0.12;
+                    if (gesture?.name === 'dab') { object.rotation.z -= raised * 0.32; object.rotation.x += raised * 0.20; }
+                    else if (gesture?.name === 'bow') object.rotation.x += raised * 0.12;
                     else { object.rotation.y += Math.sin(seconds * 0.65) * 0.04; object.rotation.x += Math.sin(seconds * 1.1) * 0.014; }
+                }
+                if (motion === 'cloth') { object.rotation.x += Math.sin(seconds * 2.1) * 0.08; object.rotation.z += Math.sin(seconds * 1.7) * 0.07; }
+                if (motion === 'code') {
+                    const phase = (seconds * 0.65 + (object.userData.avatar_phase || 0)) % 1;
+                    object.position.y = position.y - (object.userData.avatar_code_row || 0) * 0.023 - 0.015 + (1 - phase) * 0.06;
+                }
+                if (motion === 'jet') {
+                    object.scale.y *= 0.85 + Math.sin(seconds * 17 + side) * 0.18 + Math.sin(seconds * 29) * 0.07;
+                    object.scale.x *= 1 + Math.sin(seconds * 13 + side) * 0.09;
+                    object.scale.z *= 1 + Math.sin(seconds * 13 + side) * 0.09;
                 }
                 if (motion === 'spin') object.rotation.y += seconds * 6 % (2 * Math.PI);
                 if (motion === 'snake') object.position.y += Math.sin(seconds * 2) * 0.008;

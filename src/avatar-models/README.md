@@ -2,7 +2,7 @@
 
 `wardrobe.blend` is the editable Blender source. `build_avatar.py` generates the
 rounded human models from Blender primitives: five face shapes, 16 hairstyles,
-five outfits, hats/helmets, independent audio, jewellery, back gear and shoulder
+13 outfits, six pants styles, eight shoe styles, hats/helmets, independent audio, jewellery, back gear and shoulder
 companions. Each studio category has at least five visible actual choices. The full space suit
 includes boots, gloves, seals, an oxygen hose and life-support backpack. This artwork was created for
 BITLab; it does not contain GeoGuessr assets or downloaded character models.
@@ -10,7 +10,8 @@ BITLab; it does not contain GeoGuessr assets or downloaded character models.
 Generated output lives in `frontend/assets/avatars/`:
 
 - `wardrobe.glb`: self-contained glTF model, with modular group metadata.
-- `character-*.png`, `hair-*.png`, `hat-*.png`, `outfit-*.png`, `accessory-*.png`: local thumbnails.
+- `character-*.png`, `hair-*.png`, `hat-*.png`, `outfit-*.png`,
+  `pants-*.png`, `shoes-*.png`, `accessory-*.png`: local thumbnails.
 - `color-*.png`: additional rendered color reference images.
 
 Regenerate using Blender 4.5 LTS from the repository root:
@@ -36,7 +37,7 @@ required on the production server.
 
 Animation is procedural in the browser rather than baked into glTF clips.
 `avatar_motion` identifies separate propeller, duck, bird, tassel, flame, wing,
-head, blink, waist, shoulder and elbow pivots; `avatar_side` identifies left/right limbs.
+head, blink, waist, shoulder, elbow, clothing sway, falling code and rocket jet pivots; `avatar_side` identifies left/right limbs.
 `avatar_fit`, `avatar_hair_top` and `avatar_hair_width` support fitting headwear
 and backpack clearance. Preserve these custom properties when exporting manual
 edits. Child geometry must retain its rest transform relative to its pivot.
@@ -53,3 +54,13 @@ and SQL database hat. New slot metadata is `audio`, `jewellery`, `back` and
 `-- --thumbnail-id=ITEM` regenerates one chosen thumbnail together with the model
 and editable project. Preserve `avatar_hide_back` when exporting: replacement
 backpacks hide the built-in space-suit oxygen pack.
+
+Pants and shoes use independent `pants` / `shoes` slot groups. Their meshes carry
+`avatar_hide_outfits` for the space suit. New tops participate in the same waist
+and arm pivots as existing clothes. Matrix glyphs use `avatar_phase` and
+`avatar_code_row` to loop within their lenses; thruster geometry pivots at each
+nozzle so flickering does not move the attachment. Reduced motion restores all
+rest transforms. The shared wardrobe has a 10 MiB asset budget.
+
+Use `-- --thumbnail-missing` to render missing PNGs while rebuilding the model.
+Pants/shoes thumbnails frame the lower body.

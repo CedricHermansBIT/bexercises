@@ -8,6 +8,7 @@ import { AVATAR_PALETTES, AVATAR_OPTIONS } from './avatarRenderer.js';
 const fitTransforms = new WeakMap();
 
 export function applyAvatarSelection(model, selection) {
+    selection = { pants: 'straight', shoes: 'sneakers', ...selection };
     const materialSlots = { Skin: 'skin', Hair: 'hairColor', Wardrobe: 'color', Denim: 'pantsColor', Shoes: 'shoesColor' };
     const fit = getAvatarFit(selection);
     let coversHair = false, hairTop = 2.40, hairWidth = 0.355;
@@ -123,8 +124,8 @@ export async function createAvatarViewer(container, url, selection, item = null)
             const faceAccessory = ['accessory', 'audio'].includes(slot);
             if (slot === 'hat') framing = { y: 2.30, zoom: 1.6 };
             else if (head || faceAccessory) framing = { y: 2.17, zoom: 1.8 };
-            else if (slot === 'shoesColor') framing = { y: 0.45, zoom: 1.8 };
-            else if (slot === 'pantsColor') framing = { y: 0.85, zoom: 1.4 };
+            else if (['shoes', 'shoesColor'].includes(slot)) framing = { y: 0.45, zoom: 1.8 };
+            else if (['pants', 'pantsColor'].includes(slot)) framing = { y: 0.85, zoom: 1.4 };
             else if (slot === 'color' || slot === 'jewellery') framing = { y: 1.45, zoom: 1.5 };
             else framing = { y: 1.42, zoom: 0.9 };
         };

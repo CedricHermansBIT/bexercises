@@ -27,10 +27,14 @@ and animation loop for every row. Devices without WebGL use local artwork.
 
 ## Wardrobe and preview
 
-The studio has 156 choices across 16 categories. Every category has at least five
+The studio has 188 choices across 18 categories. Every category has at least five
 visible, actual choices, excluding “none” and secret rewards. Glasses, audio,
 jewellery, back gear and shoulder companions are independent slots. Hats include
 crowns. Colors, hair, clothing, face shape and personality can be mixed separately.
+Pants and shoes have independent style and colour categories: six pants styles
+and eight shoe styles, including shorts, cargo trousers, joggers, high-tops,
+boots, sandals and clogs. Older equipped characters and saved looks retain
+classic trousers and sneakers; older clients preserve newly equipped styles.
 Existing one-accessory records migrate into the appropriate new slot.
 
 Drag or use the arrow buttons to rotate; scroll or use +/− to zoom. Categories
@@ -47,17 +51,27 @@ gear clears or replaces the space-suit backpack. Long hair covers the hoodie hoo
 The space suit has gloves, pressure seals, knee armor, moon boots and an oxygen
 hose; its helmet is a separate choice.
 
+Mix lab goggles and clogs with the lab coat, a raised welding visor with workshop
+dungarees and boots, or the chef jacket and toque with clogs. Halloween pumpkin
+knits/hats and Christmas knits/Santa hats/elf shoes unlock through achievements
+year-round. Pieces remain independent; there is no date restriction or bundle lock.
+
 ## Personality
 
-Five idle personalities have distinct silhouettes: relaxed, hands-on-hips
-confidence, shy folded arms, happy bouncing, and sleepy nodding with closed eyes.
-Five celebrations use articulated shoulders, elbows and a waist: a one-handed
-wave, overhead victory cheer, happy hopping, alternating-arm dance and a waist bow.
+Seven idle personalities have distinct silhouettes: relaxed, hands-on-hips
+confidence, shy folded arms, happy bouncing, sleepy nodding with closed eyes,
+a curious thinking pose, and a headphone groove.
+Eight celebrations use articulated shoulders, elbows and a waist: a one-handed
+wave, overhead victory cheer, happy hopping, alternating-arm dance, a waist bow, a salute, a victory dab,
+and clapping.
 Select a favourite celebration and use **Celebrate** to play it. Personality and
 celebration are saved with the equipped avatar and each named look.
 
 The propeller spins, wings flap, ducks bob, birds hop, tassels sway, flames flicker
-and decorative accents pulse. Reduced motion keeps the selected static personality
+and decorative accents pulse. Matrix glasses display falling green binary code;
+rocket exhaust flickers from fixed nozzles. Hoodie and raincoat drawstrings,
+bomber zipper pulls and the Santa pompom sway. Reduced motion keeps the selected
+static personality
 but disables movement, blinking and gesture buttons. Offscreen/hidden previews
 pause rendering. Every frame starts from rest transforms to avoid drift.
 
@@ -85,7 +99,8 @@ with cascading deletion. Startup creates missing tables.
 
 Selection fields are `character`, `outfit`, `accessory` (glasses), `color`, `skin`,
 `hair`, `hairColor`, `pantsColor`, `shoesColor`, `hat`, `audio`, `jewellery`, `back`,
-`companion`, `idle` and `celebration`. Legacy four-, nine- and ten-field selections
+`companion`, `idle`, `celebration`, `pants` and `shoes`. Legacy four-, nine-, ten-
+and sixteen-field selections
 are accepted and preserve newer customization. Unknown IDs, extra fields,
 incomplete selections and locked items are rejected.
 
@@ -117,28 +132,28 @@ MariaDB/PostgreSQL the database hat. Any language mastery also unlocks the code 
 | Thousandaire | Thousandaire top hat |
 | 1337 Elite | 1337 pixel shades, RGB gaming headset |
 | Helpful Nudge | Bright ideas, Rubber duck debugger, Rubber duck pal |
-| First Steps | Lab coat, First-step star pin |
-| Chapter Master | Chapter wizard, Scholar bookbag |
+| First Steps | Lab coat, Lab safety goggles, Lab & kitchen clogs, First-step star pin |
+| Chapter Master | Chapter wizard, Scholar bookbag, Chapter varsity jacket |
 | Complete Mastery | Graduation cap |
 | Comeback Kid | Comeback crest |
-| Persistent | Focus headphones |
+| Persistent | Focus headphones, Workshop welding visor |
 | Never Give Up | Never-give-up Viking, Slow-and-steady shell |
 | Quick Learner | Robin, Curious cat pal, Learner gold |
-| Dedicated | Sage, Explorer braid, Studio headset |
+| Dedicated | Sage, Explorer braid, Studio headset, Rainy-day explorer |
 | Master | Space suit, Space helmet, Rocket backpack |
 | Legendary | Problem-solver crown |
 | Six Seven | Six Seven specs |
 | Never Gonna Give You Up | Retro pop pompadour, Retro headphones |
 | Hackerman | Matrix shades |
-| Perfectionist | Top knot, First-try bow tie |
+| Perfectionist | Top knot, First-try bow tie, Chef’s double-breasted jacket, Chef’s toque |
 | Flawless | Flawless silver |
 | Untouchable | Superstar specs |
 | Speed Demon | Lightning earrings |
 | Marathon Runner | Marathon headband |
-| Streak Starter | Streak ember |
-| Committed | Streak flame |
+| Streak Starter | Streak ember, Streak-season festive knit |
+| Committed | Streak flame, Committed Claus hat, Curly elf shoes |
 | Unstoppable | Unstoppable wings |
-| Night Owl | Night owl eyes, Night owl pal |
+| Night Owl | Night owl eyes, Night owl pal, Midnight pumpkin jumper, Little pumpkin patch hat |
 | Early Bird | Early bird nest |
 
 ## Artwork and validation
