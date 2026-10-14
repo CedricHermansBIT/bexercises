@@ -153,7 +153,9 @@ test('everyday dresses and skirts save independently; themed dresses and robe us
         ]) assert.deepEqual((await service.saveSelection(1, selection)).selection, selection);
         for (const outfit of ['party-dress','starlight-dress','wizard-robe']) await assert.rejects(service.saveSelection(1, { ...DEFAULT_SELECTION, outfit }), /Unlock/);
         await database.awardAchievement(1, 'chapter-complete');
-        for (const outfit of ['starlight-dress','wizard-robe']) {
+        await assert.rejects(service.saveSelection(1, { ...DEFAULT_SELECTION, outfit: 'starlight-dress' }), /Unlock/);
+        await database.awardAchievement(1, 'wardrobe-curator');
+        for (const outfit of ['party-dress','starlight-dress','wizard-robe']) {
             const selection = { ...DEFAULT_SELECTION, outfit, shoes: 'ballet-flats' };
             assert.deepEqual((await service.saveSelection(1, selection)).selection, selection);
         }

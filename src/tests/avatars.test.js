@@ -34,7 +34,7 @@ test('avatar selections round trip, reject locked and unknown items, and belong 
     } finally { db.cache.clear(); await db.db.close(); }
 });
 
-test('completion and earned achievement unlocks persist without awarding points or changing progress', async () => {
+test('completion rewards persist and avatar saving awards only its own achievement', async () => {
     const db = await database();
     try {
         await db.createLanguage({ id: 'bash', name: 'Bash' });
@@ -53,7 +53,7 @@ test('completion and earned achievement unlocks persist without awarding points 
         assert.equal(state.catalog.find(item => item.id === 'crown').unlocked, false);
         const selection = { ...DEFAULT_SELECTION, character: 'fox', outfit: 'lab-coat', accessory: 'glasses', color: 'mint' };
         await service.saveSelection(1, selection);
-        assert.equal(await db.getUserAchievementPoints(1), points);
+        assert.equal(await db.getUserAchievementPoints(1), points + 10);
         assert.equal((await db.db.get('SELECT COUNT(*) AS n FROM user_progress WHERE user_id = 1 AND completed = 1')).n, 5);
         await db.db.run('DELETE FROM user_progress WHERE user_id = 1');
         await db.db.run('DELETE FROM user_achievements WHERE user_id = 1');

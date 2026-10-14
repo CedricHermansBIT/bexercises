@@ -1,3 +1,4 @@
+import { showAchievementNotifications } from '../../components/achievementNotification.js';
 import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import Navbar from '../../components/navbar.js';
@@ -32,6 +33,7 @@ class AvatarPage {
         void navbar.init(this.auth);
         try {
             this.state = await this.api._get('/api/avatar');
+            showAchievementNotifications(this.state.newAchievements);
             this.saved = { ...this.state.selection };
             this.selection = { ...this.saved };
             document.getElementById('studio-content').hidden = false;
@@ -190,6 +192,7 @@ class AvatarPage {
         this.saving = true; this.render();
         try {
             this.state = await this.api._put(`/api/avatar/looks/${document.getElementById('look-slot').value}`, { name: document.getElementById('look-name').value, selection: this.selection });
+            showAchievementNotifications(this.state.newAchievements);
             this.saved = { ...this.state.selection }; this.status('Look saved to your account. Your equipped avatar is unchanged.');
         } catch (error) { this.status(`Could not save look: ${error.message}`, true); }
         finally { this.saving = false; this.render(); }
@@ -206,6 +209,7 @@ class AvatarPage {
         this.saving = true; this.render(); this.status('Saving your look…');
         try {
             const state = await this.api._put('/api/avatar', this.selection);
+            showAchievementNotifications(state.newAchievements);
             this.state = state; this.selection = { ...state.selection }; this.saved = { ...state.selection };
             window.dispatchEvent(new CustomEvent('avatar-saved', { detail: state.selection }));
             this.status('Avatar saved. Your look will be here next time.');

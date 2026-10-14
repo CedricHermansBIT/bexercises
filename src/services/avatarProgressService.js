@@ -1,3 +1,4 @@
+const { getAvatarAchievementProgress } = require('./avatarAchievements');
 // Read-only achievement measures, matching the counters used by achievement checks.
 async function getAvatarProgress(db, userId) {
     const stats = await db.get(`SELECT COUNT(CASE WHEN completed = 1 THEN 1 END) AS completed,
@@ -20,11 +21,14 @@ async function getAvatarProgress(db, userId) {
     const speed = await db.get(`SELECT COUNT(CASE WHEN datetime(completed_at) >= datetime('now', '-1 hour') THEN 1 END) AS hourly,
         COUNT(CASE WHEN datetime(completed_at) >= datetime(?) THEN 1 END) AS daily
         FROM user_progress WHERE user_id = ? AND completed = 1`, [todayStart.toISOString(), userId]);
-    return { ...stats, chapters, streak, ...speed };
+    return { ...stats, chapters, streak, ...speed, ...await getAvatarAchievementProgress(db, userId) };
 }
 function progressFor(achievement, stats) {
     let current, target = Number(achievement.requirement_value), unit;
     switch (achievement.requirement_type) {
+    case 'avatar_customized': current = stats.avatarCustomized; unit = 'personalised avatars'; break;
+    case 'avatar_personality': current = stats.avatarPersonality; unit = 'personality choices'; break;
+    case 'avatar_looks_saved': current = stats.avatarLooks; unit = 'distinct saved looks'; break;
     case 'exercises_completed': current = stats.completed; unit = 'exercises'; break;
     case 'total_test_runs': current = stats.runs; unit = 'test runs'; break;
     case 'first_try_completions': current = stats.firstTry; unit = 'first-try completions'; break;

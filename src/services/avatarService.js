@@ -1,7 +1,6 @@
 const { getAvatarProgress, progressFor } = require('./avatarProgressService');
-const DEFAULT_SELECTION = Object.freeze({ character: 'robot', outfit: 'tee', accessory: 'none', color: 'sky',
-    skin: 'skin-warm', hair: 'crop', hairColor: 'hair-chestnut', pantsColor: 'pants-navy', shoesColor: 'shoes-cream', hat: 'hat-none',
-    audio: 'audio-none', jewellery: 'jewel-none', back: 'back-none', companion: 'companion-none', idle: 'idle-relaxed', celebration: 'cel-wave', pants: 'straight', shoes: 'sneakers' });
+const { DEFAULT_SELECTION } = require('./avatarDefaults');
+const { REWARD_MOVES, awardAvatarAchievements } = require('./avatarAchievements');
 const CHARACTER_PRESETS = { robot: {}, sprout: { skin: 'skin-deep', hair: 'curls', hairColor: 'hair-black' },
     fox: { skin: 'skin-fair', hair: 'bob', hairColor: 'hair-copper' }, cat: { skin: 'skin-brown', hair: 'bun', hairColor: 'hair-black' } };
 const LEGACY_SLOTS = { headphones: 'audio', crown: 'hat', lightning: 'jewellery', 'bow-tie': 'jewellery', 'language-medal': 'jewellery', wings: 'back' };
@@ -19,11 +18,11 @@ const CATALOG = Object.freeze([
     { id: 'wizard-robe', slot: 'outfit', name: 'Chapter wizard robe', achievement: 'chapter-complete' },
     { id: 'sundress', slot: 'outfit', name: 'Ribbon sundress' },
     { id: 'pinafore', slot: 'outfit', name: 'Campus pinafore' },
-    { id: 'party-dress', slot: 'outfit', name: 'Quick-learner party dress', achievement: 'quick-learner' },
-    { id: 'starlight-dress', slot: 'outfit', name: 'Chapter starlight dress', achievement: 'chapter-complete' },
+    { id: 'party-dress', slot: 'outfit', name: 'Studio party dress', achievement: 'quick-learner' },
+    { id: 'starlight-dress', slot: 'outfit', name: 'Wardrobe starlight dress', achievement: 'chapter-complete' },
     { id: 'blouse', slot: 'outfit', name: 'Peter Pan collar blouse' },
     ...[['pleated-skirt', 'Pleated campus skirt'], ['denim-skirt', 'Button-front skirt'], ['wrap-skirt', 'Ribbon wrap skirt']].map(([id, name]) => ({ id, slot: 'pants', name })),
-    { id: 'tulle-skirt', slot: 'pants', name: 'Dedicated dancer’s tulle skirt', achievement: 'dedicated' },
+    { id: 'tulle-skirt', slot: 'pants', name: 'Curator’s tulle skirt', achievement: 'dedicated' },
     { id: 'ballet-flats', slot: 'shoes', name: 'Ribbon ballet flats' },
     { id: 'mary-janes', slot: 'shoes', name: 'Classic Mary Janes' },
     { id: 'pumpkin-knit', slot: 'outfit', name: 'Midnight pumpkin jumper', achievement: 'night-owl' },
@@ -100,7 +99,7 @@ const CATALOG = Object.freeze([
     { id: 'duck-pal', slot: 'companion', name: 'Rubber duck pal', achievement: 'helpful-nudge' },
     { id: 'robot-pal', slot: 'companion', name: 'Tiny robot pal', achievement: 'answer-to-everything' },
     { id: 'cat-pal', slot: 'companion', name: 'Curious cat pal', achievement: 'quick-learner' },
-    { id: 'star-pin', slot: 'jewellery', name: 'First-step star pin', achievement: 'first-steps' },
+    { id: 'star-pin', slot: 'jewellery', name: 'Personal touch star pin', achievement: 'first-steps' },
     { id: 'scarf', slot: 'jewellery', name: 'Cosy scarf' },
     { id: 'audio-none', slot: 'audio', name: 'No headphones' },
     { id: 'jewel-none', slot: 'jewellery', name: 'No jewellery' },
@@ -112,14 +111,17 @@ const CATALOG = Object.freeze([
     ...[['relaxed', 'Relaxed', 'Easy breathing and relaxed arms.'], ['confident', 'Confident', 'Hands on hips, chin lifted.'], ['shy', 'Shy', 'Arms folded forward, head lowered.'], ['bouncy', 'Happy bounce', 'Raised arms and gentle hops.'], ['drowsy', 'Sleepy daydreamer', 'Closed eyes and sleepy nods.'], ['curious', 'Curious thinker', 'A tilted head and one hand by your chin.'], ['groovy', 'Headphone groove', 'A little shoulder sway, even between exercises.']].map(([id, name, description]) => ({ id: `idle-${id}`, slot: 'idle', name, description })),
     ...[['wave', 'Friendly wave'], ['celebrate', 'Victory cheer'], ['bounce', 'Happy bounce'], ['dance', 'Victory dance'], ['bow', 'Take a bow'], ['salute', 'Ready for launch'], ['dab', 'Victory dab'], ['clap', 'Round of applause']].map(([id, name]) => ({ id: `cel-${id}`, slot: 'celebration', name })),
     ...['sky', 'mint', 'rose', 'amber', 'violet', 'slate', 'crimson', 'orange', 'lemon', 'lime', 'forest', 'teal', 'cyan', 'ocean', 'navy', 'lavender', 'magenta', 'chocolate', 'sand', 'cream', 'white', 'black'].map(id => ({ id, slot: 'color', name: id[0].toUpperCase() + id.slice(1) })),
-    { id: 'golden', slot: 'color', name: 'Learner gold', achievement: 'quick-learner' },
+    { id: 'golden', slot: 'color', name: 'Spotlight gold', achievement: 'quick-learner' },
     ...['fair', 'warm', 'olive', 'brown', 'deep', 'porcelain', 'peach', 'umber', 'ebony'].map(id => ({ id: `skin-${id}`, slot: 'skin', name: id[0].toUpperCase() + id.slice(1) })),
     ...['chestnut', 'black', 'blonde', 'copper', 'espresso', 'auburn', 'platinum', 'rose', 'violet', 'blue', 'mint', 'white'].map(id => ({ id: `hair-${id}`, slot: 'hairColor', name: id[0].toUpperCase() + id.slice(1) })),
     { id: 'hair-silver', slot: 'hairColor', name: 'Flawless silver', achievement: 'flawless' },
     { id: 'hair-ember', slot: 'hairColor', name: 'Streak ember', achievement: 'streak-starter' },
     ...['navy', 'sand', 'charcoal', 'plum', 'forest', 'sky', 'rose', 'white', 'black', 'orange', 'teal', 'chocolate'].map(id => ({ id: `pants-${id}`, slot: 'pantsColor', name: id[0].toUpperCase() + id.slice(1) })),
     ...['cream', 'ink', 'rose', 'mint', 'crimson', 'orange', 'lemon', 'violet', 'cyan', 'white', 'chocolate', 'silver'].map(id => ({ id: `shoes-${id}`, slot: 'shoesColor', name: id[0].toUpperCase() + id.slice(1) })),
-].map(item => ({ ...item, slot: LEGACY_SLOTS[item.id] || item.slot })));
+].map(item => {
+    const move = REWARD_MOVES.find(([id]) => id === item.id);
+    return { ...item, slot: LEGACY_SLOTS[item.id] || item.slot, ...(move ? { achievement: move[1] } : {}) };
+}));
 
 function validateSelection(value) {
     const oldKeys = ['character', 'outfit', 'accessory', 'color', 'skin', 'hair', 'hairColor', 'pantsColor', 'shoesColor', 'hat'];
@@ -140,6 +142,7 @@ function validateSelection(value) {
 function createAvatarService(database) {
     async function getState(userId) {
         return database.withWriteTransaction(async () => {
+            const newAchievements = await awardAvatarAchievements(database.db, userId);
             const { completed } = await database.db.get('SELECT COUNT(*) AS completed FROM user_progress WHERE user_id = ? AND completed = 1', [userId]);
             const earned = new Set((await database.db.all('SELECT achievement_id FROM user_achievements WHERE user_id = ? AND earned_at IS NOT NULL', [userId])).map(row => row.achievement_id));
             const achievements = new Map((await database.db.all('SELECT id, name, description, icon, hidden, requirement_type, requirement_value FROM achievements')).map(row => [row.id, row]));
@@ -171,7 +174,7 @@ function createAvatarService(database) {
             const nextUnlocks = catalog.filter(i => !i.unlocked && i.progress !== null && i.target > 0)
                 .sort((a, b) => b.progress / b.target - a.progress / a.target || (a.target - a.progress) - (b.target - b.progress));
             const unique = [...new Map(nextUnlocks.map(i => [i.reward.id, i])).values()].slice(0, 4);
-            return { selection, completed, catalog, nextUnlocks: unique, looks: looks.map(l => ({ ...l, selection: validateSelection(JSON.parse(l.selection)) })) };
+            return { selection, completed, catalog, newAchievements, nextUnlocks: unique, looks: looks.map(l => ({ ...l, selection: validateSelection(JSON.parse(l.selection)) })) };
         });
     }
     async function checked(userId, value) {
@@ -192,15 +195,17 @@ function createAvatarService(database) {
         const { state, selection } = await checked(userId, value);
         await database.withWriteTransaction(() => database.db.run(`INSERT INTO user_avatars (user_id, selection) VALUES (?, ?)
             ON CONFLICT(user_id) DO UPDATE SET selection = excluded.selection, updated_at = CURRENT_TIMESTAMP`, [userId, JSON.stringify(selection)]));
-        return { ...state, selection };
+        const updated = await getState(userId);
+        return { ...updated, newAchievements: [...state.newAchievements, ...updated.newAchievements] };
     }
     async function saveLook(userId, slot, body) {
         if (!Number.isInteger(slot) || slot < 1 || slot > 5 || !body || Object.keys(body).some(k => !['name', 'selection'].includes(k))
             || typeof body.name !== 'string' || !body.name.trim() || body.name.trim().length > 40) throw new Error('Invalid saved look: choose a slot from 1 to 5 and a name up to 40 characters');
-        const { selection } = await checked(userId, body.selection);
+        const { state, selection } = await checked(userId, body.selection);
         await database.withWriteTransaction(() => database.db.run(`INSERT INTO user_avatar_looks (user_id, slot, name, selection) VALUES (?, ?, ?, ?)
             ON CONFLICT(user_id, slot) DO UPDATE SET name = excluded.name, selection = excluded.selection, updated_at = CURRENT_TIMESTAMP`, [userId, slot, body.name.trim(), JSON.stringify(selection)]));
-        return getState(userId);
+        const updated = await getState(userId);
+        return { ...updated, newAchievements: [...state.newAchievements, ...updated.newAchievements] };
     }
     async function deleteLook(userId, slot) {
         if (!Number.isInteger(slot) || slot < 1 || slot > 5) throw new Error('Invalid saved look slot');

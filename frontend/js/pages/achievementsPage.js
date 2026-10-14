@@ -62,7 +62,8 @@ class AchievementsPage {
         try {
             const state = await this.apiService._get('/api/avatar');
             this.avatarState = state;
-            if (this.achievements.length) this.displayAchievements();
+            if (state.newAchievements?.length) await this.loadAchievements();
+            else if (this.achievements.length) this.displayAchievements();
             await paintAvatar(document.getElementById('achievement-character'), state.selection, '');
         } catch (error) { console.warn('Could not load character preview:', error); }
     }
@@ -191,11 +192,14 @@ class AchievementsPage {
             document.getElementById('collection-points').textContent = `${totalPoints} points`;
             const categories = [...new Set(this.achievements.map(a => a.category || 'other'))].sort();
             const select = document.getElementById('achievement-category');
+            const selected = select.value;
+            select.replaceChildren(new Option('All categories', 'all'));
             for (const category of categories) {
                 const option = document.createElement('option'); option.value = category;
                 option.textContent = this.formatCategoryName(category); select.append(option);
             }
 
+            select.value = categories.includes(selected) ? selected : 'all';
             // Display achievements
             this.displayAchievements();
         } catch (error) {
@@ -220,7 +224,7 @@ class AchievementsPage {
         document.getElementById('collection-results').textContent = matches.length
             ? `${matches.length} achievement${matches.length === 1 ? '' : 's'} · Unlocked rewards can be clicked to preview.`
             : 'No achievements match. Try another filter.';
-        const order = ['getting-started', 'progress', 'skill', 'mastery', 'persistence', 'attempts', 'speed', 'streak', 'time', 'secret'];
+        const order = ['getting-started', 'avatar', 'progress', 'skill', 'mastery', 'persistence', 'attempts', 'speed', 'streak', 'time', 'secret'];
         const rank = category => order.includes(category) ? order.indexOf(category) : order.length - 1;
         // Separate states before grouping categories so every earned achievement comes first.
         for (const earned of [true, false]) {

@@ -59,7 +59,7 @@ test('student ranking APIs expose equipped appearances while preserving cohort f
         assert.equal(profileResponse.headers.get('cache-control'), 'no-store');
         const profile = await profileResponse.json();
         assert.deepEqual(profile, { id: 1, displayName: 'Student', avatar: { ...DEFAULT_SELECTION, color: 'rose' },
-            stats: { completed: 1, testRuns: 2, achievements: 1, points: 10 } });
+            stats: { completed: 1, testRuns: 2, achievements: 2, points: 20 } });
         for (const id of ['2', '3', '999', '0', '1oops', '9007199254740993']) {
             assert.equal((await fetch(url + '/api/avatar/profiles/' + id, { headers: { 'x-user': '1' } })).status, 404);
         }

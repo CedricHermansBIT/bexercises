@@ -565,6 +565,7 @@ class DatabaseService {
 
 		// Seed default achievements
 		await this.seedDefaultAchievements();
+        await this.withWriteTransaction(() => require('./avatarAchievements').migrateAvatarRewards(this.db));
 	}
 
 	/**
@@ -597,6 +598,7 @@ class DatabaseService {
 	 */
 	async seedDefaultAchievements() {
 		const defaultAchievements = [
+            ...require('./avatarAchievements').AVATAR_ACHIEVEMENTS,
 			// Getting Started
             { id: 'helpful-nudge', name: 'Helpful Nudge', description: 'Open an exercise hint for the first time', icon: '💡', category: 'getting-started', points: 10, requirement_type: 'hint_opened', requirement_value: 1 },
 			{ id: 'first-steps', name: 'First Steps', description: 'Complete your first exercise', icon: '🎯', category: 'getting-started', points: 10, requirement_type: 'exercises_completed', requirement_value: 1 },
