@@ -8,7 +8,8 @@
 		"dev": "node --watch src/server.js",
 		"migrate": "node src/scripts/migrateToDatabase.js",
 		"lint": "eslint .",
-		"test": "node --test src/tests/*.test.js"
+		"test": "node --test src/tests/*.test.js",
+		"build:avatar": "node src/scripts/buildAvatarViewer.js"
 	},
 	"keywords": [
 		"programming",
@@ -32,10 +33,12 @@
 		"passport-google-oauth20": "^2.0.0",
 		"sqlite": "^5.1.1",
 		"sqlite3": "^6.0.1",
+		"three": "^0.186.1",
 		"which": "^5.0.0",
 		"zod": "^4.6.5"
 	},
 	"devDependencies": {
+		"esbuild": "^0.28.2",
 		"eslint": "^9.38.0",
 		"globals": "^16.4.0"
 	},

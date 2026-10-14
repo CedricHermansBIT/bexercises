@@ -14,7 +14,7 @@ function createAvatarRouter(database = require('../services/databaseService')) {
     router.put('/', asyncHandler(async (req, res) => {
         try { res.json(await service.saveSelection(req.user.id, req.body)); }
         catch (error) {
-            if (/Choose a character|Unknown avatar|Unlock this item/.test(error.message)) throw ApiError.badRequest(error.message);
+            if (/Choose a complete avatar|Unknown avatar|Unlock this item/.test(error.message)) throw ApiError.badRequest(error.message);
             throw error;
         }
     }));

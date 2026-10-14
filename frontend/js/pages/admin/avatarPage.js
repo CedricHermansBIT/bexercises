@@ -10,6 +10,8 @@ class AvatarPage {
         this.auth = new AuthComponent(this.api);
         this.slot = 'character';
         this.saving = false;
+        this.viewer = null;
+        this.viewerAttempted = false;
         this.init();
     }
     status(message, error = false) {
@@ -43,14 +45,41 @@ class AvatarPage {
                 this.selection = { ...this.saved }; this.render(); this.status('Back to your saved look.');
             });
             this.render(); this.status('Your wardrobe is ready. Pick a character to get started.');
+            await this.initViewer();
         } catch (error) { this.status(`Could not load your wardrobe: ${error.message}. Refresh to retry.`, true); }
+    }
+    async initViewer() {
+        this.viewerAttempted = true;
+        const container = document.getElementById('avatar-preview');
+        const note = document.getElementById('viewer-note');
+        try {
+            note.textContent = 'Loading your 3D character…';
+            const { createAvatarViewer } = await import('../../vendor/avatar3d.bundle.js');
+            this.viewer = await createAvatarViewer(container,
+                new URL('../../../assets/avatars/wardrobe.glb', import.meta.url).href, this.selection);
+            this.viewer.update(this.selection);
+            note.textContent = 'Drag to rotate · or use the arrow buttons';
+            document.getElementById('avatar-turn-left').disabled = false;
+            document.getElementById('avatar-turn-right').disabled = false;
+            document.getElementById('avatar-turn-left').addEventListener('click', () => this.viewer.rotate(-0.3));
+            document.getElementById('avatar-turn-right').addEventListener('click', () => this.viewer.rotate(0.3));
+            window.addEventListener('pagehide', () => this.viewer.dispose(), { once: true });
+            window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
+        } catch (error) {
+            container.innerHTML = renderAvatar(this.selection);
+            note.textContent = '3D preview unavailable on this device. Showing a rendered character instead.';
+            console.error('Avatar 3D preview unavailable:', error);
+        }
     }
     lockedSelections() {
         return this.state.catalog.filter(item => this.selection[item.slot] === item.id && !item.unlocked);
     }
     render() {
         const character = this.state.catalog.find(item => item.id === this.selection.character);
-        document.getElementById('avatar-preview').innerHTML = renderAvatar(this.selection, character.name);
+        if (this.viewer) this.viewer.update(this.selection);
+        else if (!this.viewerAttempted || !document.querySelector('#avatar-preview canvas')) {
+            document.getElementById('avatar-preview').innerHTML = renderAvatar(this.selection, character.name);
+        }
         document.getElementById('avatar-name').textContent = character.name;
         document.getElementById('avatar-description').textContent = character.description;
         const unlocked = this.state.catalog.filter(item => item.unlocked).length;
@@ -70,10 +99,10 @@ class AvatarPage {
             button.setAttribute('aria-label', `${item.name}. ${item.unlocked ? 'Unlocked' : `Locked: ${item.requirement}. Preview only`}`);
             const picture = document.createElement('span'); picture.className = 'wardrobe-item-art';
             picture.setAttribute('aria-hidden', 'true');
-            picture.innerHTML = renderAvatar({ ...this.selection, [this.slot]: item.id });
+            picture.innerHTML = renderAvatar({ ...this.selection, [this.slot]: item.id }, item.name, this.slot);
             const title = document.createElement('strong'); title.textContent = item.name;
             const state = document.createElement('span'); state.className = 'item-state'; state.textContent = item.unlocked ? 'Unlocked' : 'Locked · preview';
-            const detail = document.createElement('small'); detail.textContent = item.unlocked ? 'Ready to wear' : item.requirement;
+            const detail = document.createElement('small'); detail.textContent = item.unlocked ? (item.reward ? `Reward: ${item.reward.name}` : 'Available from the start') : item.requirement;
             if (!item.unlocked && item.progress !== null) detail.textContent += ` · ${item.progress}/${item.completions}`;
             button.append(picture, title, state, detail);
             button.addEventListener('click', () => {
