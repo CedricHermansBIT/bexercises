@@ -41,7 +41,32 @@ export function applyAvatarSelection(model, selection) {
     });
 }
 
-export async function createAvatarViewer(container, url, selection) {
+// Select a reward's own geometry; untagged body parts never enter item previews.
+export function selectAvatarReward(model, selection, item) {
+    model.traverse(object => { object.visible = true; });
+    applyAvatarSelection(model, { ...selection, [item.slot]: item.id });
+    if (item.slot !== 'character') {
+        model.traverse(object => { object.visible = true; });
+        model.traverse(object => {
+            if (!object.isMesh) return;
+            let owner = object;
+            while (owner && !owner.userData.avatar_slot) owner = owner.parent;
+            object.visible = owner?.userData.avatar_slot === item.slot && owner?.userData.avatar_id === item.id;
+        });
+    }
+    model.updateMatrixWorld(true);
+    const bounds = new THREE.Box3();
+    model.traverse(object => {
+        if (!object.isMesh) return;
+        for (let parent = object; parent; parent = parent.parent) if (!parent.visible) return;
+        object.geometry.computeBoundingBox();
+        bounds.union(object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld));
+    });
+    if (bounds.isEmpty()) throw new Error('Reward has no preview geometry');
+    return bounds;
+}
+
+export async function createAvatarViewer(container, url, selection, item = null) {
     let renderer, controls, resizeObserver, visibilityObserver, model;
     const scene = new THREE.Scene();
     function dispose() {
@@ -75,15 +100,23 @@ export async function createAvatarViewer(container, url, selection) {
         const rim = new THREE.DirectionalLight(0xe4efff, 2.4); rim.position.set(3, 3, -3); scene.add(rim);
         const podium = new THREE.Mesh(new THREE.CylinderGeometry(0.83, 0.88, 0.10, 64),
             new THREE.MeshStandardMaterial({ color: 0xa2b5b1, roughness: 0.9 }));
-        podium.position.y = -0.055; podium.receiveShadow = true; scene.add(podium);
+        podium.visible = !item; podium.position.y = -0.055; podium.receiveShadow = true; scene.add(podium);
         const gltf = await new GLTFLoader().loadAsync(url);
         model = gltf.scene;
         model.traverse(object => { if (object.isMesh) { object.castShadow = true; object.receiveShadow = true; } });
         scene.add(model); applyAvatarSelection(model, selection);
+        const rewardBounds = item ? selectAvatarReward(model, selection, item) : null;
+        const rewardCenter = rewardBounds?.getCenter(new THREE.Vector3());
+        const rotationRoot = new THREE.Group(); scene.add(rotationRoot); rotationRoot.add(model);
+        if (item) {
+            model.position.sub(rewardCenter);
+            controls.target.set(0, 0, 0); camera.position.set(3.1, 1.7, item.slot === 'back' ? -6.8 : 6.8);
+            controls.minZoom = 0.2; controls.maxZoom = 40; controls.update();
+        }
         const animator = createAvatarAnimator(model);
         let elapsed = 0, lastTime = null;
         let targetRotation = null;
-        let framing = { y: 1.42, zoom: 0.9 };
+        let framing = item ? null : { y: 1.42, zoom: 0.9 };
         const frame = slot => {
             targetRotation = slot === 'back' ? Math.PI : 0;
             const head = ['hair', 'hairColor', 'skin', 'character', 'companion'].includes(slot);
@@ -101,6 +134,11 @@ export async function createAvatarViewer(container, url, selection) {
             if (!width || !height) return;
             const halfWidth = 1.70 * width / height;
             camera.left = -halfWidth; camera.right = halfWidth; camera.top = 1.70; camera.bottom = -1.70;
+            if (rewardBounds) {
+                const size = rewardBounds.getSize(new THREE.Vector3());
+                const extent = Math.max(size.x, size.y, size.z, 0.05);
+                camera.zoom = Math.min(3.4, 2 * halfWidth) * 0.72 / extent;
+            }
             camera.updateProjectionMatrix(); renderer.setSize(width, height, false);
         };
         resizeObserver = new ResizeObserver(resize); resizeObserver.observe(container); resize();
@@ -123,22 +161,22 @@ export async function createAvatarViewer(container, url, selection) {
                 camera.zoom += (framing.zoom - camera.zoom) * blend; camera.updateProjectionMatrix();
                 if (Math.abs(target) < 0.002 && Math.abs(framing.zoom - camera.zoom) < 0.002) framing = null;
             }
-            model.position.y = reducedMotion.matches ? 0 : Math.sin(elapsed / 1.1) * 0.006 + bodyMotion.bounce;
-            model.rotation.z = bodyMotion.sway;
+            model.position.y = (rewardCenter ? -rewardCenter.y : 0) + (reducedMotion.matches ? 0 : Math.sin(elapsed / 1.1) * 0.006 + bodyMotion.bounce);
+            model.rotation.z = item ? 0 : bodyMotion.sway;
             controls.update(); renderer.render(scene, camera);
         });
-        const rotate = delta => { targetRotation = null; model.rotation.y += delta; };
+        const rotate = delta => { targetRotation = null; (item ? rotationRoot : model).rotation.y += delta; };
         controls.addEventListener('start', () => { framing = null; targetRotation = null; });
         canvas.addEventListener('keydown', event => {
             if (['+', '=', '-'].includes(event.key)) {
-                event.preventDefault(); framing = null; camera.zoom = THREE.MathUtils.clamp(camera.zoom + (event.key === '-' ? -0.25 : 0.25), 0.8, 2.8); camera.updateProjectionMatrix(); return;
+                event.preventDefault(); framing = null; camera.zoom = THREE.MathUtils.clamp(camera.zoom + (event.key === '-' ? -0.25 : 0.25), controls.minZoom, controls.maxZoom); camera.updateProjectionMatrix(); return;
             }
             if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
             event.preventDefault(); rotate(event.key === 'ArrowLeft' ? -0.25 : 0.25);
         });
         canvas.addEventListener('wheel', () => { framing = null; }, { passive: true });
         return { update: value => { selection = value; applyAvatarSelection(model, value); }, rotate, dispose, frame,
-            zoom: delta => { framing = null; camera.zoom = THREE.MathUtils.clamp(camera.zoom + delta, 0.8, 2.8); camera.updateProjectionMatrix(); },
+            zoom: delta => { framing = null; camera.zoom = THREE.MathUtils.clamp(camera.zoom + delta, controls.minZoom, controls.maxZoom); camera.updateProjectionMatrix(); },
             gesture: name => { framing = { y: 1.42, zoom: 0.9 }; animator.gesture(name, elapsed); },
             fullView: () => { framing = { y: 1.42, zoom: 0.9 }; } };
     } catch (error) { dispose(); throw error; }
@@ -169,7 +207,24 @@ export async function createAvatarPortraitRenderer(url) {
             render(selection) {
                 const key = JSON.stringify(selection);
                 if (cache.has(key)) return cache.get(key);
+                model.traverse(object => { object.visible = true; });
+                camera.left = -0.95; camera.right = 0.95; camera.top = 0.95; camera.bottom = -0.95;
+                camera.position.set(0.8, 2.65, 7); camera.lookAt(0, 2.15, 0); camera.updateProjectionMatrix();
                 applyAvatarSelection(model, selection); renderer.render(scene, camera);
+                const result = renderer.domElement.toDataURL('image/png');
+                if (cache.size >= 120) cache.delete(cache.keys().next().value);
+                cache.set(key, result); return result;
+            },
+            renderItem(selection, item) {
+                const key = 'item:' + item.id + ':' + JSON.stringify(selection);
+                if (cache.has(key)) return cache.get(key);
+                const bounds = selectAvatarReward(model, selection, item);
+                const center = bounds.getCenter(new THREE.Vector3());
+                const size = bounds.getSize(new THREE.Vector3());
+                const half = Math.max(size.x, size.y, size.z, 0.05) * 0.7;
+                camera.left = -half; camera.right = half; camera.top = half; camera.bottom = -half;
+                camera.position.copy(center).add(new THREE.Vector3(0.7, 0.4, item.slot === 'back' ? -7 : 7));
+                camera.lookAt(center); camera.updateProjectionMatrix(); renderer.render(scene, camera);
                 const result = renderer.domElement.toDataURL('image/png');
                 if (cache.size >= 120) cache.delete(cache.keys().next().value);
                 cache.set(key, result); return result;

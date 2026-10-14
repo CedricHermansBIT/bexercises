@@ -1,5 +1,5 @@
 import { buildUrl } from './navigationUtils.js';
-import { renderAvatar } from './avatarRenderer.js';
+import { renderAvatar, AVATAR_PALETTES } from './avatarRenderer.js';
 import { chooseAvatarItem } from './avatarFit.js';
 
 const wardrobeUrl = new URL('../../assets/avatars/wardrobe.glb', import.meta.url).href;
@@ -44,13 +44,27 @@ export function paintAvatarList(container, users) {
     for (const element of container.querySelectorAll('[data-avatar-user]')) observer.observe(element);
 }
 
+export async function paintRewardThumbnail(element, selection, item) {
+    if (AVATAR_PALETTES[item.slot] || ['idle', 'celebration'].includes(item.slot)) {
+        element.innerHTML = renderAvatar(selection, '', item.slot); return;
+    }
+    element.textContent = '✦';
+    try {
+        const renderer = await portraitRenderer();
+        if (!element.isConnected) return;
+        const picture = new Image(); picture.alt = ''; picture.src = renderer.renderItem(selection, item);
+        await picture.decode();
+        if (element.isConnected) element.replaceChildren(picture);
+    } catch { /* Keep the labelled item tile when 3D is unavailable. */ }
+}
+
 export async function previewAvatarReward(savedSelection, item, trigger) {
     const selection = chooseAvatarItem(savedSelection, item.slot, item.id).selection;
     const dialog = document.createElement('dialog'); dialog.className = 'character-dialog';
     const title = document.createElement('h2'); title.textContent = item.name; title.id = 'avatar-reward-title';
     dialog.setAttribute('aria-labelledby', title.id);
     const stage = document.createElement('div'); stage.className = 'character-dialog-stage';
-    const hint = document.createElement('p'); hint.textContent = 'Try-on preview · Drag to rotate · Scroll to zoom';
+    const hint = document.createElement('p'); hint.textContent = AVATAR_PALETTES[item.slot] ? 'Unlocked colour' : 'Reward preview · Drag to rotate · Scroll to zoom';
     const studio = document.createElement('a'); studio.className = 'dropdown-item'; studio.href = buildUrl('/pages/avatar.html'); studio.textContent = 'Open character studio';
     const close = document.createElement('button'); close.type = 'button'; close.className = 'dropdown-item'; close.textContent = 'Close';
     dialog.append(title, stage, hint, studio, close); document.body.append(dialog);
@@ -58,15 +72,25 @@ export async function previewAvatarReward(savedSelection, item, trigger) {
     dialog.addEventListener('close', () => { closed = true; viewer?.dispose(); dialog.remove(); trigger?.focus(); }, { once: true });
     close.addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-    dialog.showModal(); close.focus(); stage.innerHTML = renderAvatar(selection, item.name);
+    dialog.showModal(); close.focus();
+    if (AVATAR_PALETTES[item.slot]) {
+        stage.classList.add('reward-colour-preview'); stage.innerHTML = renderAvatar(selection, item.name, item.slot); return;
+    }
+    stage.textContent = 'Loading reward…';
     try {
         const { createAvatarViewer } = await import('../vendor/avatar3d.bundle.js');
         if (closed) return;
-        viewer = await createAvatarViewer(stage, wardrobeUrl, selection);
+        viewer = await createAvatarViewer(stage, wardrobeUrl, selection, item);
         if (closed) { viewer.dispose(); return; }
-        viewer.frame(item.slot);
         if (item.slot === 'celebration') viewer.gesture(item.id.replace('cel-', ''));
-    } catch { if (!closed) hint.textContent = '3D preview unavailable. You can find this reward in the character studio.'; }
+    } catch {
+        if (!closed) {
+            const fallback = trigger?.querySelector('img');
+            if (fallback) stage.replaceChildren(fallback.cloneNode());
+            else stage.textContent = item.name;
+            hint.textContent = '3D preview unavailable. You can find this reward in the character studio.';
+        }
+    }
 }
 
 export async function showUserProfile(user, trigger) {

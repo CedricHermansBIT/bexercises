@@ -23,3 +23,26 @@ test('achievement reward previews show earned, unlocked items and match language
     assert.deepEqual(rewards('language-master-bash'), ['medal']);
     assert.deepEqual(getAchievementRewards({ id: 'nice', earned: true }), []);
 });
+
+test('standalone wearable previews contain only the selected item meshes, without skin or other gear', async () => {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const bundle = fs.readFileSync('frontend/js/vendor/avatar3d.bundle.js', 'utf8');
+    const { selectAvatarReward } = await import(`data:text/javascript;base64,${Buffer.from(bundle).toString('base64')}`);
+    const data = fs.readFileSync('frontend/assets/avatars/wardrobe.glb');
+    const { scene } = await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset, data.byteOffset + data.length), '');
+    const { DEFAULT_SELECTION } = require('../services/avatarService');
+    for (const [slot, id] of [['accessory', 'glasses-69'], ['audio', 'cat-headphones'], ['hat', 'propeller'], ['back', 'wings'], ['outfit', 'space-suit'], ['companion', 'cat-pal']]) {
+        const box = selectAvatarReward(scene, DEFAULT_SELECTION, { slot, id });
+        assert.ok(!box.isEmpty());
+        let count = 0;
+        scene.traverse(object => {
+            if (!object.isMesh || !object.visible) return;
+            count++;
+            let owner = object;
+            while (owner && !owner.userData.avatar_slot) owner = owner.parent;
+            assert.equal(owner?.userData.avatar_slot, slot);
+            assert.equal(owner?.userData.avatar_id, id);
+        });
+        assert.ok(count > 0);
+    }
+});

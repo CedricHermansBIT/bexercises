@@ -7,8 +7,7 @@ import Navbar from '../components/navbar.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 import themeManager from '../utils/themeUtils.js';
 import { setFavicon } from '../utils/faviconUtils.js';
-import { paintAvatar, previewAvatarReward } from '../utils/avatarIdentity.js';
-import { renderAvatar } from '../utils/avatarRenderer.js';
+import { paintAvatar, previewAvatarReward, paintRewardThumbnail } from '../utils/avatarIdentity.js';
 import { getAchievementRewards } from '../utils/avatarRewards.js';
 
 class AchievementsPage {
@@ -290,7 +289,7 @@ class AchievementsPage {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
                 button.setAttribute('aria-label', `Try on ${item.name}`); button.title = `Preview ${item.name}`;
                 const art = document.createElement('span'); art.className = 'achievement-reward-art'; art.setAttribute('aria-hidden', 'true');
-                art.innerHTML = renderAvatar({ ...this.avatarState.selection, [item.slot]: item.id }, '', item.slot);
+                void paintRewardThumbnail(art, { ...this.avatarState.selection, [item.slot]: item.id }, item);
                 const label = document.createElement('span'); label.textContent = item.name;
                 button.append(art, label);
                 button.addEventListener('click', () => void previewAvatarReward(this.avatarState.selection, item, button));
