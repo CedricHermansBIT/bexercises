@@ -430,7 +430,7 @@ test('pants and shoes switch independently, support item previews, and hide insi
             scene.traverse(o => { if (o.userData.avatar_hide_outfits) { assert.equal(o.visible, false); hidden++; } });
             assert.ok(hidden > 0);
             applyAvatarSelection(scene, selection);
-            scene.traverse(o => { if (o.userData.avatar_hide_outfits) assert.equal(o.visible, true); });
+            scene.traverse(o => { if (o.userData.avatar_hide_outfits) assert.equal(o.visible, !o.userData.avatar_hide_pants?.includes(selection.pants), o.name); });
         }
     }
 });
@@ -588,4 +588,27 @@ test('gesture reach keeps hand size and sleeve width, matches clothing joints, a
     animator.gesture('dab', 0); animator.update(1, false, DEFAULT_SELECTION);
     applyAvatarSelection(scene, DEFAULT_SELECTION); animator.update(4, false, DEFAULT_SELECTION);
     for (const { o, scale } of transforms) assert.deepEqual(o.scale.toArray(), scale.toArray(), o.name);
+});
+
+test('boot and high-top shafts contain narrow trousers and restore after wide-leg hems or space suits', async () => {
+    const { scene, find, applyAvatarSelection } = await loadWardrobe();
+    const { Box3, Vector3 } = await import('three');
+    for (const shoes of ['boots', 'high-tops']) {
+        const group = find(o => o.userData.avatar_id === shoes);
+        const shafts = [];
+        group.traverse(o => { if (o.userData.avatar_hide_pants) shafts.push(o); });
+        assert.equal(shafts.length, 4, `${shoes} should fit both shafts and collars`);
+        for (const pants of ['straight','chinos','cargo','joggers']) {
+            applyAvatarSelection(scene, { ...DEFAULT_SELECTION, pants, shoes }); scene.updateMatrixWorld(true);
+            const upper = shafts.find(o => o.name.startsWith('Ankle_upper') && o.position.x > 0);
+            assert.ok(new Box3().setFromObject(upper).containsPoint(new Vector3(.15, .30, .136)), `${pants} must fit inside ${shoes}`);
+            for (const part of shafts) assert.equal(part.visible, true);
+        }
+        applyAvatarSelection(scene, { ...DEFAULT_SELECTION, pants: 'wide-leg', shoes });
+        for (const part of shafts) assert.equal(part.visible, false, 'wide hems cover the upper');
+        applyAvatarSelection(scene, { ...DEFAULT_SELECTION, pants: 'straight', shoes });
+        for (const part of shafts) assert.equal(part.visible, true, 'changing bottoms restores the upper');
+        applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'space-suit', shoes });
+        for (const part of shafts) assert.equal(part.visible, false, 'shoe fit must respect the space suit');
+    }
 });

@@ -78,3 +78,12 @@ asserts that each rendered subject has visible geometry.
 The ribbon wrap skirt has an outer overlap panel. Its bound edge and ribbon
 tails follow the curved skirt surface with clearance for fabric thickness;
 its waist tie is elliptical rather than a box intersecting the skirt.
+
+Every trouser style uses closed leg profiles and a shared hip shape, avoiding
+spherical caps protruding through waists or cuffs. Cuffs taper into the legs;
+pocket openings and sports stripes follow their surfaces. Skirt waistbands
+follow the fabric curve, and the tulle upper tier clears the lower layer.
+Small concealed ankles connect hems to low shoes and sandals.
+Boot and high-top uppers accommodate narrow trousers. Their
+`avatar_hide_pants` metadata hides the shafts and collars beneath wide-leg
+hems; changing bottoms restores them. Preserve this metadata in manual exports.

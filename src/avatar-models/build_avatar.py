@@ -86,6 +86,35 @@ def flared_skirt(name,parent,mat,hem=.60,flare=.40,pleats=0):
     bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=solid.name)
     return o
 
+def fabric_tube(name,parent,profile,mat,cx=0,cy=0,closed=True):
+    # Closed trouser legs need no overlapping spherical end caps.
+    vertices=[];faces=[];count=48
+    for z,rx,ry in profile:
+        for i in range(count):
+            a=2*math.pi*i/count
+            vertices.append((cx+math.cos(a)*rx,cy+math.sin(a)*ry,z))
+    for row in range(len(profile)-1):
+        for i in range(count):
+            j=row*count+i;k=row*count+(i+1)%count
+            faces.append((j,j+count,k+count,k))
+    if closed:
+        faces.append(tuple(range(count)))
+        faces.append(tuple(reversed(range((len(profile)-1)*count,len(profile)*count))))
+    mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],faces);mesh.update()
+    o=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(o);assign(o,name,mat,parent)
+    if closed:
+        for poly in list(o.data.polygons)[-2:]: poly.use_smooth=False
+    else:
+        solid=o.modifiers.new('Band fabric thickness','SOLIDIFY');solid.thickness=.006;solid.offset=0
+        bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=solid.name)
+    return o
+
+def leg_profile_at(profile,z):
+    for (za,xa,ya),(zb,xb,yb) in zip(profile,profile[1:]):
+        if za>=z>=zb:
+            t=(za-z)/(za-zb);return (xa+(xb-xa)*t,ya+(yb-ya)*t)
+    return profile[-1][1:]
+
 def wrap_radius(z):
     if z>=1.04: return .28-(z-1.04)/.06*.01
     if z>=.665: return .28+(1.04-z)/.375*.09
@@ -141,44 +170,57 @@ for side in [-1,1]:
 ellipsoid('Nose',(0,-.286,1.98),(.053,.06,.063),skin,body,16)
 line('Smile',[(-.075,-.27,1.9),(0,-.281,1.881),(.075,-.27,1.9)],.008,eyes,body)
 
-# Independent lower-body silhouettes. The original straight trousers and sneakers
-# retain their dimensions so older saved characters keep their appearance.
+# Independent lower-body silhouettes keep stable item IDs for saved looks.
 for key in PANTS:
     g=group('Pants_'+key,'pants',key); groups[key]=g
     if key in SKIRTS:
         bare_legs(g)
         flared_skirt('Skirt fabric',g,denim,hem=.55 if key=='tulle-skirt' else .64,flare=.43 if key=='tulle-skirt' else .37,pleats=.055 if key in ['pleated-skirt','tulle-skirt'] else 0)
         if key=='denim-skirt':
-            line('Skirt button seam',[(0,-.186,1.05),(0,-.245,.65)],.007,sole,g)
-            for z in [.96,.85,.74]: ellipsoid('Skirt button',(0,-(.186+(1.05-z)*.15),z),(.014,.012,.014),gold,g,12)
+            line('Skirt button seam',[wrap_front(0,1.04-.38*i/24,.022) for i in range(25)],.0035,sole,g)
+            for z in [.96,.85,.74]: ellipsoid('Skirt button',wrap_front(0,z,.030),(.014,.012,.014),gold,g,12)
         elif key=='wrap-skirt':
             wrap_panel(g)
         elif key=='tulle-skirt':
-            flared_skirt('Tulle upper tier',g,denim,hem=.77,flare=.36,pleats=.075)
-        if key!='wrap-skirt': box('Skirt waistband',(0,0,1.075),(.27,.17,.035),denim,g,.025)
+            flared_skirt('Tulle upper tier',g,denim,hem=.77,flare=.41,pleats=.075)
+        if key!='wrap-skirt':
+            fabric_tube('Skirt fitted waistband',g,[(1.105,.294,.191),(1.09,.297,.193),(1.045,.304,.198),(1.035,.304,.198)],denim,closed=False)
+    else:
+        box('Trouser hips',(0,0,1.015),(.286 if key=='wide-leg' else .265,.14,.075),denim,g,.05)
     for side in ([] if key in SKIRTS else [-1,1]):
-        x=side*.155
+        x=side*.15
+        if key!='shorts': ellipsoid('Trouser ankle',(x,0,.245),(.085,.085,.15),skin,g,16)
         if key=='shorts':
             limb('Bare shin',(x,.012,.62),(x,.018,.255),.096,skin,g)
             box('Shorts leg',(x,0,.83),(.137,.14,.235),denim,g,.065)
             box('Shorts hem',(x,-.005,.625),(.143,.145,.026),denim,g,.018)
         elif key=='wide-leg':
             box('Wide leg',(x,0,.65),(.148,.15,.405),denim,g,.045)
-            line('Pressed seam',[(x,-.153,1.0),(x,-.153,.28)],.004,sole,g)
+            line('Pressed seam',[(x,-.152,.99),(x,-.152,.29)],.003,denim,g)
         else:
-            radius=.123 if key=='straight' else .13 if key=='cargo' else .116
-            limb('Trouser leg',(side*.145,0,1.04),(x,.018,.255),radius,denim,g)
+            if key=='joggers': profile=[(1.02,.124,.135),(.85,.126,.136),(.57,.116,.128),(.33,.098,.110),(.27,.095,.106)]
+            elif key=='cargo': profile=[(1.02,.128,.138),(.80,.127,.136),(.50,.120,.132),(.25,.112,.125)]
+            elif key=='chinos': profile=[(1.02,.116,.128),(.80,.115,.127),(.50,.110,.122),(.30,.106,.118)]
+            else: profile=[(1.02,.12,.132),(.82,.12,.132),(.49,.116,.128),(.25,.112,.124)]
+            fabric_tube('Tailored trouser leg',g,profile,denim,x)
             if key=='chinos':
-                box('Rolled cuff',(x,.018,.285),(.125,.13,.045),denim,g,.025)
-                line('Pocket seam',[(x-side*.07,-.09,1.02),(x+side*.055,-.11,.91)],.006,sole,g)
+                fabric_tube('Turned chino cuff',g,[(.335,.119,.131),(.32,.123,.135),(.265,.123,.135),(.25,.118,.130)],denim,x)
+                points=[]
+                for i in range(17):
+                    t=i/16;z=.99-.14*t;rx,ry=leg_profile_at(profile,z);a=-.2+.95*t
+                    points.append((x+side*(rx+.007)*math.sin(a),-(ry+.007)*math.cos(a),z))
+                line('Chino pocket opening',points,.0035,sole,g)
             elif key=='cargo':
                 box('Cargo pocket',(side*.255,-.025,.70),(.054,.12,.115),denim,g,.025)
                 box('Cargo flap',(side*.26,-.03,.79),(.059,.125,.028),denim,g,.015)
                 ellipsoid('Pocket snap',(side*.315,-.03,.77),(.008,.014,.014),gold,g,12)
             elif key=='joggers':
-                box('Jogger cuff',(x,.018,.29),(.105,.112,.05),denim,g,.035)
-                line('Sport stripe',[(side*.263,.005,.99),(side*.27,.012,.36)],.012,white,g)
-    if key!='wrap-skirt': box('Waistband',(0,0,1.025),(.268,.12,.035),denim,g,.025)
+                fabric_tube('Ribbed jogger cuff',g,[(.33,.103,.115),(.315,.107,.119),(.26,.107,.119),(.245,.101,.113)],denim,x)
+                points=[]
+                for i in range(25):
+                    z=.97-.61*i/24;rx,ry=leg_profile_at(profile,z)
+                    points.append((x+side*(rx+.008)*.92,-(ry+.008)*.4,z))
+                line('Sport stripe',points,.007,white,g)
     for o in g.children: o['avatar_hide_outfits']=['space-suit']
 for key in SHOES:
     g=group('Shoes_'+key,'shoes',key); groups[key]=g
@@ -194,8 +236,9 @@ for key in SHOES:
             box('Sneaker',(x,-.075,.13),(.13,.22,.11 if key not in ['loafers','clogs','ballet-flats','mary-janes'] else .065),shoe,g,.075)
             box('Shoe sole',(x,-.077,.06),(.133,.223,.035),sole if not boot else dark,g,.028)
             if boot or high:
-                box('Ankle upper',(x,.025,.265),(.125,.13,.16 if boot else .12),shoe,g,.04)
-                box('Ankle collar',(x,.025,.39 if boot else .365),(.13,.135,.025),dark if boot else white,g,.018)
+                upper=box('Ankle upper',(x,0,.265),(.145 if boot else .14,.16 if boot else .15,.16 if boot else .12),shoe,g,.04)
+                collar=box('Ankle collar',(x,0,.39 if boot else .365),(.15 if boot else .145,.17 if boot else .16,.025),dark if boot else white,g,.018)
+                for part in [upper,collar]: part['avatar_hide_pants']=['wide-leg']
             if key in ['sneakers','high-tops','boots','trainers']:
                 for z,y in [(.20,-.12),(.215,-.08),(.23,-.04)]:
                     line('Laces',[(x-.065,y,z),(x+.065,y,z)],.009,white,g)
@@ -868,6 +911,7 @@ def select(character='robot',outfit='tee',accessory='none',color='sky',hair_styl
         if owner and owner.get('avatar_slot')=='hair' and covers_hair: shown=False
         if o.get('avatar_hide_back') and back in o['avatar_hide_back']: shown=False
         if o.get('avatar_hide_outfits') and outfit in o['avatar_hide_outfits']: shown=False
+        if o.get('avatar_hide_pants') and pants in o['avatar_hide_pants']: shown=False
         if o.get('avatar_hide_hair') and hair_style in o['avatar_hide_hair'] and not covers_hair: shown=False
         o.hide_render=not shown
     for m,value in [(skin,profiles[character][0]),(hair,profiles[character][1]),(cloth,colors[color])]:

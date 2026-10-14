@@ -49,7 +49,9 @@ combinations show a fit note if gear is covered. Crowns and nests perch above
 large hair, headphones expand around hair, covering hats conceal hair, and back
 gear clears or replaces the space-suit backpack. Long hair covers the hoodie hood.
 The space suit has gloves, pressure seals, knee armor, moon boots and an oxygen
-hose; its helmet is a separate choice.
+hose; its helmet is a separate choice. Boot and high-top shafts fit narrow
+trousers; wide-leg hems cover their uppers. Cuffs, skirt waistbands and seams
+follow the fabric surface to avoid protrusions and broken trim.
 
 Mix lab goggles and clogs with the lab coat, a raised welding visor with workshop
 dungarees and boots, or the chef jacket and toque with clogs. Halloween pumpkin

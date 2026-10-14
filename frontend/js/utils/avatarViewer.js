@@ -25,6 +25,8 @@ export function applyAvatarSelection(model, selection) {
         if (object.userData.avatar_hide_back) object.visible = !object.userData.avatar_hide_back.includes(selection.back);
         if (object.userData.avatar_hide_hair) object.visible = coversHair || !object.userData.avatar_hide_hair.includes(selection.hair);
         if (object.userData.avatar_hide_outfits) object.visible = !object.userData.avatar_hide_outfits.includes(selection.outfit);
+        if (object.userData.avatar_hide_pants) object.visible = !object.userData.avatar_hide_pants.includes(selection.pants)
+            && !object.userData.avatar_hide_outfits?.includes(selection.outfit);
         if (object.userData.avatar_fit) {
             if (!fitTransforms.has(object)) fitTransforms.set(object, { position: object.position.clone(), scale: object.scale.clone() });
             const rest = fitTransforms.get(object); object.position.copy(rest.position); object.scale.copy(rest.scale);
