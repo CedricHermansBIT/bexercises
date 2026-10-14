@@ -1,5 +1,6 @@
     // frontend/js/components/onlineUsers.js
 import ApiService from '../services/apiService.js';
+import { paintAvatar } from '../utils/avatarIdentity.js';
 
 class OnlineUsers {
     constructor() {
@@ -105,7 +106,7 @@ class OnlineUsers {
         }
 
         const now = new Date();
-        const usersList = users.map(user => {
+        const usersList = users.map((user, index) => {
             // CORRECTED: Ensure UTC parsing by adding 'Z'
             const lastActivity = new Date(user.lastActivity + 'Z');
             const minutesAgo = Math.floor((now - lastActivity) / 60000);
@@ -119,6 +120,7 @@ class OnlineUsers {
             return `
             <div class="dropdown-user" title="Active ${minutesAgo} min ago">
                 <span class="online-indicator ${indicatorClass} ${user.isAdmin ? 'admin' : ''}"></span>
+                <span class="online-avatar" data-avatar-index="${index}" aria-hidden="true"></span>
                 <span class="user-name">${this.escapeHtml(user.displayName)}${user.isAdmin ? ' 👑' : ''}</span>
                 <span class="time-ago">${minutesShown}m</span>
             </div>
@@ -126,6 +128,7 @@ class OnlineUsers {
         }).join('');
 
         this.container.innerHTML = usersList;
+        this.paintAvatars(users);
     }
 
     /**
@@ -143,7 +146,7 @@ class OnlineUsers {
         }
 
         const now = new Date();
-        const usersList = users.slice(0, 10).map(user => {
+        const usersList = users.slice(0, 10).map((user, index) => {
             const lastActivity = new Date(user.lastActivity + 'Z');
 
             // The subtraction now correctly yields the difference in milliseconds
@@ -157,7 +160,8 @@ class OnlineUsers {
             return `
                 <div class="online-user" title="Active ${minutesAgo} min ago">
                     <span class="online-indicator ${indicatorClass} ${user.isAdmin ? 'admin' : ''}"></span>
-                    <span class="user-name">${this.escapeHtml(user.displayName)}${user.isAdmin ? ' 👑' : ''}</span>
+                    <span class="online-avatar" data-avatar-index="${index}" aria-hidden="true"></span>
+                <span class="user-name">${this.escapeHtml(user.displayName)}${user.isAdmin ? ' 👑' : ''}</span>
                     <span class="time-ago">${minutesAgo}m</span>
                 </div>
             `;
@@ -181,6 +185,14 @@ class OnlineUsers {
                 ${moreText}
             </div>
         `;
+        this.paintAvatars(users);
+    }
+
+    paintAvatars(users) {
+        for (const portrait of this.container.querySelectorAll('[data-avatar-index]')) {
+            const user = users[Number(portrait.dataset.avatarIndex)];
+            if (user?.avatar) void paintAvatar(portrait, user.avatar, '');
+        }
     }
 
     /**

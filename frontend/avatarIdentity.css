@@ -20,3 +20,7 @@
     .topbar .back-button,.topbar .topbar-right { flex-shrink:0; }
     .topbar .topbar-right { gap:6px; }
 }
+
+.online-avatar { display:flex; flex:0 0 32px; width:32px; height:32px; border-radius:50%; overflow:hidden; background:var(--border-color); }
+.online-avatar img { width:100%; height:100%; object-fit:cover; }
+.dropdown-user .user-name,.online-user .user-name { min-width:0; overflow-wrap:anywhere; }

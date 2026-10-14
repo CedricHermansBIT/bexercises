@@ -43,6 +43,15 @@ test('student ranking APIs expose equipped appearances while preserving cohort f
             const adminRows = await (await fetch(url + endpoint + '?includeAdmins=true', { headers: { 'x-user': '2' } })).json();
             assert.deepEqual(adminRows.map(row => row.id).sort(), [1, 2]);
         }
+        await database.db.run('UPDATE users SET last_activity = CURRENT_TIMESTAMP WHERE id IN (1,2)');
+        assert.equal((await fetch(url + '/api/online-users')).status, 401);
+        const online = await (await fetch(url + '/api/online-users', { headers: { 'x-user': '1' } })).json();
+        assert.equal(online.count, 2);
+        const student = online.users.find(user => user.displayName === 'Student');
+        assert.deepEqual(student.avatar, { ...DEFAULT_SELECTION, color: 'rose' });
+        assert.deepEqual(Object.keys(student).sort(), ['avatar', 'displayName', 'isAdmin', 'lastActivity']);
+        assert.deepEqual(online.users.find(user => user.displayName === 'Teacher').avatar, DEFAULT_SELECTION);
+        assert.ok(!JSON.stringify(online).includes('Private favourite'));
         const appearance = await (await fetch(url + '/api/avatar/appearance', { headers: { 'x-user': '1' } })).json();
         assert.deepEqual(appearance, { selection: { ...DEFAULT_SELECTION, color: 'rose' } });
         assert.equal((await fetch(url + '/api/avatar/appearance')).status, 401);

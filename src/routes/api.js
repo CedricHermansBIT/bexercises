@@ -381,11 +381,13 @@ router.get('/progress/language/:languageId', asyncHandler(async (req, res) => {
  */
 router.get('/online-users', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const onlineUsers = await databaseService.getOnlineUsers(60);
+	const appearances = await avatarService.getAppearances(onlineUsers.map(user => user.id));
 
 	res.json({
 		count: onlineUsers.length,
 		users: onlineUsers.map(u => ({
 			displayName: u.display_name,
+			avatar: appearances.get(u.id),
 			isAdmin: isAdmin(u),
 			lastActivity: u.last_activity
 		}))

@@ -2,10 +2,11 @@
 
 Every signed-in user can open **Character studio** from the top-right account
 menu. Their equipped character replaces the person icon. Rankings show character
-portraits; click one to open a read-only, rotatable 3D view. Admins also have a
+portraits; click one to open a read-only, rotatable 3D view. The online-user
+overview also shows equipped portraits beside the activity indicators. Admins have a
 dashboard shortcut. The old admin studio URL redirects to `/pages/avatar.html`.
 
-Only equipped catalog IDs are shared in existing authenticated ranking responses.
+Only equipped catalog IDs are shared in authenticated ranking and online-user responses.
 Saved looks, unlocks and progress stay account-private. Students cannot include
 admins in rankings or access other admin tools. One offscreen renderer generates
 cached portraits as ranking rows approach the viewport, avoiding a WebGL context
