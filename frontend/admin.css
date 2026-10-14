@@ -1724,3 +1724,16 @@ body.light-mode .sql-result-table tbody tr:hover {
 
 /* Keep the avatar preview entry hidden until admin authentication finishes. */
 .dashboard-card[hidden] { display: none; }
+
+/* Keep the selected student's saved character beside their account details. */
+.admin-user-overview { display:grid; grid-template-columns:minmax(220px,300px) minmax(0,1fr); gap:1.5rem; align-items:start; margin-bottom:2rem; }
+.admin-user-character { padding:1rem; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-secondary); }
+.admin-user-character h3 { margin:0; color:var(--accent-lavender); }
+.admin-user-avatar { height:310px; min-width:0; }
+.admin-user-avatar canvas { display:block; width:100%; height:100%; }
+.admin-user-avatar>img { width:100%; height:100%; object-fit:contain; }
+.admin-user-character p { margin:.5rem 0 0; color:var(--text-secondary); font-size:.75rem; line-height:1.5; }
+.admin-user-overview .user-info-section { min-width:0; margin-bottom:0; }
+.admin-user-overview .user-detail-actions { flex-wrap:wrap; }
+@media(max-width:1050px) { .admin-user-overview { grid-template-columns:1fr; } .admin-user-character { max-width:360px; width:100%; justify-self:center; } }
+@media(max-width:600px) { .user-details { padding:1rem; } .admin-user-avatar { height:260px; } }

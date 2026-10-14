@@ -7,6 +7,7 @@ import { navigateTo } from '../../utils/navigationUtils.js';
 import { formatDateTime, formatTimeOnly, escapeHtml } from './adminUtils.js';
 import { initializeResizableSidebars } from '../../utils/resizeUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
+import { renderAvatar } from '../../utils/avatarRenderer.js';
 
 class UsersPage {
     constructor() {
@@ -19,12 +20,18 @@ class UsersPage {
 
         this.users = [];
         this.currentUser = null;
+        this.detailsRequest = 0;
+        this.avatarViewer = null;
+        this.avatarLoading = false;
         this.autoRefreshInterval = null;
         this.autoRefreshProgressInterval = null;
         this.isRefreshing = false;
         this.autoRefreshProgress = 0; // 0-100 representing progress through interval
         this.showArchived = false;
 
+        window.addEventListener('pagehide', event => {
+            if (!event.persisted) { this.avatarDisposed = true; this.avatarViewer?.dispose(); }
+        });
         this.init();
     }
 
@@ -124,7 +131,7 @@ class UsersPage {
             await this.loadUsers();
 
             // If a user detail view was open, refresh it
-            if (currentUserId) {
+            if (currentUserId && this.currentUser?.user?.id === currentUserId) {
                 await this.viewUserDetails(currentUserId);
             }
         } finally {
@@ -203,6 +210,7 @@ class UsersPage {
     async setUserView(showArchived) {
         if (this.showArchived === showArchived) return;
         this.showArchived = showArchived;
+        ++this.detailsRequest;
         this.currentUser = null;
         document.getElementById('admin-welcome').style.display = 'flex';
         document.getElementById('user-details').style.display = 'none';
@@ -366,8 +374,11 @@ class UsersPage {
     }
 
     async viewUserDetails(userId) {
+        const request = ++this.detailsRequest;
         try {
             const data = await this.apiService.getUserDetails(userId);
+            if (request !== this.detailsRequest || this.avatarDisposed) return;
+            const changedUser = this.currentUser?.user?.id !== data.user.id;
             this.currentUser = data;
 
             // Show user details panel
@@ -380,17 +391,43 @@ class UsersPage {
 
             // Render user info
             this.renderUserInfo(data);
+            void this.renderUserAvatar(data);
 
             // Render statistics
             this.renderUserStats(data);
 
             // Render progress
             this.renderUserProgress(data);
+            if (changedUser) {
+                document.querySelector('.admin-main').scrollTop = 0;
+                document.getElementById('user-details').scrollTop = 0;
+            }
 
         } catch (error) {
+            if (request !== this.detailsRequest || this.avatarDisposed) return;
             console.error('Error loading user details:', error);
             alert('Failed to load user details');
         }
+    }
+
+    async renderUserAvatar(data) {
+        const container = document.getElementById('admin-user-avatar');
+        if (!container || !data.avatar) return;
+        this.avatarSelection = data.avatar;
+        if (this.avatarViewer) { this.avatarViewer.update(data.avatar); return; }
+        if (this.avatarLoading) return;
+        this.avatarLoading = true;
+        container.innerHTML = renderAvatar(data.avatar, 'Saved character');
+        try {
+            const { createAvatarViewer } = await import('../../vendor/avatar3d.bundle.js');
+            if (this.avatarDisposed) return;
+            const viewer = await createAvatarViewer(container,
+                new URL('../../../assets/avatars/wardrobe.glb', import.meta.url).href, this.avatarSelection);
+            if (this.avatarDisposed) { viewer.dispose(); return; }
+            this.avatarViewer = viewer; viewer.update(this.avatarSelection);
+        } catch {
+            document.getElementById('admin-user-avatar-note').textContent = 'Saved character. 3D preview unavailable on this device.';
+        } finally { this.avatarLoading = false; }
     }
 
     renderUserInfo(data) {

@@ -1000,8 +1000,11 @@ router.get('/users/:id', async (req, res) => {
 			WHERE ua.user_id = ?
 		`, [userId]);
 
+		const appearances = await require('../services/avatarService').createAvatarService(databaseService).getAppearances([userId]);
+		res.set('Cache-Control', 'no-store');
 		res.json({
 			user,
+			avatar: appearances.get(userId),
 			progress,
 			achievements,
 			statistics: {

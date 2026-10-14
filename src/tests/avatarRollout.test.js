@@ -29,6 +29,7 @@ test('student ranking APIs expose equipped appearances while preserving cohort f
             req.isAuthenticated = () => !!req.user; next();
         });
         app.use('/api', require('../routes/api'));
+        app.use('/api/admin', require('../routes/admin'));
         app.use((error, _req, res, _next) => res.status(error.statusCode || 500).json({ error: error.message }));
         server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
         const url = `http://127.0.0.1:${server.address().port}`;
@@ -65,6 +66,12 @@ test('student ranking APIs expose equipped appearances while preserving cohort f
         const teacherProfile = await (await fetch(url + '/api/avatar/profiles/2', { headers: { 'x-user': '2' } })).json();
         assert.equal(teacherProfile.displayName, 'Teacher');
         assert.deepEqual(teacherProfile.stats, { completed: 1, testRuns: 1, achievements: 1, points: 10 });
+        const details = await fetch(url + '/api/admin/users/1', { headers: { 'x-user': '2' } });
+        assert.equal(details.status, 200);
+        assert.deepEqual((await details.json()).avatar, { ...DEFAULT_SELECTION, color: 'rose' });
+        assert.equal((await fetch(url + '/api/admin/users/1', { headers: { 'x-user': '1' } })).status, 403);
+        const archivedDetails = await (await fetch(url + '/api/admin/users/3', { headers: { 'x-user': '2' } })).json();
+        assert.deepEqual(archivedDetails.avatar, DEFAULT_SELECTION);
         const appearance = await (await fetch(url + '/api/avatar/appearance', { headers: { 'x-user': '1' } })).json();
         assert.deepEqual(appearance, { selection: { ...DEFAULT_SELECTION, color: 'rose' } });
         assert.equal((await fetch(url + '/api/avatar/appearance')).status, 401);

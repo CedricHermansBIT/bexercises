@@ -4,7 +4,9 @@ Every signed-in user can open **Character studio** from the top-right account
 menu. Their equipped character replaces the person icon. Rankings show character
 portraits; click a portrait or name to open a read-only profile with the full
 rotatable character, exercises completed, test runs, achievements and points.
-Online-user rows open the same profile. Admins have a
+Online-user rows open the same profile. The admin user detail view places the
+saved full character beside account information, above statistics and progress.
+Admins have a
 dashboard shortcut. The old admin studio URL redirects to `/pages/avatar.html`.
 
 Only equipped catalog IDs are shared in authenticated ranking and online-user responses.
