@@ -5,6 +5,13 @@ on:
     branches: [main, bitlab]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -21,6 +28,10 @@ jobs:
   container-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      RUN_CONTAINER_TESTS: '1'
+      RUNNER_IMAGE: bitlab-runner:latest
+      PYTHON_COURSE_IMAGE: localhost/bitlab-python-course:2026.2
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,7 +39,13 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: docker build -t bitlab-runner:latest -f Dockerfile.runner .
-      - run: npm test
-        env:
-          RUN_CONTAINER_TESTS: '1'
+      - name: Build Bash runtime
+        run: docker build -t "$RUNNER_IMAGE" -f Dockerfile.runner .
+      - name: Build Python course runtime
+        run: docker build -t "$PYTHON_COURSE_IMAGE" src/runtimes/python-course
+      - name: Verify runtime images
+        run: docker image inspect "$RUNNER_IMAGE" "$PYTHON_COURSE_IMAGE" > /dev/null
+      # Lifecycle assertions observe the shared daemon. Run integration files
+      # sequentially so another test cannot create or remove a container mid-check.
+      - name: Run container integration tests
+        run: node --test --test-concurrency=1 src/tests/*.test.js
