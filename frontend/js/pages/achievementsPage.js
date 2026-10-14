@@ -7,7 +7,9 @@ import Navbar from '../components/navbar.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 import themeManager from '../utils/themeUtils.js';
 import { setFavicon } from '../utils/faviconUtils.js';
-import { paintAvatar } from '../utils/avatarIdentity.js';
+import { paintAvatar, previewAvatarReward } from '../utils/avatarIdentity.js';
+import { renderAvatar } from '../utils/avatarRenderer.js';
+import { getAchievementRewards } from '../utils/avatarRewards.js';
 
 class AchievementsPage {
     constructor() {
@@ -59,7 +61,9 @@ class AchievementsPage {
 
     async loadCharacter() {
         try {
-            const state = await this.apiService._get('/api/avatar/appearance');
+            const state = await this.apiService._get('/api/avatar');
+            this.avatarState = state;
+            if (this.achievements.length) this.displayAchievements();
             await paintAvatar(document.getElementById('achievement-character'), state.selection, '');
         } catch (error) { console.warn('Could not load character preview:', error); }
     }
@@ -227,6 +231,7 @@ class AchievementsPage {
             categorySection.appendChild(achievementsList);
             grid.appendChild(categorySection);
         });
+        this.filterAchievements(this.currentFilter);
     }
 
     createAchievementCard(achievement) {
@@ -274,6 +279,24 @@ class AchievementsPage {
             const newLine = document.createTextNode(' | ');
             footer.appendChild(newLine);
             footer.appendChild(dateSpan);
+        }
+
+        const rewards = getAchievementRewards(achievement, this.avatarState?.catalog);
+        if (rewards.length) {
+            const section = document.createElement('section'); section.className = 'achievement-rewards';
+            const heading = document.createElement('h3'); heading.textContent = 'Character rewards'; section.append(heading);
+            const list = document.createElement('div'); list.className = 'achievement-reward-list';
+            for (const item of rewards) {
+                const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
+                button.setAttribute('aria-label', `Try on ${item.name}`); button.title = `Preview ${item.name}`;
+                const art = document.createElement('span'); art.className = 'achievement-reward-art'; art.setAttribute('aria-hidden', 'true');
+                art.innerHTML = renderAvatar({ ...this.avatarState.selection, [item.slot]: item.id }, '', item.slot);
+                const label = document.createElement('span'); label.textContent = item.name;
+                button.append(art, label);
+                button.addEventListener('click', () => void previewAvatarReward(this.avatarState.selection, item, button));
+                list.append(button);
+            }
+            section.append(list); content.append(section);
         }
 
         content.appendChild(footer);

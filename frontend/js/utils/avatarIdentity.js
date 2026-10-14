@@ -1,5 +1,6 @@
 import { buildUrl } from './navigationUtils.js';
 import { renderAvatar } from './avatarRenderer.js';
+import { chooseAvatarItem } from './avatarFit.js';
 
 const wardrobeUrl = new URL('../../assets/avatars/wardrobe.glb', import.meta.url).href;
 let portraits, ownSelection, ownRequest;
@@ -41,6 +42,31 @@ export function paintAvatarList(container, users) {
     }, { rootMargin: '120px' });
     listObservers.set(container, observer);
     for (const element of container.querySelectorAll('[data-avatar-user]')) observer.observe(element);
+}
+
+export async function previewAvatarReward(savedSelection, item, trigger) {
+    const selection = chooseAvatarItem(savedSelection, item.slot, item.id).selection;
+    const dialog = document.createElement('dialog'); dialog.className = 'character-dialog';
+    const title = document.createElement('h2'); title.textContent = item.name; title.id = 'avatar-reward-title';
+    dialog.setAttribute('aria-labelledby', title.id);
+    const stage = document.createElement('div'); stage.className = 'character-dialog-stage';
+    const hint = document.createElement('p'); hint.textContent = 'Try-on preview · Drag to rotate · Scroll to zoom';
+    const studio = document.createElement('a'); studio.className = 'dropdown-item'; studio.href = buildUrl('/pages/avatar.html'); studio.textContent = 'Open character studio';
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'dropdown-item'; close.textContent = 'Close';
+    dialog.append(title, stage, hint, studio, close); document.body.append(dialog);
+    let viewer, closed = false;
+    dialog.addEventListener('close', () => { closed = true; viewer?.dispose(); dialog.remove(); trigger?.focus(); }, { once: true });
+    close.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    dialog.showModal(); close.focus(); stage.innerHTML = renderAvatar(selection, item.name);
+    try {
+        const { createAvatarViewer } = await import('../vendor/avatar3d.bundle.js');
+        if (closed) return;
+        viewer = await createAvatarViewer(stage, wardrobeUrl, selection);
+        if (closed) { viewer.dispose(); return; }
+        viewer.frame(item.slot);
+        if (item.slot === 'celebration') viewer.gesture(item.id.replace('cel-', ''));
+    } catch { if (!closed) hint.textContent = '3D preview unavailable. You can find this reward in the character studio.'; }
 }
 
 export async function showUserProfile(user, trigger) {

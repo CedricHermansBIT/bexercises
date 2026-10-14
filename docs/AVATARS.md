@@ -9,7 +9,10 @@ saved full character beside account information, above statistics and progress.
 Admins have a
 dashboard shortcut. User-management lists and activity reports show saved portraits,
 including the selected student's activity header. The achievements page shows your
-character with a studio link for equipping rewards. List portraits load near the
+character with a studio link for equipping rewards. Earned achievement cards
+show thumbnails and names of their unlocked character rewards. Selecting a reward
+opens a read-only 3D try-on preview, framed for that item; saving remains an explicit
+action in the studio. Unearned achievements do not reveal secret reward items. List portraits load near the
 viewport and reuse the same cached renderer as account and ranking portraits. The old admin studio URL redirects to `/pages/avatar.html`.
 
 Only equipped catalog IDs are shared in authenticated ranking and online-user responses.
