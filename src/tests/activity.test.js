@@ -15,6 +15,7 @@ test('activity migration preserves records and reports local practice days witho
 		process.env.ADMIN_DOMAIN = '@school.example';
 		await db.exec(`
 			CREATE TABLE users (id INTEGER PRIMARY KEY, display_name TEXT, email TEXT, is_admin INTEGER, is_archived INTEGER);
+			CREATE TABLE user_avatars (user_id INTEGER PRIMARY KEY, selection TEXT);
 			CREATE TABLE languages (id TEXT, name TEXT, order_num INTEGER);
 			CREATE TABLE chapters (id TEXT, name TEXT, language_id TEXT, order_num INTEGER);
 			CREATE TABLE exercises (id TEXT, title TEXT, chapter_id TEXT);

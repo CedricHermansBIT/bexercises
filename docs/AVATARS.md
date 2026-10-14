@@ -7,7 +7,10 @@ rotatable character, exercises completed, test runs, achievements and points.
 Online-user rows open the same profile. The admin user detail view places the
 saved full character beside account information, above statistics and progress.
 Admins have a
-dashboard shortcut. The old admin studio URL redirects to `/pages/avatar.html`.
+dashboard shortcut. User-management lists and activity reports show saved portraits,
+including the selected student's activity header. The achievements page shows your
+character with a studio link for equipping rewards. List portraits load near the
+viewport and reuse the same cached renderer as account and ranking portraits. The old admin studio URL redirects to `/pages/avatar.html`.
 
 Only equipped catalog IDs are shared in authenticated ranking and online-user responses.
 Saved looks, unlocks and progress stay account-private. Students cannot include

@@ -25,6 +25,24 @@ export async function paintAvatar(element, selection, name = 'Character') {
     }
 }
 
+// Each list owns one observer so filtered or refreshed rows can be discarded.
+const listObservers = new WeakMap();
+export function paintAvatarList(container, users) {
+    listObservers.get(container)?.disconnect();
+    const byId = new Map(users.map(user => [String(user.id), user]));
+    const observer = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            const element = entry.target;
+            const user = byId.get(element.dataset.avatarUser);
+            if (user?.avatar) void paintAvatar(element, user.avatar, '');
+            observer.unobserve(element);
+        }
+    }, { rootMargin: '120px' });
+    listObservers.set(container, observer);
+    for (const element of container.querySelectorAll('[data-avatar-user]')) observer.observe(element);
+}
+
 export async function showUserProfile(user, trigger) {
     let selection = user.avatar;
     const name = user.displayName || user.display_name || 'Anonymous';

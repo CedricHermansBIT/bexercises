@@ -7,6 +7,7 @@ import Navbar from '../components/navbar.js';
 import { navigateTo } from '../utils/navigationUtils.js';
 import themeManager from '../utils/themeUtils.js';
 import { setFavicon } from '../utils/faviconUtils.js';
+import { paintAvatar } from '../utils/avatarIdentity.js';
 
 class AchievementsPage {
     constructor() {
@@ -51,8 +52,16 @@ class AchievementsPage {
         await Promise.all([
             this.notificationBanner.init(),
             this.onlineUsers.init('online-users-dropdown', true),
-            this.loadAchievements()
+            this.loadAchievements(),
+            this.loadCharacter()
         ]);
+    }
+
+    async loadCharacter() {
+        try {
+            const state = await this.apiService._get('/api/avatar/appearance');
+            await paintAvatar(document.getElementById('achievement-character'), state.selection, '');
+        } catch (error) { console.warn('Could not load character preview:', error); }
     }
 
     updateTime() {

@@ -66,6 +66,18 @@ test('student ranking APIs expose equipped appearances while preserving cohort f
         const teacherProfile = await (await fetch(url + '/api/avatar/profiles/2', { headers: { 'x-user': '2' } })).json();
         assert.equal(teacherProfile.displayName, 'Teacher');
         assert.deepEqual(teacherProfile.stats, { completed: 1, testRuns: 1, achievements: 1, points: 10 });
+        const users = await (await fetch(url + '/api/admin/users', { headers: { 'x-user': '2' } })).json();
+        assert.deepEqual(users.find(user => user.id === 1).avatar, { ...DEFAULT_SELECTION, color: 'rose' });
+        assert.ok(!users.some(user => user.id === 3));
+        const archived = await (await fetch(url + '/api/admin/users?archived=true', { headers: { 'x-user': '2' } })).json();
+        assert.deepEqual(archived.map(user => user.id), [3]); assert.deepEqual(archived[0].avatar, DEFAULT_SELECTION);
+        for (const endpoint of ['/api/admin/activity', '/api/admin/activity/students/1']) {
+            const report = await (await fetch(url + endpoint + '?start=2026-01-01&end=2026-01-07', { headers: { 'x-user': '2' } })).json();
+            assert.deepEqual(report.students.map(student => student.id), [1]);
+            assert.deepEqual(report.students[0].avatar, { ...DEFAULT_SELECTION, color: 'rose' });
+            assert.ok(!JSON.stringify(report).includes('Private favourite'));
+            assert.equal((await fetch(url + endpoint, { headers: { 'x-user': '1' } })).status, 403);
+        }
         const details = await fetch(url + '/api/admin/users/1', { headers: { 'x-user': '2' } });
         assert.equal(details.status, 200);
         assert.deepEqual((await details.json()).avatar, { ...DEFAULT_SELECTION, color: 'rose' });

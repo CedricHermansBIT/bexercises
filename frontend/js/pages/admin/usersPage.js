@@ -8,6 +8,7 @@ import { formatDateTime, formatTimeOnly, escapeHtml } from './adminUtils.js';
 import { initializeResizableSidebars } from '../../utils/resizeUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
 import { renderAvatar } from '../../utils/avatarRenderer.js';
+import { paintAvatarList } from '../../utils/avatarIdentity.js';
 
 class UsersPage {
     constructor() {
@@ -276,6 +277,12 @@ class UsersPage {
             item.className = 'user-item';
             item.dataset.userId = user.id;
             item.style.cursor = 'pointer';
+            item.tabIndex = 0;
+            item.setAttribute('role', 'button');
+            item.setAttribute('aria-label', `View ${user.display_name || 'Unknown'}'s details`);
+            item.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.viewUserDetails(user.id); }
+            });
 
             const adminBadge = user.is_admin ? '<span class="admin-badge">👑 Admin</span>' : '';
             const archivedBadge = user.is_archived ? '<span class="admin-badge">📦 Archived</span>' : '';
@@ -286,8 +293,9 @@ class UsersPage {
 
             item.innerHTML = `
                 <div class="user-info">
-                    <div class="user-name">
-                        ${escapeHtml(user.display_name || 'Unknown')} ${adminBadge} ${archivedBadge}
+                    <div class="user-name admin-user-identity">
+                        <span class="admin-list-avatar" data-avatar-user="${user.id}" aria-hidden="true"></span>
+                        <span>${escapeHtml(user.display_name || 'Unknown')} ${adminBadge} ${archivedBadge}</span>
                     </div>
                     <div class="user-email">${escapeHtml(user.email || '')}</div>
                     <div class="user-stats">
@@ -312,6 +320,7 @@ class UsersPage {
 
         list.innerHTML = '';
         list.appendChild(fragment);
+        paintAvatarList(list, sortedUsers);
     }
 
     /**

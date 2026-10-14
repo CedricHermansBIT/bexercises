@@ -4,6 +4,7 @@ import Navbar from '../../components/navbar.js';
 import NotificationBanner from '../../components/notificationBanner.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
+import { paintAvatar, paintAvatarList } from '../../utils/avatarIdentity.js';
 
 const element = id => document.getElementById(id);
 const svgNamespace = 'http://www.w3.org/2000/svg';
@@ -343,7 +344,10 @@ class ActivityPage {
             const name = cell('');
             const button = document.createElement('button');
             button.className = 'activity-student-button';
-            button.textContent = `${student.name}${student.archived ? ' (archived)' : ''}`;
+            const portrait = document.createElement('span'); portrait.className = 'activity-list-avatar';
+            portrait.dataset.avatarUser = student.id; portrait.setAttribute('aria-hidden', 'true');
+            const label = document.createElement('span'); label.textContent = `${student.name}${student.archived ? ' (archived)' : ''}`;
+            button.append(portrait, label);
             button.addEventListener('click', () => this.loadStudent(student.id));
             const email = document.createElement('small');
             email.textContent = student.email;
@@ -362,6 +366,7 @@ class ActivityPage {
             body.append(row);
         }
         if (!students.length) emptyTable(body, 7, 'No students match these filters.');
+        paintAvatarList(body, students);
     }
 
     async loadStudent(id, reveal = true) {
@@ -374,6 +379,9 @@ class ActivityPage {
         const student = this.report.students.find(s => s.id === id);
         element('detail-heading').textContent = `${student?.name || 'Student detail'}${student?.archived ? ' (archived)' : ''}`;
         element('activity-student-email').textContent = student?.email || '';
+        const portrait = element('activity-student-avatar');
+        portrait.replaceChildren();
+        if (student?.avatar) void paintAvatar(portrait, student.avatar, '');
         element('activity-detail-status').textContent = 'Loading student activity…';
         element('activity-student-summary').replaceChildren();
         element('activity-heatmap').replaceChildren();

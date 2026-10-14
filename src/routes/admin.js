@@ -26,15 +26,26 @@ router.get('/capabilities', (_req, res) => {
 	res.json({ exerciseStarters: true, pythonFunctionTests: true, semanticArtifacts: true, documentArtifacts: true, restrictedNetwork: true, networkHosts: approvedNetworkHosts() });
 });
 
+async function withSavedCharacters(rows) {
+    const appearances = await require('../services/avatarService').createAvatarService(databaseService)
+        .getAppearances(rows.map(row => row.id));
+    return rows.map(row => ({ ...row, avatar: appearances.get(row.id) }));
+}
+
+async function activityWithCharacters(query, userId = null) {
+    const report = await require('../services/activityService').getActivity(query, userId);
+    return { ...report, students: await withSavedCharacters(report.students) };
+}
+
 // Student practice reports are protected by the admin middleware above.
 router.get('/activity/filters', asyncHandler(async (_req, res) => {
 	res.json(await require('../services/activityService').getFilters());
 }));
 router.get('/activity/students/:id', asyncHandler(async (req, res) => {
-	res.json(await require('../services/activityService').getActivity(req.query, req.params.id));
+	res.json(await activityWithCharacters(req.query, req.params.id));
 }));
 router.get('/activity', asyncHandler(async (req, res) => {
-	res.json(await require('../services/activityService').getActivity(req.query));
+	res.json(await activityWithCharacters(req.query));
 }));
 
 
@@ -908,7 +919,7 @@ router.get('/users', async (req, res) => {
             ORDER BY u.last_login DESC
         `, [archived ? 1 : 0]);
 
-		res.json(users.map(user => ({ ...user, is_admin: isAdmin(user) ? 1 : 0 })));
+		res.json(await withSavedCharacters(users.map(user => ({ ...user, is_admin: isAdmin(user) ? 1 : 0 }))));
 	} catch (error) {
 		console.error('Error fetching users:', error);
 		res.status(500).json({
