@@ -34,8 +34,6 @@ class AdminIndexPage {
             return;
         }
 
-        document.getElementById('admin-avatar-card')?.removeAttribute('hidden');
-
         setFavicon();
 
         // Render navbar
