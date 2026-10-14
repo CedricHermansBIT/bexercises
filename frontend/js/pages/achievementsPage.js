@@ -218,7 +218,7 @@ class AchievementsPage {
                 (categoryFilter === 'all' || (a.category || 'other') === categoryFilter);
         });
         document.getElementById('collection-results').textContent = matches.length
-            ? `${matches.length} achievement${matches.length === 1 ? '' : 's'} · Click a character reward to preview it.`
+            ? `${matches.length} achievement${matches.length === 1 ? '' : 's'} · Unlocked rewards can be clicked to preview.`
             : 'No achievements match. Try another filter.';
         const order = ['getting-started', 'progress', 'skill', 'mastery', 'persistence', 'attempts', 'speed', 'streak', 'time', 'secret'];
         const rank = category => order.includes(category) ? order.indexOf(category) : order.length - 1;
@@ -307,7 +307,7 @@ class AchievementsPage {
             footer.appendChild(dateSpan);
         }
 
-        const rewards = getAchievementRewards(achievement, this.avatarState?.catalog, { includeLocked: true });
+        const rewards = secret ? [] : getAchievementRewards(achievement, this.avatarState?.catalog, { includeLocked: true });
         if (rewards.length) {
             const section = document.createElement('section'); section.className = 'achievement-rewards';
             card.classList.add('has-rewards');
@@ -315,12 +315,16 @@ class AchievementsPage {
             const list = document.createElement('div'); list.className = 'achievement-reward-list';
             for (const item of rewards) {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
-                button.setAttribute('aria-label', `Preview ${item.name}`); button.title = `Preview ${item.name}`;
+                const locked = !item.unlocked;
+                button.classList.toggle('reward-locked', locked);
+                button.disabled = locked;
+                button.setAttribute('aria-label', `${locked ? 'Locked reward' : 'Preview'}: ${item.name}`);
+                button.title = locked ? 'Earn the achievement to reveal this reward' : `Preview ${item.name}`;
                 const art = document.createElement('span'); art.className = 'achievement-reward-art'; art.setAttribute('aria-hidden', 'true');
                 void paintRewardThumbnail(art, { ...this.avatarState.selection, [item.slot]: item.id }, item);
-                const label = document.createElement('span'); label.textContent = item.name;
+                const label = document.createElement('span'); label.textContent = `${locked ? '🔒 ' : ''}${item.name}`;
                 button.append(art, label);
-                button.addEventListener('click', () => void previewAvatarReward(this.avatarState.selection, item, button));
+                if (!locked) button.addEventListener('click', () => void previewAvatarReward(this.avatarState.selection, item, button));
                 list.append(button);
             }
             section.append(list); content.append(section);
