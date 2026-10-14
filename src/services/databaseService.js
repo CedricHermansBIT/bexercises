@@ -134,6 +134,21 @@ class DatabaseService {
 			)
 		`);
 
+        // Avatar preview data is separate from accounts, achievements and points.
+        await this.db.exec(`
+            CREATE TABLE IF NOT EXISTS user_avatars (
+                user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                selection TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS user_avatar_unlocks (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                item_id TEXT NOT NULL,
+                unlocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, item_id)
+            );
+        `);
+
 		// Add last_activity column if it doesn't exist (for existing databases)
 		try {
 			await this.db.exec(`ALTER TABLE users ADD COLUMN last_activity DATETIME`);

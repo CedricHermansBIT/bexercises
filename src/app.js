@@ -72,6 +72,9 @@ function createApp() {
 	mountAtBothPaths('/api/admin/run-test-case', bodyParser.json({ limit: '20mb' }));
 	app.use(bodyParser.json({ limit: '1mb' }));
 
+	// The avatar studio is an instructor preview, including direct page requests.
+	mountAtBothPaths('/pages/admin/avatar.html', requireAdmin);
+
 	// Serve static files from frontend directory with correct MIME types
 	// This must come BEFORE CORS to avoid issues with module loading
 	const staticOptions = {

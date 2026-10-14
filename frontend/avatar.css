@@ -1,0 +1,40 @@
+.avatar-studio { max-width: 1180px; margin: 0 auto; padding: 38px 28px 60px; color: var(--text-primary); }
+.studio-heading { display: flex; justify-content: space-between; gap: 24px; align-items: start; margin-bottom: 20px; }
+.studio-heading h1 { margin: 6px 0 12px; font-size: clamp(30px, 4vw, 44px); letter-spacing: -1.5px; }
+.studio-heading p, .wardrobe-heading p, .stage-note { color: var(--text-secondary, var(--text-muted)); line-height: 1.6; }
+.studio-eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
+.studio-preview-badge { flex-shrink: 0; padding: 9px 14px; border: 1px solid var(--border-color); border-radius: 30px; color: var(--text-secondary); font-size: 12px; }
+#studio-status { min-height: 24px; margin: 0 0 14px; font-size: 14px; }
+#studio-status[data-error="true"] { color: var(--accent-red); }
+.studio-layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 28px; }
+.studio-layout[hidden] { display: none; }
+.studio-stage { text-align: center; padding: 28px 26px; border: 1px solid var(--border-color); border-radius: 24px; background: var(--bg-secondary); align-self: start; position: sticky; top: 24px; }
+.stage-art { border-radius: 22px; background: radial-gradient(circle at 50% 42%, #cbe8ef 0, #e1eae8 46%, #d6e0df 100%); padding: 10px 22px; }
+.stage-art svg { display: block; width: 100%; height: auto; }
+.studio-stage h2 { font-size: 26px; margin: 22px 0 8px; }
+#avatar-description { min-height: 38px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+.stage-progress { font-size: 13px; color: var(--accent-blue); margin: 18px 0; }
+.stage-actions { display: grid; gap: 10px; }
+.stage-actions button { border-radius: 12px; padding: 12px; font: inherit; cursor: pointer; }
+.studio-save { background: var(--accent-blue); color: var(--bg-primary); border: 1px solid transparent; font-weight: 700 !important; }
+.studio-save:disabled { opacity: 0.5; cursor: default; }
+.studio-reset { border: 1px solid var(--border-color); color: var(--text-primary); background: transparent; }
+.stage-note { font-size: 12px; margin: 18px 0 0; }
+.wardrobe-heading h2 { margin: 6px 0 10px; font-size: 23px; }
+.wardrobe-heading p { font-size: 14px; margin-bottom: 24px; }
+.wardrobe-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 5px; border-radius: 14px; background: var(--bg-secondary); margin-bottom: 22px; }
+.wardrobe-tabs button { flex: 1; border: 1px solid transparent; border-radius: 10px; padding: 12px 10px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; cursor: pointer; }
+.wardrobe-tabs button[aria-pressed="true"] { background: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary); }
+.wardrobe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.wardrobe-item { display: flex; flex-direction: column; text-align: left; gap: 8px; padding: 16px; background: var(--bg-secondary); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 18px; font: inherit; cursor: pointer; }
+.wardrobe-item[aria-pressed="true"] { border-color: var(--accent-blue); }
+.wardrobe-item:hover { border-color: var(--text-secondary); }
+.wardrobe-item[aria-pressed="true"]:hover { border-color: var(--accent-blue); }
+.wardrobe-item-art { align-self: center; width: 120px; height: 130px; overflow: hidden; border-radius: 14px; background: #dfe8e7; }
+.wardrobe-item-art svg { width: 100%; height: 100%; }
+.wardrobe-item strong { font-size: 15px; margin-top: 4px; }
+.wardrobe-item small { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+.wardrobe-item .item-state { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent-blue); }
+.wardrobe-item[data-locked="true"] .item-state { color: var(--text-muted); }
+.avatar-studio button:focus-visible { outline: 3px solid var(--accent-blue); outline-offset: 4px; }
+@media (max-width: 760px) { .avatar-studio { padding: 24px 16px 40px; } .studio-layout { grid-template-columns: 1fr; gap: 24px; } .studio-stage { position: static; } .stage-art { max-width: 240px; margin: 0 auto; } .studio-heading { flex-wrap: wrap; } }

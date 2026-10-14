@@ -1721,3 +1721,6 @@ body.light-mode .sql-result-table tbody tr:hover {
     font-size: 0.85rem; font-weight: normal; line-height: 1.5; white-space: normal;
 }
 .admin-help-tooltip[hidden] { display: none; }
+
+/* Keep the avatar preview entry hidden until admin authentication finishes. */
+.dashboard-card[hidden] { display: none; }

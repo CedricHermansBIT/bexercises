@@ -20,6 +20,7 @@ const router = express.Router();
 // All routes require admin authentication
 router.use(requireAdmin);
 router.use(require('../middleware/adminExecutionQueue'));
+router.use('/avatar', require('./avatar')());
 
 router.get('/capabilities', (_req, res) => {
 	res.json({ exerciseStarters: true, pythonFunctionTests: true, semanticArtifacts: true, documentArtifacts: true, restrictedNetwork: true, networkHosts: approvedNetworkHosts() });
