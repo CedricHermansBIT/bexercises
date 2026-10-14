@@ -100,6 +100,23 @@
             color: var(--bg-primary);
         }
 
+        .user-search-controls {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-search-controls label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        .user-search-count {
+            margin-top: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
         .archive-all-btn {
             justify-content: center;
             width: 100%;
@@ -134,6 +151,11 @@
                 <button class="action-btn archive-all-btn" id="archive-active-users-btn" title="Archive all active non-admin users">
                     Archive active students
                 </button>
+            </div>
+            <div class="user-search-controls">
+                <label for="users-search">Search users</label>
+                <input type="search" id="users-search" class="form-input" placeholder="Name or email" autocomplete="off" aria-controls="users-list" aria-describedby="users-search-count">
+                <div id="users-search-count" class="user-search-count" role="status" aria-live="polite"></div>
             </div>
             <div class="users-list" id="users-list">
                 <!-- Users will be populated here -->

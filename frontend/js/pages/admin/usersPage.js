@@ -97,6 +97,8 @@ class UsersPage {
             });
         }
 
+        document.getElementById('users-search')?.addEventListener('input', () => this.renderUsersList());
+
         document.getElementById('show-active-users-btn')?.addEventListener('click', () => this.setUserView(false));
         document.getElementById('show-archived-users-btn')?.addEventListener('click', () => this.setUserView(true));
         document.getElementById('archive-active-users-btn')?.addEventListener('click', () => this.archiveAllActiveUsers());
@@ -234,20 +236,28 @@ class UsersPage {
         const list = document.getElementById('users-list');
         if (!list) return;
 
+        const terms = (document.getElementById('users-search')?.value || '').trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+        const filteredUsers = this.users.filter(user => {
+            const text = `${user.display_name || ''} ${user.email || ''}`.toLocaleLowerCase();
+            return terms.every(term => text.includes(term));
+        });
+        const count = document.getElementById('users-search-count');
+        if (count) count.textContent = `${filteredUsers.length} of ${this.users.length} ${this.showArchived ? 'archived' : 'active'} users`;
+
         // Use document fragment for better performance with many users
         const fragment = document.createDocumentFragment();
 
-        if (this.users.length === 0) {
+        if (filteredUsers.length === 0) {
             const p = document.createElement('p');
             p.className = 'no-users';
-            p.textContent = this.showArchived ? 'No archived users found' : 'No active users found';
+            p.textContent = terms.length ? 'No users match your search' : (this.showArchived ? 'No archived users found' : 'No active users found');
             list.innerHTML = '';
             list.appendChild(p);
             return;
         }
 
         // Sort users by most recent activity (login or test submission, whichever is latest)
-        const sortedUsers = [...this.users].sort((a, b) => {
+        const sortedUsers = [...filteredUsers].sort((a, b) => {
             const aActivity = this.getMostRecentActivity(a) || '';
             const bActivity = this.getMostRecentActivity(b) || '';
             return bActivity.localeCompare(aActivity); // Most recent first
