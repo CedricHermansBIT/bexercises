@@ -74,7 +74,10 @@ confidence, shy folded arms, happy bouncing, sleepy nodding with closed eyes,
 a curious thinking pose, and a headphone groove.
 Eight celebrations use articulated shoulders, elbows and a waist: a one-handed
 wave, overhead victory cheer, happy hopping, alternating-arm dance, a waist bow, a salute, a victory dab,
-and clapping.
+and clapping. Hand targets drive the shoulder and elbow together: the dab
+extends one arm and folds the other across the face, the cheer reaches overhead,
+and the salute reaches the forehead. Gesture reach lengthens arm segments while
+preserving hand size and sleeve width; all transforms return to rest afterward.
 Select a favourite celebration and use **Celebrate** to play it. Personality and
 celebration are saved with the equipped avatar and each named look.
 

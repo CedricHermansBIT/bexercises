@@ -528,3 +528,64 @@ test('dresses and wizard robes cover saved bottoms while skirts mix with tops an
         assert.equal(find(o => o.userData.avatar_id === 'ballet-flats').visible, true);
     }
 });
+
+test('dab crosses in front of the face and extends the opposite arm; cheer and salute reach their targets', async () => {
+    const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
+    const { Box3 } = await import('three');
+    applyAvatarSelection(scene, DEFAULT_SELECTION);
+    const animator = createAvatarAnimator(scene);
+    const hands = [];
+    scene.traverse(o => { if (o.isMesh && o.name.startsWith('Hand')) hands.push(o); });
+    const left = hands.find(o => o.position.x < 0), right = hands.find(o => o.position.x > 0);
+    const elbow = side => find(o => o.userData.avatar_motion === 'elbow' && o.userData.avatar_side === side && o.name.includes('Body'));
+    const shoulder = side => find(o => o.userData.avatar_motion === 'arm' && o.userData.avatar_side === side && o.name.includes('Body'));
+    const world = o => o.getWorldPosition(o.position.clone());
+    animator.gesture('dab', 0); animator.update(1, false, DEFAULT_SELECTION); scene.updateMatrixWorld(true);
+    const a = world(shoulder(1)), b = world(elbow(1)), c = world(right);
+    assert.ok(c.x - a.x > .65 && c.y - a.y > .4, 'dab reaches diagonally outward');
+    assert.ok(b.clone().sub(a).normalize().dot(c.clone().sub(b).normalize()) > .95, 'extended dab arm is almost straight');
+    const foldedElbow = world(elbow(-1)), foldedHand = world(left);
+    const nose = world(find(o => o.isMesh && o.name.startsWith('Nose') && o.parent?.userData.avatar_id === 'robot'));
+    assert.ok(foldedElbow.x < nose.x && foldedHand.x > nose.x, 'forearm crosses the face');
+    const acrossFace = foldedElbow.clone().lerp(foldedHand, (nose.x - foldedElbow.x) / (foldedHand.x - foldedElbow.x));
+    assert.ok(acrossFace.z > nose.z + .04, 'folded arm clears the face instead of passing through it');
+    assert.ok(Math.abs(acrossFace.y - nose.y) < .18);
+    animator.gesture('celebrate', 0); animator.update(1, false, DEFAULT_SELECTION); scene.updateMatrixWorld(true);
+    const head = find(o => o.isMesh && o.name.startsWith('Head') && o.parent?.userData.avatar_id === 'robot');
+    const top = new Box3().setFromObject(head).max.y;
+    for (const hand of hands) assert.ok(world(hand).y > top + .02, 'victory hands reach above the head');
+    animator.gesture('salute', 0); animator.update(1, false, DEFAULT_SELECTION); scene.updateMatrixWorld(true);
+    const salute = world(right);
+    assert.ok(salute.y > 2.05 && salute.z > .25 && Math.abs(salute.x) < .25, 'salute reaches the forehead');
+});
+
+test('gesture reach keeps hand size and sleeve width, matches clothing joints, and resets hidden and reduced-motion limbs', async () => {
+    const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
+    applyAvatarSelection(scene, DEFAULT_SELECTION);
+    const animator = createAvatarAnimator(scene);
+    const arm = find(o => o.userData.avatar_motion === 'arm' && o.userData.avatar_side === 1 && o.name.includes('Body'));
+    const hand = find(o => o.name === 'Hand001');
+    const forearm = find(o => o.name === 'Forearm001');
+    const restHand = hand.getWorldScale(hand.scale.clone());
+    const restWidth = forearm.getWorldScale(forearm.scale.clone());
+    const transforms = [];
+    scene.traverse(o => { if (o.isMesh || o.userData.avatar_motion === 'arm') transforms.push({ o, scale: o.scale.clone() }); });
+    for (const outfit of ['hoodie','lab-coat','space-suit','wizard-robe','sundress']) {
+        const selection = { ...DEFAULT_SELECTION, outfit };
+        applyAvatarSelection(scene, selection);
+        animator.gesture('celebrate', 0); animator.update(1, false, selection); scene.updateMatrixWorld(true);
+        const size = hand.getWorldScale(hand.scale.clone());
+        assert.ok(size.distanceTo(restHand) < 1e-6, 'hands do not enlarge with arm reach');
+        const width = forearm.getWorldScale(forearm.scale.clone());
+        assert.ok(Math.abs(width.x - restWidth.x) < 1e-6 && Math.abs(width.z - restWidth.z) < 1e-6, 'arm width stays constant');
+        const sleeve = find(o => o.userData.avatar_motion === 'arm' && o.userData.avatar_side === 1 && o.parent?.parent?.userData.avatar_id === outfit);
+        assert.ok(sleeve);
+        assert.ok(sleeve.quaternion.angleTo(arm.quaternion) < 1e-6, 'sleeves follow the same shoulder pose');
+        animator.update(1, true, selection);
+        for (const { o, scale } of transforms) assert.deepEqual(o.scale.toArray(), scale.toArray(), o.name);
+    }
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'space-suit' });
+    animator.gesture('dab', 0); animator.update(1, false, DEFAULT_SELECTION);
+    applyAvatarSelection(scene, DEFAULT_SELECTION); animator.update(4, false, DEFAULT_SELECTION);
+    for (const { o, scale } of transforms) assert.deepEqual(o.scale.toArray(), scale.toArray(), o.name);
+});
