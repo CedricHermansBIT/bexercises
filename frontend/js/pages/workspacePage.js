@@ -515,8 +515,11 @@ class WorkspacePage {
 
     async loadFixtures(exerciseId) {
         const tree = document.getElementById('fixture-tree');
+        const header = document.getElementById('fixture-header');
         if (!tree) return;
 
+        tree.hidden = true;
+        if (header) header.hidden = true;
         tree.replaceChildren();
         try {
             const fixtures = await this.apiService.getExerciseFixtures(exerciseId);
@@ -547,6 +550,8 @@ class WorkspacePage {
                 }
                 tree.appendChild(entry);
             });
+            tree.hidden = false;
+            if (header) header.hidden = false;
         } catch (error) {
             console.error('Failed to load exercise fixtures:', error);
             tree.innerHTML = '<span class="fixture-tree-empty">Fixture list unavailable.</span>';

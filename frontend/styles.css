@@ -1418,6 +1418,8 @@ body[data-theme="solarized"] {
     justify-content: space-between;
 }
 
+.fixture-header[hidden],
+.fixture-tree[hidden],
 .database-schema-header[hidden],
 .database-schema[hidden] {
     display: none;
@@ -4562,8 +4564,6 @@ body.light-mode .exit-code-box {
 .experimental-view #workspace-screen .test-summary h4 { font-size: 16px; font-weight: 600; padding: 4px 0; }
 .experimental-view #workspace-screen .compact-test-input { font-size: 13px; }
 .experimental-view #workspace-screen .test-card-header { padding: 8px 0; }
-.experimental-view #workspace-screen .fixture-header:has(+ .fixture-tree .fixture-tree-none),
-.experimental-view #workspace-screen .fixture-tree:has(.fixture-tree-none) { display: none; }
 .experimental-view #workspace-screen .exercise-navigation { padding-bottom: 8px; border-bottom: none; }
 .experimental-view #workspace-screen .section-content > :is(h1, h2, h3):first-child { margin-top: 0; font-size: 20px; }
 .experimental-view #workspace-screen .section-content code { background: var(--bg-primary); color: var(--text-primary); padding: 2px 4px; }
