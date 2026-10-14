@@ -1,12 +1,16 @@
 const express = require('express');
-const requireAdmin = require('../middleware/adminAuth');
+const { ensureAuthenticated } = require('../middleware/auth');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 const { createAvatarService } = require('../services/avatarService');
 
 function createAvatarRouter(database = require('../services/databaseService')) {
     const router = express.Router();
     const service = createAvatarService(database);
-    router.use(requireAdmin);
+    router.use(ensureAuthenticated);
+    router.get('/appearance', asyncHandler(async (req, res) => {
+        res.set('Cache-Control', 'no-store');
+        res.json({ selection: (await service.getAppearances([req.user.id])).get(req.user.id) });
+    }));
     router.get('/', asyncHandler(async (req, res) => {
         res.set('Cache-Control', 'no-store');
         res.json(await service.getState(req.user.id));

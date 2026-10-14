@@ -1,3 +1,4 @@
+import { paintRankingAvatars } from '../utils/avatarIdentity.js';
 // frontend/js/pages/leaderboardPage.js
 import ApiService from '../services/apiService.js';
 import AuthComponent from '../components/authComponent.js';
@@ -592,6 +593,7 @@ class LeaderboardPage {
                             <span class="rank-number ${rankClass}">${rankDisplay}</span>
                         </div>
                         <div class="user-col">
+                            <button type="button" class="ranking-avatar" aria-label="View character"></button>
                             <span class="user-name">${this.escapeHtml(user.display_name || 'Anonymous')}</span>
                             ${isCurrentUser ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
@@ -621,6 +623,7 @@ class LeaderboardPage {
                             <span class="rank-number ${rankClass}">${rankDisplay}</span>
                         </div>
                         <div class="user-col">
+                            <button type="button" class="ranking-avatar" aria-label="View character"></button>
                             <span class="user-name">${this.escapeHtml(user.display_name || 'Anonymous')}</span>
                             ${isCurrentUser ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
@@ -642,6 +645,7 @@ class LeaderboardPage {
         });
 
         container.innerHTML = html;
+        paintRankingAvatars(container, rankings);
 
         // Update summary stats
         this.updateSummaryStats(rankings, currentUserRank);

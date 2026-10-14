@@ -1,3 +1,4 @@
+import './avatarIdentity.js';
 // frontend/js/utils/themeUtils.js
 
 /**
@@ -92,6 +93,9 @@ class ThemeManager {
         const currentTheme = this.getTheme();
         const details = this.THEME_DETAILS[currentTheme];
         document.querySelectorAll('#theme-toggle-btn').forEach((button) => {
+            button.hidden = true;
+            button.style.display = 'none';
+            button.setAttribute('aria-hidden', 'true');
             const icon = button.querySelector('.theme-icon');
             const text = button.querySelector('.theme-text');
             if (icon) icon.textContent = details.icon;

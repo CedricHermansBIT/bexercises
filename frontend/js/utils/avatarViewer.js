@@ -143,3 +143,37 @@ export async function createAvatarViewer(container, url, selection) {
             fullView: () => { framing = { y: 1.42, zoom: 0.9 }; } };
     } catch (error) { dispose(); throw error; }
 }
+
+// Render many identity pictures with one scene and WebGL context, not one per row.
+export async function createAvatarPortraitRenderer(url) {
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const scene = new THREE.Scene();
+    try {
+        renderer.setSize(160, 160); renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
+        const camera = new THREE.OrthographicCamera(-0.95, 0.95, 0.95, -0.95, 0.1, 30);
+        camera.position.set(0.8, 2.65, 7); camera.lookAt(0, 2.15, 0);
+        scene.add(new THREE.HemisphereLight(0xf9f4e8, 0x8799ad, 2.3));
+        const key = new THREE.DirectionalLight(0xfff4e8, 3.4); key.position.set(-3, 5, 4); scene.add(key);
+        const rim = new THREE.DirectionalLight(0xe4efff, 2.4); rim.position.set(3, 3, -3); scene.add(rim);
+        const model = (await new GLTFLoader().loadAsync(url)).scene; scene.add(model);
+        const cache = new Map();
+        const dispose = () => {
+            scene.traverse(object => {
+                object.geometry?.dispose();
+                for (const material of Array.isArray(object.material) ? object.material : [object.material]) material?.dispose();
+            });
+            renderer.dispose(); cache.clear();
+        };
+        return {
+            render(selection) {
+                const key = JSON.stringify(selection);
+                if (cache.has(key)) return cache.get(key);
+                applyAvatarSelection(model, selection); renderer.render(scene, camera);
+                const result = renderer.domElement.toDataURL('image/png');
+                if (cache.size >= 120) cache.delete(cache.keys().next().value);
+                cache.set(key, result); return result;
+            }, dispose
+        };
+    } catch (error) { renderer.dispose(); throw error; }
+}

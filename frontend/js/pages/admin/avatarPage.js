@@ -24,13 +24,12 @@ class AvatarPage {
         const authenticated = await this.auth.checkAuth();
         if (authenticated === null) return;
         if (!authenticated) return navigateTo('login.html');
-        if (!this.auth.isAdmin()) return navigateTo('languages.html');
         const navbar = new Navbar();
         document.getElementById('navbar-container').innerHTML = navbar.render({ showBack: true,
-            backUrl: 'admin/index.html', backText: 'admin', appTitle: 'Avatar studio', isAdminPage: true });
+            backUrl: 'languages.html', backText: 'exercises', appTitle: 'Avatar studio' });
         void navbar.init(this.auth);
         try {
-            this.state = await this.api._get('/api/admin/avatar');
+            this.state = await this.api._get('/api/avatar');
             this.saved = { ...this.state.selection };
             this.selection = { ...this.saved };
             document.getElementById('studio-content').hidden = false;
@@ -188,7 +187,7 @@ class AvatarPage {
         if (this.saving || this.lockedSelections().length) return;
         this.saving = true; this.render();
         try {
-            this.state = await this.api._put(`/api/admin/avatar/looks/${document.getElementById('look-slot').value}`, { name: document.getElementById('look-name').value, selection: this.selection });
+            this.state = await this.api._put(`/api/avatar/looks/${document.getElementById('look-slot').value}`, { name: document.getElementById('look-name').value, selection: this.selection });
             this.saved = { ...this.state.selection }; this.status('Look saved to your account. Your equipped avatar is unchanged.');
         } catch (error) { this.status(`Could not save look: ${error.message}`, true); }
         finally { this.saving = false; this.render(); }
@@ -196,7 +195,7 @@ class AvatarPage {
     async deleteLook() {
         if (this.saving) return;
         this.saving = true; this.render();
-        try { this.state = await this.api._delete(`/api/admin/avatar/looks/${document.getElementById('look-slot').value}`); document.getElementById('look-name').value = ''; this.status('Saved slot cleared. Your current preview is still here.'); }
+        try { this.state = await this.api._delete(`/api/avatar/looks/${document.getElementById('look-slot').value}`); document.getElementById('look-name').value = ''; this.status('Saved slot cleared. Your current preview is still here.'); }
         catch (error) { this.status(`Could not delete look: ${error.message}`, true); }
         finally { this.saving = false; this.render(); }
     }
@@ -204,8 +203,9 @@ class AvatarPage {
         if (this.saving || this.lockedSelections().length) return;
         this.saving = true; this.render(); this.status('Saving your look…');
         try {
-            const state = await this.api._put('/api/admin/avatar', this.selection);
+            const state = await this.api._put('/api/avatar', this.selection);
             this.state = state; this.selection = { ...state.selection }; this.saved = { ...state.selection };
+            window.dispatchEvent(new CustomEvent('avatar-saved', { detail: state.selection }));
             this.status('Avatar saved. Your look will be here next time.');
         } catch (error) { this.status(`Could not save: ${error.message}. Your preview is still here.`, true); }
         finally { this.saving = false; this.render(); }

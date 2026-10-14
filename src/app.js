@@ -7,7 +7,7 @@ const passport = require('passport');
 const path = require('path');
 
 const config = require('./config');
-const { configurePassport } = require('./middleware/auth');
+const { configurePassport, ensureAuthenticated } = require('./middleware/auth');
 const requireAdmin = require('./middleware/adminAuth');
 const SqliteSessionStore = require('./middleware/sessionStore');
 const corsMiddleware = require('./middleware/cors');
@@ -72,8 +72,9 @@ function createApp() {
 	mountAtBothPaths('/api/admin/run-test-case', bodyParser.json({ limit: '20mb' }));
 	app.use(bodyParser.json({ limit: '1mb' }));
 
-	// The avatar studio is an instructor preview, including direct page requests.
-	mountAtBothPaths('/pages/admin/avatar.html', requireAdmin);
+	// Protect direct studio requests before serving static files.
+	mountAtBothPaths('/pages/avatar.html', ensureAuthenticated);
+	mountAtBothPaths('/pages/admin/avatar.html', [ensureAuthenticated, (_req, res) => res.redirect(302, '../avatar.html')]);
 
 	// Serve static files from frontend directory with correct MIME types
 	// This must come BEFORE CORS to avoid issues with module loading

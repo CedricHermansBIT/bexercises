@@ -83,16 +83,17 @@ test('language rewards require the matching mastery achievement and remain perma
     } finally { await close(); }
 });
 
-test('saved-look API rejects students, extra fields and locked gear; deleting cannot target another account', async () => {
+test('saved-look API allows students and rejects extra fields and locked gear; deleting cannot target another account', async () => {
     const { database, close } = await setup(); const app = express(); app.use(express.json());
-    app.use((req, _res, next) => { const id = Number(req.headers['x-user']); req.user = id ? { id, is_admin: id !== 3 ? 1 : 0 } : null; next(); });
+    app.use((req, _res, next) => { const id = Number(req.headers['x-user']); req.user = id ? { id, is_admin: id !== 3 ? 1 : 0 } : null; req.isAuthenticated = () => !!req.user; next(); });
     app.use('/avatar', createAvatarRouter(database)); app.use((error, _req, res, _next) => res.status(error.statusCode || 500).json({ error: error.message }));
     const server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
     const url = `http://127.0.0.1:${server.address().port}/avatar/looks/1`;
     const put = (id, body) => fetch(url, { method: 'PUT', headers: { 'x-user': String(id), 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     try {
         assert.equal((await put(0, { name: 'One', selection: DEFAULT_SELECTION })).status, 401);
-        assert.equal((await put(3, { name: 'One', selection: DEFAULT_SELECTION })).status, 403);
+        assert.equal((await put(3, { name: 'One', selection: DEFAULT_SELECTION })).status, 200);
+        assert.equal((await put(3, { name: 'Locked', selection: { ...DEFAULT_SELECTION, back: 'wings' } })).status, 400);
         assert.equal((await put(1, { name: 'One', selection: DEFAULT_SELECTION, userId: 2 })).status, 400);
         assert.equal((await put(1, { name: 'One', selection: { ...DEFAULT_SELECTION, back: 'wings' } })).status, 400);
         assert.equal((await put(1, { name: 'One', selection: DEFAULT_SELECTION })).status, 200);

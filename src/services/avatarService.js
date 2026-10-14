@@ -181,6 +181,18 @@ function createAvatarService(database) {
         return getState(userId);
     }
 
-    return { getState, saveSelection, saveLook, deleteLook };
+    // Public identity consists only of equipped, validated catalog IDs.
+    async function getAppearances(userIds) {
+        const ids = [...new Set(userIds.filter(Number.isSafeInteger))];
+        const appearances = new Map(ids.map(id => [id, { ...DEFAULT_SELECTION }]));
+        if (!ids.length) return appearances;
+        const rows = await database.db.all(`SELECT user_id, selection FROM user_avatars WHERE user_id IN (${ids.map(() => '?').join(',')})`, ids);
+        for (const row of rows) {
+            try { appearances.set(row.user_id, validateSelection(JSON.parse(row.selection))); }
+            catch { /* A damaged old selection falls back to the starter character. */ }
+        }
+        return appearances;
+    }
+    return { getState, saveSelection, saveLook, deleteLook, getAppearances };
 }
 module.exports = { createAvatarService, DEFAULT_SELECTION, CATALOG, validateSelection };

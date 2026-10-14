@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="../../js/utils/themeBootstrap.js"></script>
+    <script src="../js/utils/themeBootstrap.js"></script>
     <title>Avatar studio - BITLab</title>
-    <link rel="stylesheet" href="../../styles.css">
-    <link rel="stylesheet" href="../../avatar.css">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../avatar.css">
 </head>
 <body class="avatar-studio-page">
     <div id="navbar-container"></div>
     <main class="avatar-studio">
         <header class="studio-heading"><div><p class="studio-eyebrow">A little more you</p><h1>Avatar studio</h1>
             <p>Find your character. Make it yours. Keep learning to unlock the next little surprise.</p></div>
-            <span class="studio-preview-badge">Admin preview</span></header>
+            <span class="studio-preview-badge">Your character</span></header>
         <p id="studio-status" role="status" aria-live="polite">Loading your wardrobe…</p>
         <section class="studio-layout" id="studio-content" hidden>
             <aside class="studio-stage" aria-label="Character preview">
@@ -36,7 +36,7 @@
                 <div class="stage-actions"><button type="button" class="studio-save" id="avatar-save">Save avatar</button>
                     <button type="button" class="studio-reset" id="avatar-shuffle">Surprise me</button>
                     <button type="button" class="studio-reset" id="avatar-reset">Restore saved look</button></div>
-                <p class="stage-note">Your look is saved to your account. Only admins can access this preview.</p>
+                <p class="stage-note">Your look is saved to your account. Your saved character appears in your account menu and the rankings.</p>
             </aside>
             <section class="studio-wardrobe" aria-label="Wardrobe">
                 <div class="studio-extras">
@@ -76,6 +76,6 @@
             </section>
         </section>
     </main>
-    <script type="module" src="../../js/pages/admin/avatarPage.js"></script>
+    <script type="module" src="../js/pages/admin/avatarPage.js"></script>
 </body>
 </html>

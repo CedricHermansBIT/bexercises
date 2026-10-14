@@ -11,6 +11,12 @@ const { classifyFailure } = require('../services/submissionFeedback');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
 const router = express.Router();
+router.use('/avatar', require('./avatar')());
+const avatarService = require('../services/avatarService').createAvatarService(databaseService);
+async function withAvatars(rows) {
+    const appearances = await avatarService.getAppearances(rows.map(row => row.id));
+    return rows.map(row => ({ ...row, avatar: appearances.get(row.id) }));
+}
 
 /**
  * GET /api/exercises
@@ -234,7 +240,7 @@ router.get('/statistics/:id?', asyncHandler(async (req, res) => {
 router.get('/leaderboard/:languageId?', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const includeAdmins = req.query.includeAdmins === 'true' && req.user?.isAdmin === true;
 	const leaderboard = await databaseService.getLeaderboard(req.params.languageId, includeAdmins);
-	res.json(leaderboard);
+	res.json(await withAvatars(leaderboard));
 }));
 
 /**
@@ -244,7 +250,7 @@ router.get('/leaderboard/:languageId?', ensureAuthenticated, asyncHandler(async 
 router.get('/leaderboard-achievements', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const includeAdmins = req.query.includeAdmins === 'true' && req.user?.isAdmin === true;
 	const leaderboard = await databaseService.getAchievementLeaderboard(includeAdmins);
-	res.json(leaderboard);
+	res.json(await withAvatars(leaderboard));
 }));
 
 /**

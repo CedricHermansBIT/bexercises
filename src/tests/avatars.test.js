@@ -65,12 +65,12 @@ test('completion and earned achievement unlocks persist without awarding points 
     } finally { db.cache.clear(); await db.db.close(); }
 });
 
-test('avatar API requires admin authentication and cannot equip items for another account', async () => {
+test('avatar API requires authentication and cannot equip items for another account', async () => {
     const db = await database();
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
-        const id = Number(req.headers['x-user']); req.user = id ? { id, is_admin: id === 1 || id === 3 ? 1 : 0 } : null; next();
+        const id = Number(req.headers['x-user']); req.user = id ? { id, is_admin: id === 1 || id === 3 ? 1 : 0 } : null; req.isAuthenticated = () => !!req.user; next();
     });
     app.use('/avatar', createAvatarRouter(db));
     app.use((err, _req, res, _next) => res.status(err.statusCode || 500).json({ error: err.message }));
@@ -79,17 +79,18 @@ test('avatar API requires admin authentication and cannot equip items for anothe
     const url = `http://127.0.0.1:${server.address().port}/avatar`;
     try {
         assert.equal((await fetch(url)).status, 401);
-        assert.equal((await fetch(url, { headers: { 'x-user': '2' } })).status, 403);
+        assert.equal((await fetch(url, { headers: { 'x-user': '2' } })).status, 200);
         const put = (user, body) => fetch(url, { method: 'PUT', headers: { 'x-user': String(user), 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        assert.equal((await put(2, DEFAULT_SELECTION)).status, 403);
+        assert.equal((await put(2, DEFAULT_SELECTION)).status, 200);
+        assert.equal((await put(2, { ...DEFAULT_SELECTION, back: 'wings' })).status, 400);
         assert.equal((await put(1, { ...DEFAULT_SELECTION, accessory: 'crown' })).status, 400);
         assert.equal((await put(1, { ...DEFAULT_SELECTION, userId: 3 })).status, 400);
         assert.equal((await put(1, { ...DEFAULT_SELECTION, color: 'violet' })).status, 200);
         assert.equal((await (await fetch(url, { headers: { 'x-user': '1' } })).json()).selection.color, 'violet');
         assert.equal((await (await fetch(url, { headers: { 'x-user': '3' } })).json()).selection.color, 'sky');
         const source = fs.readFileSync('src/app.js', 'utf8');
-        assert.ok(source.indexOf("mountAtBothPaths('/pages/admin/avatar.html', requireAdmin)") < source.indexOf('express.static('));
-        assert.ok(source.includes("mountAtBothPaths('/pages/admin/avatar.html', requireAdmin)"));
+        assert.ok(source.indexOf("mountAtBothPaths('/pages/avatar.html', ensureAuthenticated)") < source.indexOf('express.static('));
+        assert.ok(source.includes("mountAtBothPaths('/pages/avatar.html', ensureAuthenticated)"));
     } finally { await new Promise(resolve => server.close(resolve)); db.cache.clear(); await db.db.close(); }
 });
 
@@ -388,4 +389,25 @@ test('personalities and celebrations produce distinct poses; reduced motion pres
     assert.ok(torso.rotation.x > 0.4, 'bow bends at the waist');
     animator.update(1, true, { ...DEFAULT_SELECTION, idle: 'idle-confident' });
     assert.ok(arm.rotation.z > 0.3); assert.ok(elbow.rotation.z < -0.9);
+});
+
+test('public appearances contain only equipped IDs, migrate legacy records, and never create unlocks', async () => {
+    const db = await database();
+    try {
+        const service = createAvatarService(db);
+        await service.saveSelection(2, { ...DEFAULT_SELECTION, color: 'rose', skin: 'skin-deep' });
+        await service.saveLook(2, 1, { name: 'Private exam look', selection: { ...DEFAULT_SELECTION, color: 'mint' } });
+        await db.db.run('INSERT INTO user_avatars(user_id,selection) VALUES(1,?)', [JSON.stringify({ character: 'robot', outfit: 'tee', accessory: 'none', color: 'violet' })]);
+        const before = await db.db.all('SELECT * FROM user_avatar_unlocks');
+        const appearances = await service.getAppearances([1, 2, 3, 2]);
+        assert.equal(appearances.size, 3);
+        assert.equal(appearances.get(1).color, 'violet');
+        assert.equal(appearances.get(1).hair, DEFAULT_SELECTION.hair);
+        assert.equal(appearances.get(2).color, 'rose');
+        assert.equal(appearances.get(2).skin, 'skin-deep');
+        assert.deepEqual(Object.keys(appearances.get(2)), Object.keys(DEFAULT_SELECTION));
+        assert.deepEqual(appearances.get(3), DEFAULT_SELECTION);
+        assert.deepEqual(await db.db.all('SELECT * FROM user_avatar_unlocks'), before);
+        assert.deepEqual([...await service.getAppearances([])], []);
+    } finally { db.cache.clear(); await db.db.close(); }
 });

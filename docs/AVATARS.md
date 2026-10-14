@@ -1,8 +1,15 @@
-# Avatar studio: instructor preview
+# Avatar studio
 
-Find **Avatar studio** on the admin dashboard. The page, equipped selection and
-saved-look API are restricted to administrators. Students receive 403. Avatars
-are not displayed on public profiles or leaderboards yet.
+Every signed-in user can open **Character studio** from the top-right account
+menu. Their equipped character replaces the person icon. Rankings show character
+portraits; click one to open a read-only, rotatable 3D view. Admins also have a
+dashboard shortcut. The old admin studio URL redirects to `/pages/avatar.html`.
+
+Only equipped catalog IDs are shared in existing authenticated ranking responses.
+Saved looks, unlocks and progress stay account-private. Students cannot include
+admins in rankings or access other admin tools. One offscreen renderer generates
+cached portraits as ranking rows approach the viewport, avoiding a WebGL context
+and animation loop for every row. Devices without WebGL use local artwork.
 
 ## Wardrobe and preview
 
@@ -54,10 +61,11 @@ account’s unlocked wardrobe. No points are spent and no exercise progress chan
 slots, and `user_avatar_unlocks` stores permanent rewards. All reference the user
 with cascading deletion. Startup creates missing tables.
 
-- `GET /api/admin/avatar`: selection, catalog, next unlocks, and own saved looks.
-- `PUT /api/admin/avatar`: complete equipped selection.
-- `PUT /api/admin/avatar/looks/:slot`: `{name, selection}`, with slot 1–5.
-- `DELETE /api/admin/avatar/looks/:slot`: clear only that account’s slot.
+- `GET /api/avatar/appearance`: own equipped IDs only, with no unlock writes.
+- `GET /api/avatar`: selection, catalog, next unlocks, and own saved looks.
+- `PUT /api/avatar`: complete equipped selection.
+- `PUT /api/avatar/looks/:slot`: `{name, selection}`, with slot 1–5.
+- `DELETE /api/avatar/looks/:slot`: clear only that account’s slot.
 
 Selection fields are `character`, `outfit`, `accessory` (glasses), `color`, `skin`,
 `hair`, `hairColor`, `pantsColor`, `shoesColor`, `hat`, `audio`, `jewellery`, `back`,

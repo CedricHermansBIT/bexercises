@@ -44,5 +44,6 @@ export function renderAvatar(selection, label = 'Your character', slot = 'charac
         const rgb = palette[id].map(v => Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055)));
         return `<span class="avatar-swatch" role="img" aria-label="${safeLabel}" style="background-color:rgb(${rgb.join(',')})"></span>`;
     }
-    return `<img class="avatar-thumbnail" src="../../assets/avatars/${AVATAR_ASSET_SLOTS[id] || slot}-${id}.png" alt="${safeLabel}" loading="lazy" decoding="async">`;
+    const assetBase = import.meta.url.startsWith('http') ? new URL('../../assets/avatars/', import.meta.url).href : '../../assets/avatars/';
+    return `<img class="avatar-thumbnail" src="${assetBase}${AVATAR_ASSET_SLOTS[id] || slot}-${id}.png" alt="${safeLabel}" loading="lazy" decoding="async">`;
 }
