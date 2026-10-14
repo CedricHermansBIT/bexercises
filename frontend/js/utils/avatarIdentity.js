@@ -11,13 +11,18 @@ function portraitRenderer() {
 export async function paintAvatar(element, selection, name = 'Character') {
     if (!selection) return;
     const token = {}; painted.set(element, token);
-    element.innerHTML = renderAvatar(selection, name);
     try {
         const renderer = await portraitRenderer();
         if (!element.isConnected || painted.get(element) !== token) return;
         const picture = new Image(); picture.alt = name; picture.src = renderer.render(selection);
+        await picture.decode();
+        if (!element.isConnected || painted.get(element) !== token) return;
         element.replaceChildren(picture);
-    } catch { /* Local character artwork remains available without WebGL. */ }
+    } catch {
+        if (element.isConnected && painted.get(element) === token && !element.querySelector('img')) {
+            element.innerHTML = renderAvatar(selection, name);
+        }
+    }
 }
 
 async function showCharacter(selection, name, trigger) {
@@ -56,7 +61,6 @@ export function paintRankingAvatars(container, users) {
         const user = byId.get(button.closest('[data-user-id]').dataset.userId);
         if (!user?.avatar) { button.hidden = true; continue; }
         button.setAttribute('aria-label', `View ${user.display_name || 'Anonymous'}’s character`);
-        button.innerHTML = renderAvatar(user.avatar, 'Character');
         button.addEventListener('click', () => void showCharacter(user.avatar, user.display_name || 'Anonymous', button));
         rankingObserver.observe(button);
     }
