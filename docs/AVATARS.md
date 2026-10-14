@@ -2,8 +2,9 @@
 
 Every signed-in user can open **Character studio** from the top-right account
 menu. Their equipped character replaces the person icon. Rankings show character
-portraits; click one to open a read-only, rotatable 3D view. The online-user
-overview also shows equipped portraits beside the activity indicators. Admins have a
+portraits; click a portrait or name to open a read-only profile with the full
+rotatable character, exercises completed, test runs, achievements and points.
+Online-user rows open the same profile. Admins have a
 dashboard shortcut. The old admin studio URL redirects to `/pages/avatar.html`.
 
 Only equipped catalog IDs are shared in authenticated ranking and online-user responses.
@@ -62,6 +63,8 @@ account’s unlocked wardrobe. No points are spent and no exercise progress chan
 slots, and `user_avatar_unlocks` stores permanent rewards. All reference the user
 with cascading deletion. Startup creates missing tables.
 
+- `GET /api/avatar/profiles/:userId`: equipped character and aggregate public statistics;
+  archived accounts are unavailable, and student requests cannot view admin profiles.
 - `GET /api/avatar/appearance`: own equipped IDs only, with no unlock writes.
 - `GET /api/avatar`: selection, catalog, next unlocks, and own saved looks.
 - `PUT /api/avatar`: complete equipped selection.

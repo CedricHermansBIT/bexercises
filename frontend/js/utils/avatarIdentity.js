@@ -25,23 +25,44 @@ export async function paintAvatar(element, selection, name = 'Character') {
     }
 }
 
-async function showCharacter(selection, name, trigger) {
+export async function showUserProfile(user, trigger) {
+    let selection = user.avatar;
+    const name = user.displayName || user.display_name || 'Anonymous';
     const dialog = document.createElement('dialog'); dialog.className = 'character-dialog';
-    const title = document.createElement('h2'); title.textContent = `${name}’s character`;
+    const title = document.createElement('h2'); title.textContent = name; title.id = 'character-profile-title';
+    dialog.setAttribute('aria-labelledby', title.id);
+    const stats = document.createElement('div'); stats.className = 'character-profile-stats';
+    stats.setAttribute('aria-live', 'polite'); stats.textContent = 'Loading statistics…';
     const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Close'; close.className = 'dropdown-item';
     const stage = document.createElement('div'); stage.className = 'character-dialog-stage';
     const hint = document.createElement('p'); hint.textContent = 'Drag to rotate · Scroll to zoom';
-    dialog.append(title, stage, hint, close); document.body.append(dialog);
+    dialog.append(title, stats, stage, hint, close); document.body.append(dialog);
     let viewer, closed = false;
-    dialog.addEventListener('close', () => { closed = true; viewer?.dispose(); dialog.remove(); trigger?.focus(); }, { once: true });
+    const request = new AbortController();
+    dialog.addEventListener('close', () => { closed = true; request.abort(); viewer?.dispose(); dialog.remove(); trigger?.focus(); }, { once: true });
     close.addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
     dialog.showModal(); close.focus(); stage.innerHTML = renderAvatar(selection, name);
+    void fetch(buildUrl(`/api/avatar/profiles/${user.id}`), { signal: request.signal }).then(async response => {
+        if (!response.ok) throw new Error('Profile unavailable');
+        const profile = await response.json();
+        if (closed) return;
+        title.textContent = profile.displayName; selection = profile.avatar; viewer?.update(selection);
+        const list = document.createElement('dl');
+        for (const [key, label] of [['completed', 'Exercises completed'], ['testRuns', 'Test runs'], ['achievements', 'Achievements'], ['points', 'Achievement points']]) {
+            const item = document.createElement('div');
+            const term = document.createElement('dt'); term.textContent = label;
+            const value = document.createElement('dd'); value.textContent = Number(profile.stats[key] || 0).toLocaleString();
+            item.append(term, value); list.append(item);
+        }
+        stats.replaceChildren(list);
+    }).catch(() => { if (!closed) stats.textContent = 'Statistics unavailable. Close and try again.'; });
     try {
         const { createAvatarViewer } = await import('../vendor/avatar3d.bundle.js');
         if (closed) return;
         viewer = await createAvatarViewer(stage, wardrobeUrl, selection);
         if (closed) viewer.dispose();
+        else viewer.update(selection);
     } catch { hint.textContent = '3D preview is unavailable on this device.'; }
 }
 
@@ -60,8 +81,10 @@ export function paintRankingAvatars(container, users) {
     for (const button of container.querySelectorAll('.ranking-avatar')) {
         const user = byId.get(button.closest('[data-user-id]').dataset.userId);
         if (!user?.avatar) { button.hidden = true; continue; }
-        button.setAttribute('aria-label', `View ${user.display_name || 'Anonymous'}’s character`);
-        button.addEventListener('click', () => void showCharacter(user.avatar, user.display_name || 'Anonymous', button));
+        button.setAttribute('aria-label', `View ${user.display_name || 'Anonymous'}’s profile`);
+        button.addEventListener('click', () => void showUserProfile(user, button));
+        const name = button.closest('[data-user-id]').querySelector('.profile-name');
+        name?.addEventListener('click', () => void showUserProfile(user, name));
         rankingObserver.observe(button);
     }
 }

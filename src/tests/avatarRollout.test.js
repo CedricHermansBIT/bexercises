@@ -49,9 +49,22 @@ test('student ranking APIs expose equipped appearances while preserving cohort f
         assert.equal(online.count, 2);
         const student = online.users.find(user => user.displayName === 'Student');
         assert.deepEqual(student.avatar, { ...DEFAULT_SELECTION, color: 'rose' });
-        assert.deepEqual(Object.keys(student).sort(), ['avatar', 'displayName', 'isAdmin', 'lastActivity']);
+        assert.deepEqual(Object.keys(student).sort(), ['avatar', 'displayName', 'id', 'isAdmin', 'lastActivity']);
         assert.deepEqual(online.users.find(user => user.displayName === 'Teacher').avatar, DEFAULT_SELECTION);
         assert.ok(!JSON.stringify(online).includes('Private favourite'));
+        assert.equal((await fetch(url + '/api/avatar/profiles/1')).status, 401);
+        const profileResponse = await fetch(url + '/api/avatar/profiles/1', { headers: { 'x-user': '1' } });
+        assert.equal(profileResponse.status, 200);
+        assert.equal(profileResponse.headers.get('cache-control'), 'no-store');
+        const profile = await profileResponse.json();
+        assert.deepEqual(profile, { id: 1, displayName: 'Student', avatar: { ...DEFAULT_SELECTION, color: 'rose' },
+            stats: { completed: 1, testRuns: 2, achievements: 1, points: 10 } });
+        for (const id of ['2', '3', '999', '0', '1oops', '9007199254740993']) {
+            assert.equal((await fetch(url + '/api/avatar/profiles/' + id, { headers: { 'x-user': '1' } })).status, 404);
+        }
+        const teacherProfile = await (await fetch(url + '/api/avatar/profiles/2', { headers: { 'x-user': '2' } })).json();
+        assert.equal(teacherProfile.displayName, 'Teacher');
+        assert.deepEqual(teacherProfile.stats, { completed: 1, testRuns: 1, achievements: 1, points: 10 });
         const appearance = await (await fetch(url + '/api/avatar/appearance', { headers: { 'x-user': '1' } })).json();
         assert.deepEqual(appearance, { selection: { ...DEFAULT_SELECTION, color: 'rose' } });
         assert.equal((await fetch(url + '/api/avatar/appearance')).status, 401);

@@ -24,3 +24,13 @@
 .online-avatar { display:flex; flex:0 0 32px; width:32px; height:32px; border-radius:50%; overflow:hidden; background:var(--border-color); }
 .online-avatar img { width:100%; height:100%; object-fit:cover; }
 .dropdown-user .user-name,.online-user .user-name { min-width:0; overflow-wrap:anywhere; }
+
+.profile-name { border:0; padding:0; background:none; font:inherit; text-align:left; cursor:pointer; }
+.profile-name:hover { text-decoration:underline; }
+.online-profile { width:100%; border:0; font:inherit; color:inherit; text-align:left; cursor:pointer; }
+.online-profile:focus-visible,.profile-name:focus-visible { outline:2px solid var(--accent-blue); outline-offset:2px; }
+.character-profile-stats dl { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0; }
+.character-profile-stats dt { font-size:.75rem; color:var(--text-secondary); }
+.character-profile-stats dd { margin:4px 0 0; font-size:1.3rem; font-weight:700; }
+.character-profile-stats + .character-dialog-stage { height:min(360px,44dvh); }
+.online-users-navbar:focus-within .online-users-dropdown { opacity:1; visibility:visible; transform:translateY(0); }

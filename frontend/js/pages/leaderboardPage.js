@@ -594,7 +594,7 @@ class LeaderboardPage {
                         </div>
                         <div class="user-col">
                             <button type="button" class="ranking-avatar" aria-label="View character"></button>
-                            <span class="user-name">${this.escapeHtml(user.display_name || 'Anonymous')}</span>
+                            <button type="button" class="user-name profile-name">${this.escapeHtml(user.display_name || 'Anonymous')}</button>
                             ${isCurrentUser ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
                         <div class="score-col">
@@ -624,7 +624,7 @@ class LeaderboardPage {
                         </div>
                         <div class="user-col">
                             <button type="button" class="ranking-avatar" aria-label="View character"></button>
-                            <span class="user-name">${this.escapeHtml(user.display_name || 'Anonymous')}</span>
+                            <button type="button" class="user-name profile-name">${this.escapeHtml(user.display_name || 'Anonymous')}</button>
                             ${isCurrentUser ? '<span class="you-badge">YOU</span>' : ''}
                         </div>
                         <div class="score-col">

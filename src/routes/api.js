@@ -386,6 +386,7 @@ router.get('/online-users', ensureAuthenticated, asyncHandler(async (req, res) =
 	res.json({
 		count: onlineUsers.length,
 		users: onlineUsers.map(u => ({
+			id: u.id,
 			displayName: u.display_name,
 			avatar: appearances.get(u.id),
 			isAdmin: isAdmin(u),

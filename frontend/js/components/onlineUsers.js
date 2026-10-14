@@ -1,6 +1,6 @@
     // frontend/js/components/onlineUsers.js
 import ApiService from '../services/apiService.js';
-import { paintAvatar } from '../utils/avatarIdentity.js';
+import { paintAvatar, showUserProfile } from '../utils/avatarIdentity.js';
 
 class OnlineUsers {
     constructor() {
@@ -118,12 +118,12 @@ class OnlineUsers {
                 return ``;
             }
             return `
-            <div class="dropdown-user" title="Active ${minutesAgo} min ago">
+            <button type="button" class="dropdown-user online-profile" title="Active ${minutesAgo} min ago">
                 <span class="online-indicator ${indicatorClass} ${user.isAdmin ? 'admin' : ''}"></span>
                 <span class="online-avatar" data-avatar-index="${index}" aria-hidden="true"></span>
                 <span class="user-name">${this.escapeHtml(user.displayName)}${user.isAdmin ? ' 👑' : ''}</span>
                 <span class="time-ago">${minutesShown}m</span>
-            </div>
+            </button>
         `;
         }).join('');
 
@@ -158,12 +158,12 @@ class OnlineUsers {
             let indicatorClass = minutesAgo < 15 ? 'online-active' : 'online-idle';
 
             return `
-                <div class="online-user" title="Active ${minutesAgo} min ago">
+                <button type="button" class="online-user online-profile" title="Active ${minutesAgo} min ago">
                     <span class="online-indicator ${indicatorClass} ${user.isAdmin ? 'admin' : ''}"></span>
                     <span class="online-avatar" data-avatar-index="${index}" aria-hidden="true"></span>
-                <span class="user-name">${this.escapeHtml(user.displayName)}${user.isAdmin ? ' 👑' : ''}</span>
+                    <span class="user-name">${this.escapeHtml(user.displayName)}${user.isAdmin ? ' 👑' : ''}</span>
                     <span class="time-ago">${minutesAgo}m</span>
-                </div>
+                </button>
             `;
         }).join('');
 
@@ -192,6 +192,9 @@ class OnlineUsers {
         for (const portrait of this.container.querySelectorAll('[data-avatar-index]')) {
             const user = users[Number(portrait.dataset.avatarIndex)];
             if (user?.avatar) void paintAvatar(portrait, user.avatar, '');
+            const row = portrait.closest('.online-profile');
+            row.setAttribute('aria-label', `View ${user.displayName || 'Anonymous'}’s profile`);
+            row.addEventListener('click', () => void showUserProfile(user, row));
         }
     }
 
