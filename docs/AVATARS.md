@@ -14,7 +14,9 @@ show thumbnails and names of their unlocked character rewards. Selecting a rewar
 opens a read-only 3D preview of the item on its own, centred and fitted to view.
 Wearable thumbnails also show only the item; colour rewards use swatches, while
 character rewards show the character itself. Saving remains an explicit action
-in the studio. Unearned achievements do not reveal secret reward items. List portraits load near the
+in the studio. Achievement popups use the same item-only reward previews; they
+stack without overlapping, can be dismissed, and pause dismissal while hovered,
+focused or inspecting an item. Unearned achievements do not reveal secret reward items. List portraits load near the
 viewport and reuse the same cached renderer as account and ranking portraits. The old admin studio URL redirects to `/pages/avatar.html`.
 
 Only equipped catalog IDs are shared in authenticated ranking and online-user responses.

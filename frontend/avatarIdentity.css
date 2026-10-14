@@ -61,3 +61,13 @@
 
 .reward-colour-preview { display:flex; align-items:center; justify-content:center; }
 .reward-colour-preview .avatar-swatch { width:160px; height:160px; border-radius:50%; border:1px solid var(--border-color); }
+
+.achievement-notifications { position:fixed; top:60px; right:20px; z-index:10000; display:flex; flex-direction:column; gap:12px; width:min(400px,calc(100vw - 24px)); max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; padding:4px; }
+.achievement-notifications .achievement-notification { position:relative; top:auto; right:auto; min-width:0; max-width:none; width:100%; flex-shrink:0; }
+.achievement-notification-close { margin-left:auto; border:0; background:transparent; color:inherit; font:inherit; font-size:1.5rem; cursor:pointer; }
+.achievement-notification .achievement-rewards { margin-bottom:0; border-color:#ffffff55; }
+.achievement-notification .achievement-rewards h3 { color:inherit; }
+.achievement-notification .achievement-reward-button { background:#ffffffed; color:#17212d; border-color:#ffffff55; }
+.achievement-notification-details { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:600px) { .achievement-notifications { right:12px; } .achievement-notifications .achievement-notification { padding:16px; } .achievement-notification-header { font-size:.95rem; gap:8px; } }
+@media(prefers-reduced-motion:reduce) { .achievement-notification,.achievement-notification-header span:first-child { animation:none; } }

@@ -287,7 +287,7 @@ class AchievementsPage {
             const list = document.createElement('div'); list.className = 'achievement-reward-list';
             for (const item of rewards) {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
-                button.setAttribute('aria-label', `Try on ${item.name}`); button.title = `Preview ${item.name}`;
+                button.setAttribute('aria-label', `Preview ${item.name}`); button.title = `Preview ${item.name}`;
                 const art = document.createElement('span'); art.className = 'achievement-reward-art'; art.setAttribute('aria-hidden', 'true');
                 void paintRewardThumbnail(art, { ...this.avatarState.selection, [item.slot]: item.id }, item);
                 const label = document.createElement('span'); label.textContent = item.name;

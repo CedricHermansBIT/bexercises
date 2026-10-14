@@ -1,56 +1,79 @@
-// frontend/js/components/achievementNotification.js
 import soundEffects from '../utils/soundEffects.js';
+import ApiService from '../services/apiService.js';
+import { getAchievementRewards } from '../utils/avatarRewards.js';
+import { paintRewardThumbnail, previewAvatarReward } from '../utils/avatarIdentity.js';
 
-/**
- * Show achievement notification popup
- * @param {Object} achievement - Achievement object with name, description, icon, points
- */
-function showAchievementNotification(achievement) {
-    // Play achievement sound
-    soundEffects.playAchievement();
-
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = 'achievement-notification';
-
-    notification.innerHTML = `
-        <div class="achievement-notification-header">
-            <span>🎉</span>
-            <span>Achievement Unlocked!</span>
-        </div>
-        <div class="achievement-notification-content">
-            <div class="achievement-notification-icon">${achievement.icon}</div>
-            <div class="achievement-notification-details">
-                <div class="achievement-notification-title">${achievement.name}</div>
-                <div class="achievement-notification-description">${achievement.description}</div>
-                <div class="achievement-notification-points">+${achievement.points} points</div>
-            </div>
-        </div>
-    `;
-
-    // Add to body
-    document.body.appendChild(notification);
-
-    // Remove after animation completes (5 seconds)
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
+function loadRewardState() {
+    // Fetch after the award so newly earned (including secret) items are unlocked.
+    return new ApiService()._get('/api/avatar').catch(() => null);
 }
 
-/**
- * Show multiple achievement notifications in sequence
- * @param {Array} achievements - Array of achievement objects
- */
-function showAchievementNotifications(achievements) {
-    if (!achievements || achievements.length === 0) return;
+function node(tag, className, text) {
+    const element = document.createElement(tag); element.className = className;
+    if (text !== undefined) element.textContent = text;
+    return element;
+}
 
+function showAchievementNotification(achievement, rewardState) {
+    soundEffects.playAchievement();
+    let stack = document.getElementById('achievement-notifications');
+    if (!stack) { stack = node('div', 'achievement-notifications'); stack.id = 'achievement-notifications'; document.body.append(stack); }
+    const notification = node('div', 'achievement-notification'); notification.setAttribute('role', 'status');
+    const header = node('div', 'achievement-notification-header');
+    const close = node('button', 'achievement-notification-close', '×'); close.type = 'button'; close.setAttribute('aria-label', 'Dismiss achievement notification');
+    header.append(node('span', '', '🎉'), node('span', '', 'Achievement Unlocked!'), close);
+    const content = node('div', 'achievement-notification-content');
+    const details = node('div', 'achievement-notification-details');
+    details.append(node('div', 'achievement-notification-title', achievement.name),
+        node('div', 'achievement-notification-description', achievement.description),
+        node('div', 'achievement-notification-points', `+${achievement.points} points`));
+    content.append(node('div', 'achievement-notification-icon', achievement.icon), details);
+    notification.append(header, content); stack.append(notification);
+    let timer, hovered = false, previewOpen = false;
+    const dismiss = () => { clearTimeout(timer); notification.remove(); if (!stack.children.length) stack.remove(); };
+    const scheduleDismiss = () => {
+        clearTimeout(timer);
+        if (!hovered && !previewOpen && !notification.contains(document.activeElement)) timer = setTimeout(dismiss, 9000);
+    };
+    close.addEventListener('click', dismiss);
+    notification.addEventListener('pointerenter', () => { hovered = true; clearTimeout(timer); });
+    notification.addEventListener('pointerleave', () => { hovered = false; scheduleDismiss(); });
+    notification.addEventListener('focusin', () => clearTimeout(timer));
+    notification.addEventListener('focusout', scheduleDismiss);
+    scheduleDismiss();
+    void Promise.resolve(rewardState || loadRewardState()).then(async state => {
+        if (!state || !notification.isConnected) return;
+        const rewards = getAchievementRewards({ ...achievement, earned: true }, state.catalog);
+        if (!rewards.length) return;
+        const section = node('section', 'achievement-rewards'); section.append(node('h3', '', 'Unlocked character rewards'));
+        const list = node('div', 'achievement-reward-list');
+        const previews = [];
+        for (const item of rewards) {
+            const button = node('button', 'achievement-reward-button'); button.type = 'button'; button.setAttribute('aria-label', `Preview ${item.name}`);
+            const art = node('span', 'achievement-reward-art'); art.setAttribute('aria-hidden', 'true');
+            button.append(art, node('span', '', item.name)); list.append(button);
+            button.addEventListener('click', () => {
+                previewOpen = true; clearTimeout(timer);
+                void previewAvatarReward(state.selection, item, button);
+                const dialog = document.getElementById('avatar-reward-title')?.closest('dialog');
+                if (dialog) dialog.addEventListener('close', () => { previewOpen = false; scheduleDismiss(); }, { once: true });
+                else { previewOpen = false; scheduleDismiss(); }
+            });
+            previews.push(() => paintRewardThumbnail(art, { ...state.selection, [item.slot]: item.id }, item));
+        }
+        section.append(list); notification.append(section);
+        await Promise.allSettled(previews.map(preview => preview()));
+        if (notification.isConnected) scheduleDismiss();
+    }).catch(() => {}); // The achievement message remains usable if previews fail.
+    return notification;
+}
+
+function showAchievementNotifications(achievements) {
+    if (!achievements?.length) return;
+    const rewardState = loadRewardState();
     achievements.forEach((achievement, index) => {
-        setTimeout(() => {
-            showAchievementNotification(achievement);
-        }, index * 600); // Stagger by 600ms
+        setTimeout(() => showAchievementNotification(achievement, rewardState), index * 600);
     });
 }
 
-// Export for use in modules
 export { showAchievementNotification, showAchievementNotifications };
-
