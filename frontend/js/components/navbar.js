@@ -1,3 +1,4 @@
+import { setupExperimentalViewToggle } from '../utils/experimentalView.js';
 // frontend/js/components/navbar.js
 import OnlineUsers from './onlineUsers.js';
 import themeManager from '../utils/themeUtils.js';
@@ -79,6 +80,9 @@ class Navbar {
                             <button class="dropdown-item" id="theme-toggle-btn">
                                 <span class="theme-icon">🌙</span> <span class="theme-text">Dark Mode</span>
                             </button>
+                            <button class="dropdown-item experimental-view-option" id="experimental-view-toggle" role="switch" aria-checked="false">
+                                <span>Experimental view</span><span class="menu-switch" aria-hidden="true"></span>
+                            </button>
                             <button class="dropdown-item" id="logout-btn">
                                 <span aria-hidden="true">↪</span> Logout
                             </button>
@@ -116,6 +120,7 @@ class Navbar {
     }
 
     setupEventListeners() {
+        setupExperimentalViewToggle();
         // Back button
         const backBtn = document.getElementById('back-button');
         if (backBtn) {

@@ -177,6 +177,10 @@ class ApiService {
 		return this._get(`/api/exercises/${encodeURIComponent(exerciseId)}`);
 	}
 
+    async recordHintOpened(exerciseId) {
+        return this._post(`/api/exercises/${encodeURIComponent(exerciseId)}/hint-opened`, {});
+    }
+
 	async getExerciseDraft(exerciseId) {
 		return this._get(`/api/exercises/${encodeURIComponent(exerciseId)}/draft`);
 	}

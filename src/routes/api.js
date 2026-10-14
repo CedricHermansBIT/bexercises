@@ -55,6 +55,17 @@ router.get('/exercises/:id', asyncHandler(async (req, res) => {
 	res.json(exercise);
 }));
 
+// Report a hint expansion, awarding the first-hint achievement once per account.
+router.post('/exercises/:id/hint-opened', ensureAuthenticated, asyncHandler(async (req, res) => {
+    const exercise = await exerciseService.getExerciseById(req.params.id);
+    if (!exercise) throw ApiError.notFound('Exercise not found');
+    if (!/^#{1,6}[ \t]+Hint[ \t]*\r?$/im.test(exercise.description || '')) {
+        throw ApiError.badRequest('This exercise has no hint');
+    }
+    const achievement = await databaseService.awardHintAchievement(req.user.id);
+    res.json({ achievement });
+}));
+
 router.get('/exercises/:id/draft', ensureAuthenticated, asyncHandler(async (req, res) => {
 	const exercise = await exerciseService.getExerciseById(req.params.id);
 	if (!exercise) throw ApiError.notFound('Exercise not found');

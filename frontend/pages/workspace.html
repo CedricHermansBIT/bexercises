@@ -60,6 +60,9 @@
                         <button class="dropdown-item" id="theme-toggle-btn">
                             <span class="theme-icon">☀️</span> <span class="theme-text">Light Mode</span>
                         </button>
+                        <button class="dropdown-item experimental-view-option" id="experimental-view-toggle" role="switch" aria-checked="false">
+                            <span>Experimental view</span><span class="menu-switch" aria-hidden="true"></span>
+                        </button>
                         <button class="dropdown-item" id="logout-btn">
                             <span aria-hidden="true">↪</span> Logout
                         </button>
@@ -80,13 +83,13 @@
                             Next <span>→</span>
                         </button>
                     </div>
-                    <div class="section-header">description</div>
+                    <div class="section-header description-header">description</div>
                     <div class="section-content" id="exercise-description">
                         <!-- Description will be loaded here -->
                     </div>
                     <div class="section-header fixture-header">workspace files</div>
                     <div class="fixture-tree" id="fixture-tree" aria-live="polite">
-                        <span class="fixture-tree-empty">No fixture files for this exercise.</span>
+                        <span class="fixture-tree-empty fixture-tree-none">No fixture files for this exercise.</span>
                     </div>
                     <div class="section-header database-schema-header" id="database-schema-header" hidden>
                         <span>database structure</span>
@@ -123,7 +126,7 @@
                     </div>
                     <div class="results-content">
                         <div id="test-results">
-                            <p class="no-results">$ ./solution.sh - waiting for execution...</p>
+                            <p class="no-results"><span class="standard-empty-results">$ ./solution.sh - waiting for execution...</span><span class="experimental-empty-results">No results yet.</span></p>
                         </div>
                         <button id="next-exercise-cta" class="next-exercise-cta" hidden></button>
                         <div id="statistics-panel" class="statistics-panel">

@@ -108,7 +108,7 @@ export function makeResizable(handleSelector, sidebarSelector, cssVarName, minWi
  * @param {string} bottomPanelSelector - Selector for the bottom panel element
  * @param {number} minTopHeight - Minimum height for top panel in pixels
  * @param {number} minBottomHeight - Minimum height for bottom panel in pixels
- * @param {string} storageKey - localStorage key to persist height split
+ * @param {string|Function} storageKey - localStorage key, or a function returning the current layout key
  * @param {Function} onResize - Callback function called during resize (optional)
  */
 export function makeVerticallyResizable(handleSelector, topPanelSelector, bottomPanelSelector, minTopHeight = 200, minBottomHeight = 150, storageKey = null, onResize = null) {
@@ -125,7 +125,7 @@ export function makeVerticallyResizable(handleSelector, topPanelSelector, bottom
 
 	// Load saved height from localStorage
 	if (storageKey) {
-		const savedHeight = localStorage.getItem(storageKey);
+		const savedHeight = localStorage.getItem(typeof storageKey === 'function' ? storageKey() : storageKey);
 		if (savedHeight) {
 			topPanel.style.flex = `0 0 ${savedHeight}px`;
 			bottomPanel.style.flex = `1 1 auto`;
@@ -191,7 +191,7 @@ export function makeVerticallyResizable(handleSelector, topPanelSelector, bottom
 			// Save to localStorage
 			if (storageKey) {
 				const currentHeight = topPanel.offsetHeight;
-				localStorage.setItem(storageKey, currentHeight);
+				localStorage.setItem(typeof storageKey === 'function' ? storageKey() : storageKey, currentHeight);
 				//console.log(`Saved top panel height: ${currentHeight}px`);
 			}
 		}

@@ -1,3 +1,5 @@
+import { isExperimentalView } from '../utils/experimentalView.js';
+import { renderArtifactFeedback } from '../utils/artifactResults.js';
 // frontend/js/components/testResults.js
 /**
  * Test Results Component
@@ -5,6 +7,7 @@
 class TestResults {
 	constructor() {
 		this.resultsContainer = document.getElementById('test-results');
+        window.addEventListener('experimentalviewchange', () => this.applyExperimentalView());
 	}
 
 	/**
@@ -34,6 +37,7 @@ class TestResults {
 
 		// Setup tab switching
 		this.setupTabs();
+        this.applyExperimentalView();
 	}
 
 	/**
@@ -45,7 +49,7 @@ class TestResults {
 	createSummary(passed, total) {
 		const summary = document.createElement('div');
 		summary.className = 'test-summary';
-		summary.innerHTML = `<h4>Summary: ${passed}/${total} tests passed</h4>`;
+		summary.innerHTML = `<h4><span class="standard-summary-prefix">Summary: </span>${passed}/${total} tests passed</h4>`;
 		return summary;
 	}
 
@@ -81,12 +85,28 @@ class TestResults {
 			</span>
 		`;
 
+        const expandButton = document.createElement('button');
+        expandButton.type = 'button';
+        expandButton.className = 'test-expand-button';
+        expandButton.setAttribute('aria-controls', `test-details-${result.testNumber}`);
+        expandButton.setAttribute('aria-label', `Test ${result.testNumber}, ${result.passed ? 'passed' : 'failed'}, toggle details`);
+        const input = result.functionTest
+            ? `${result.functionTest.name}(${[...(result.functionTest.args || []).map(value => JSON.stringify(value)), ...Object.entries(result.functionTest.kwargs || {}).map(([key, value]) => `${key}=${JSON.stringify(value)}`)].join(', ')})`
+            : (result.arguments || []).join(' ') || '(no arguments)';
+        expandButton.innerHTML = `<span class="compact-test-status ${statusClass}" aria-hidden="true">${statusIcon}</span><span class="test-title">Test ${result.testNumber}</span><code class="compact-test-input" title="${this.escapeHtml(input)}">${this.escapeHtml(input)}</code><span class="test-expand-chevron" aria-hidden="true">⌄</span>`;
+        testDiv.dataset.collapsed = String(result.passed);
+        expandButton.addEventListener('click', () => {
+            testDiv.dataset.collapsed = String(testDiv.dataset.collapsed !== 'true');
+            this.applyExperimentalView();
+        });
+        header.appendChild(expandButton);
 		header.appendChild(headerLeft);
 		header.appendChild(headerRight);
 		testDiv.appendChild(header);
 
 		const details = this.createTestDetails(result);
-		testDiv.appendChild(details);
+		details.id = `test-details-${result.testNumber}`;
+        testDiv.appendChild(details);
 
 		return testDiv;
 	}
@@ -117,6 +137,7 @@ class TestResults {
 			filesMatch = result.outputFiles.every(f => f.matches) ? '✓' : '✗';
 		}
 
+        const networkHtml = result.network ? `<p class="network-feedback"><strong>Allowed websites:</strong> ${result.network.hosts.map(host => this.escapeHtml(host)).join(', ')}${result.network.failures?.length ? `<br>${result.network.failures.map(message => this.escapeHtml(message)).join('<br>')}` : ''}</p>` : '';
 		// Build file comparison HTML
 		let filesTabHtml = '';
 		if (result.outputFiles && result.outputFiles.length > 0) {
@@ -143,7 +164,7 @@ class TestResults {
 							<strong>${this.escapeHtml(file.filename)}</strong>
 							<span style="color: ${statusColor};">${statusIcon} ${file.matches ? 'Match' : 'Mismatch'}</span>
 						</div>
-						${file.exists ? `
+						${file.artifact ? renderArtifactFeedback(file.artifact) : file.exists ? `
 							<div style="font-size: 0.85rem; color: var(--text-muted);">
 								<div>Type: expected <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.expectedType || 'file')}</code>, actual <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">${this.escapeHtml(file.actualType || 'unknown')}</code></div>
 								${['file', 'directory'].includes(file.actualType) ? `
@@ -155,7 +176,7 @@ class TestResults {
 								${treeHtml}
 							</div>
 						` : `
-							<div style="color: var(--accent-red); font-size: 0.85rem;">${file.error || 'File not found'}</div>
+							<div style="color: var(--accent-red); font-size: 0.85rem;">${this.escapeHtml(file.error || 'File not found')}</div>
 						`}
 					</div>
 				`;
@@ -199,7 +220,7 @@ class TestResults {
 		if (result.isDatabaseExercise) {
 			outputTabContent = this.createDatabaseComparisonView(result.expectedOutput, result.actualOutput, result.passed);
 		} else {
-			outputTabContent = this.createTextComparisonView(result.expectedOutput, result.actualOutput, 'Output');
+			outputTabContent = this.createTextComparisonView(result.expectedOutput, result.actualOutput, result.functionTest ? 'Return value' : 'Output');
 		}
 
 		// Create unified views for stderr and exit code
@@ -215,10 +236,14 @@ class TestResults {
 		);
 
 		details.innerHTML = `
-			<p class="test-arguments"><strong>Arguments:</strong> ${result.arguments.length > 0 ? result.arguments.join(', ') : '(none)'}</p>
+            ${result.functionTest ? `<p class="test-arguments"><strong>Function:</strong> <code>${this.escapeHtml(result.functionTest.name)}</code></p>
+                <p><strong>Arguments:</strong> <code>${this.escapeHtml(JSON.stringify(result.functionTest.args || []))}</code></p>
+                <p><strong>Keyword arguments:</strong> <code>${this.escapeHtml(JSON.stringify(result.functionTest.kwargs || {}))}</code></p>
+                ${result.functionStdout ? `<details><summary>Printed output (not the return value)</summary><pre>${this.escapeHtml(result.functionStdout)}</pre></details>` : ''}`
+                : `<p class="test-arguments"><strong>Arguments:</strong> ${this.escapeHtml((result.arguments || []).join(', ') || '(none)')}</p>`}
 			
 			<div class="result-tabs">
-				<button class="result-tab active" data-tab="${tabId}-output">Output ${outputMatch}</button>
+				<button class="result-tab active" data-tab="${tabId}-output">${result.functionTest ? 'Return value' : 'Output'} ${outputMatch}</button>
 				${result.usedValidation && result.validationQuery ? `<button class="result-tab" data-tab="${tabId}-validation">Validation ${validationMatch || ''}</button>` : ''}
 				<button class="result-tab" data-tab="${tabId}-stderr">Stderr ${stderrMatch}</button>
 				${result.outputFiles && result.outputFiles.length > 0 ? `<button class="result-tab" data-tab="${tabId}-files">Files ${filesMatch}</button>` : ''}
@@ -235,15 +260,39 @@ class TestResults {
 				${stderrTabContent}
 			</div>
 			
-			${filesTabHtml}
+			${networkHtml}
+                    ${filesTabHtml}
 			
 			<div class="result-tab-content" id="${tabId}-exit">
 				${exitCodeTabContent}
 			</div>
 		`;
 
+        // Open the useful diagnostic first in the experimental view.
+        details.dataset.failureTab = result.error || result.exitCode !== result.expectedExitCode ? `${tabId}-exit`
+            : stderrMatch === '✗' ? `${tabId}-stderr`
+            : filesMatch === '✗' ? `${tabId}-files`
+            : validationMatch === '✗' ? `${tabId}-validation` : `${tabId}-output`;
 		return details;
 	}
+
+    applyExperimentalView() {
+        const enabled = isExperimentalView();
+        this.resultsContainer?.querySelectorAll('.test-result').forEach(card => {
+            const details = card.querySelector('.test-details');
+            const button = card.querySelector('.test-expand-button');
+            if (!details || !button) return;
+            const collapsed = enabled && card.dataset.collapsed === 'true';
+            details.hidden = collapsed;
+            card.classList.toggle('test-collapsed', collapsed);
+            button.setAttribute('aria-expanded', String(!collapsed));
+            if (enabled && card.classList.contains('failed') && !details.dataset.diagnosticSelected) {
+                const tab = details.querySelector(`[data-tab="${details.dataset.failureTab}"]`);
+                tab?.click();
+                details.dataset.diagnosticSelected = 'true';
+            }
+        });
+    }
 
 	/**
 	 * Setup tab switching for results
@@ -312,7 +361,7 @@ class TestResults {
 	 */
 	displayNoResults() {
 		if (!this.resultsContainer) return;
-		this.resultsContainer.innerHTML = '<p class="no-results">$ ./solution.sh - waiting for execution...</p>';
+		this.resultsContainer.innerHTML = '<p class="no-results"><span class="standard-empty-results">$ ./solution.sh - waiting for execution...</span><span class="experimental-empty-results">No results yet.</span></p>';
 	}
 
 	/**

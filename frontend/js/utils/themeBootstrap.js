@@ -4,6 +4,7 @@
     let savedTheme;
     try {
         savedTheme = localStorage.getItem('bitlab-theme');
+        document.documentElement.classList.toggle('experimental-view', localStorage.getItem('bitlab-experimental-view') === 'true');
     } catch {
         // Use the system preference when browser storage is unavailable.
     }

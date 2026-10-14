@@ -575,6 +575,7 @@ class DatabaseService {
 	async seedDefaultAchievements() {
 		const defaultAchievements = [
 			// Getting Started
+            { id: 'helpful-nudge', name: 'Helpful Nudge', description: 'Open an exercise hint for the first time', icon: '💡', category: 'getting-started', points: 10, requirement_type: 'hint_opened', requirement_value: 1 },
 			{ id: 'first-steps', name: 'First Steps', description: 'Complete your first exercise', icon: '🎯', category: 'getting-started', points: 10, requirement_type: 'exercises_completed', requirement_value: 1 },
 			{ id: 'quick-learner', name: 'Quick Learner', description: 'Complete 5 exercises', icon: '📚', category: 'progress', points: 25, requirement_type: 'exercises_completed', requirement_value: 5 },
 			{ id: 'dedicated', name: 'Dedicated', description: 'Complete 10 exercises', icon: '💪', category: 'progress', points: 50, requirement_type: 'exercises_completed', requirement_value: 10 },
@@ -1617,6 +1618,18 @@ class DatabaseService {
 	/**
 	 * Award achievement to user
 	 */
+    async awardHintAchievement(userId) {
+        const achievement = await this.db.get("SELECT * FROM achievements WHERE id = 'helpful-nudge' AND requirement_type = 'hint_opened'");
+        if (!achievement) throw new Error('Hint achievement is not configured');
+        const result = await this.db.run(`
+            INSERT INTO user_achievements (user_id, achievement_id, progress, earned_at)
+            VALUES (?, ?, 100, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, achievement_id) DO UPDATE SET progress = 100, earned_at = CURRENT_TIMESTAMP
+            WHERE user_achievements.earned_at IS NULL
+        `, [userId, achievement.id]);
+        return result.changes ? achievement : null;
+    }
+
 	async awardAchievement(userId, achievementId, progress = 100) {
 		try {
 			await this.db.run(`

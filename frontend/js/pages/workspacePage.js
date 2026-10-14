@@ -1,3 +1,4 @@
+import { setupExperimentalViewToggle, setupExperimentalWorkspace, isExperimentalView } from '../utils/experimentalView.js';
 // frontend/js/pages/workspacePage.js
 import ApiService from '../services/apiService.js';
 import StorageService from '../services/storageService.js';
@@ -87,7 +88,7 @@ class WorkspacePage {
             '.results-container',
             200,  // min editor height
             150,  // min results height
-            'workspace-editor-height',
+            () => isExperimentalView() ? 'experimental-workspace-editor-height' : 'workspace-editor-height',
             () => {
                 // Refresh CodeMirror when resizing
                 if (this.codeEditor) {
@@ -95,6 +96,8 @@ class WorkspacePage {
                 }
             }
         );
+
+        setupExperimentalWorkspace(() => this.codeEditor?.refresh());
 
         // Show edit button for admins
         if (this.authComponent.isAdmin()) {
@@ -167,6 +170,7 @@ class WorkspacePage {
     }
 
     setupEventListeners() {
+        window.addEventListener('exercisehintopened', () => this.recordHintOpened());
         // Back to selection button
         const backBtn = document.getElementById('back-to-selection');
         if (backBtn) {
@@ -253,7 +257,22 @@ class WorkspacePage {
         });
     }
 
+    async recordHintOpened() {
+        if (!this.currentExercise || this.hintAchievementRecorded || this.hintAchievementPending) return;
+        this.hintAchievementPending = true;
+        try {
+            const data = await this.apiService.recordHintOpened(this.currentExercise.id);
+            this.hintAchievementRecorded = true;
+            if (data.achievement) showAchievementNotifications([data.achievement]);
+        } catch (error) {
+            console.error('Failed to record hint achievement:', error);
+        } finally {
+            this.hintAchievementPending = false;
+        }
+    }
+
     setupLogout() {
+        setupExperimentalViewToggle();
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
@@ -502,7 +521,7 @@ class WorkspacePage {
         try {
             const fixtures = await this.apiService.getExerciseFixtures(exerciseId);
             if (fixtures.length === 0) {
-                tree.innerHTML = '<span class="fixture-tree-empty">No fixture files for this exercise.</span>';
+                tree.innerHTML = '<span class="fixture-tree-empty fixture-tree-none">No fixture files for this exercise.</span>';
                 return;
             }
 
@@ -722,7 +741,13 @@ class WorkspacePage {
             return;
         }
 
-        cta.textContent = `✓ Exercise completed — continue to ${nextExercise.title} →`;
+        const standardLabel = document.createElement('span');
+        standardLabel.className = 'standard-completion-label';
+        standardLabel.textContent = `✓ Exercise completed — continue to ${nextExercise.title} →`;
+        const experimentalLabel = document.createElement('span');
+        experimentalLabel.className = 'experimental-completion-label';
+        experimentalLabel.textContent = `Next: ${nextExercise.title} →`;
+        cta.replaceChildren(standardLabel, experimentalLabel);
         cta.hidden = false;
         clearTimeout(this.nextExerciseCtaTimer);
         this.nextExerciseCtaTimer = setTimeout(() => this.hideNextExerciseCta(), 8000);
@@ -762,7 +787,7 @@ class WorkspacePage {
         sessionStorage.setItem('returnToExercise', this.currentExercise.id);
 
         // Navigate to admin exercises page with the exercise ID
-        navigateTo(`admin/exercises.html?edit=${this.currentExercise.id}`);
+        navigateTo(`admin/exercises.html?edit=${encodeURIComponent(this.currentExercise.id)}&from=workspace`);
     }
 
     async loadChapterExercises(currentExercise) {
