@@ -38,4 +38,4 @@ function compareOutputState(actual, expected) {
 	return { matches, expectedType, entries };
 }
 
-module.exports = { compareRunnerResults, compareOutputState };
+module.exports = { normalizeGradingOutput: normalized, compareRunnerResults, compareOutputState };

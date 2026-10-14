@@ -6,8 +6,7 @@ const {
     copyFixtures,
     runScriptInContainer,
     removeRecursive,
-    normalizeOutput,
-    hashOutputFiles
+    normalizeOutput
 } = require('./dockerService');
 const {
     startMariaDBContainer,
@@ -19,7 +18,10 @@ const config = require('../config');
 const runtimeImages = require('../config/runtimeImages');
 const { createTempDirectory } = require('../utils/tempDirectory');
 const { expandCommandSubstitution } = require('../utils/commandUtils');
-const { compareRunnerResults, compareOutputState } = require('./gradingComparison');
+const { compareRunnerResults } = require('./gradingComparison');
+const { validateFunctionTest, runPythonFunction } = require('./pythonFunctionService');
+const { validateNetworkHosts } = require('./networkPolicy');
+const { validateArtifactChecks, inspectOutputFiles, compareArtifactState } = require('./artifactService');
 
 /**
  * Run all tests for an exercise
@@ -31,6 +33,11 @@ async function runTests(exercise, script) {
     // Get language from exercise, default to 'bash' for backwards compatibility
     const languageId = exercise.language_id || exercise.language || 'bash';
     const results = [];
+    for (const tc of exercise.testCases || []) {
+        validateFunctionTest(tc.functionTest, languageId, tc);
+        validateNetworkHosts(tc.networkHosts || [], languageId);
+        validateArtifactChecks(tc.artifactChecks || [], tc.outputFiles ?? (tc.expectedOutputFiles || []).map(file => file.filename));
+    }
 
     // Determine if this is a database exercise
     const isDatabaseExercise = exercise.exercise_type === 'database';
@@ -152,6 +159,8 @@ async function runTests(exercise, script) {
                 } else if (effectiveLanguageId === 'mongodb') {
                     r = await executeMongoDBQuery(dbContainer, userQuery);
                 }
+            } else if (tc.functionTest) {
+                r = await runPythonFunction(tmpdir, scriptFilename, languageConfig, tc.functionTest, config.docker.timeout, {networkHosts: tc.networkHosts || []});
             } else {
                 // Regular execution for non-database exercises
                 r = await runScriptInContainer(
@@ -161,7 +170,7 @@ async function runTests(exercise, script) {
                     tc.arguments || [],
                     tc.input || [],
                     config.docker.timeout,
-                    { isolateScript: !!tc.useDynamicOutput }
+                    { isolateScript: !!tc.useDynamicOutput, networkHosts: tc.networkHosts || [] }
                 );
             }
 
@@ -269,15 +278,15 @@ async function runTests(exercise, script) {
                         }
                         solutionResult = await runScriptInContainer(
                             solutionTmpdir, reference.scriptFilename, reference.languageConfig,
-                            tc.arguments || [], tc.input || [], config.docker.timeout, { isolateScript: true }
+                            tc.arguments || [], tc.input || [], config.docker.timeout, { isolateScript: true, networkHosts: tc.networkHosts || [] }
                         );
                     }
                     if (solutionResult.exitCode !== 0 || solutionResult.timedOut ||
                         solutionResult.outputLimited || solutionResult.error) {
                         throw new Error(`Reference solution failed: ${solutionResult.error || solutionResult.stderr || solutionResult.exitCode}`);
                     }
-                    expectedOutputFiles = await hashOutputFiles(solutionTmpdir, expandedOutputPaths);
-                    if (expectedOutputFiles.some(file => !file.exists)) {
+                    expectedOutputFiles = await inspectOutputFiles(solutionTmpdir, expandedOutputPaths, tc.artifactChecks || []);
+                    if (expectedOutputFiles.some(file => !file.exists || file.artifact?.error)) {
                         throw new Error('Reference solution did not create all expected output paths');
                     }
                     expected = normalizeOutput(solutionResult.stdout).trim();
@@ -304,11 +313,12 @@ async function runTests(exercise, script) {
                 }));
 
 				const filenames = expandedFiles.map(f => f.filename);
-				const actualFileHashes = await hashOutputFiles(tmpdir, filenames);
+				const actualFileHashes = await inspectOutputFiles(tmpdir, filenames, tc.artifactChecks || []);
 
 				outputFilesResult = actualFileHashes.map((actual) => {
 					const expected = expandedFiles.find(e => e.filename === actual.filename);
-					const { matches, expectedType, entries } = compareOutputState(actual, expected);
+					const check = (tc.artifactChecks || []).find(check => check.filename === actual.filename);
+                    const { matches, expectedType, entries, artifact } = compareArtifactState(actual, expected, check);
 
                     if (!matches) {
                         outputFilesMatch = false;
@@ -316,6 +326,8 @@ async function runTests(exercise, script) {
 
                     return {
                         filename: actual.filename,
+                        artifact: artifact || null,
+                        artifactSnapshot: actual.artifact || null,
 						expectedType,
 						actualType: actual.type,
                         expectedHash: expected ? expected.sha256 : null,
@@ -363,6 +375,9 @@ async function runTests(exercise, script) {
             results.push({
                 testNumber: i + 1,
                 arguments: tc.arguments || [],
+                functionTest: tc.functionTest || null,
+                functionStdout: r.functionStdout || '',
+                network: r.network || null,
                 expectedOutput: expected,
                 expectedStderr: expectedStderr,
                 expectedExitCode: expectedExitCode,

@@ -11,6 +11,8 @@ const config = require('../config');
 const runtimeImages = require('../config/runtimeImages');
 const { createTempDirectory } = require('../utils/tempDirectory');
 const { expandCommandSubstitution } = require('../utils/commandUtils');
+const { validateNetworkHosts, approvedNetworkHosts } = require('../services/networkPolicy');
+const { validateArtifactChecks, inspectOutputFiles, compareArtifactState } = require('../services/artifactService');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
 const router = express.Router();
@@ -18,6 +20,10 @@ const router = express.Router();
 // All routes require admin authentication
 router.use(requireAdmin);
 router.use(require('../middleware/adminExecutionQueue'));
+
+router.get('/capabilities', (_req, res) => {
+	res.json({ exerciseStarters: true, pythonFunctionTests: true, semanticArtifacts: true, documentArtifacts: true, restrictedNetwork: true, networkHosts: approvedNetworkHosts() });
+});
 
 // Student practice reports are protected by the admin middleware above.
 router.get('/activity/filters', asyncHandler(async (_req, res) => {
@@ -116,6 +122,15 @@ router.post('/run-test-case', async (req, res) => {
 
 		// Map 'sql' to 'mariadb' for backwards compatibility
 		const effectiveLanguageId = languageId === 'sql' ? 'mariadb' : languageId;
+        const { validateFunctionTest, runPythonFunction } = require('../services/pythonFunctionService');
+        let functionTest;
+        try {
+            functionTest = validateFunctionTest(req.body.functionTest, languageId, req.body);
+            validateArtifactChecks(req.body.artifactChecks || [], outputFiles);
+            validateNetworkHosts(req.body.networkHosts || [], languageId);
+        } catch (error) {
+            return res.status(400).json({ error: error.message });
+        }
 		const isDatabaseExercise = exerciseType === 'database';
 
 		let result;
@@ -205,9 +220,9 @@ router.post('/run-test-case', async (req, res) => {
 		}
 
 		// Handle regular (non-database) exercises
-		if ((outputFiles && outputFiles.length > 0) || req.body.useDynamicOutput) {
+		if (req.body.networkHosts?.length || functionTest || (outputFiles && outputFiles.length > 0) || req.body.useDynamicOutput) {
 			// Manual tmpdir management for output file verification
-			const { createTempScript, copyFixtures, runScriptInContainer, hashOutputFiles, removeRecursive } = require('../services/dockerService');
+			const { createTempScript, copyFixtures, runScriptInContainer, removeRecursive } = require('../services/dockerService');
 			const config = require('../config');
 			const { tmpdir, scriptFilename, languageConfig } = await createTempScript(solution, languageId);
 
@@ -218,8 +233,10 @@ router.post('/run-test-case', async (req, res) => {
 				}
 
 				// Run script to generate output
-				result = await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, input, config.docker.timeout,
-                    { isolateScript: !!req.body.useDynamicOutput });
+				result = functionTest
+                    ? await runPythonFunction(tmpdir, scriptFilename, languageConfig, functionTest, config.docker.timeout, {networkHosts: req.body.networkHosts || []})
+                    : await runScriptInContainer(tmpdir, scriptFilename, languageConfig, args, input, config.docker.timeout,
+                        { isolateScript: !!req.body.useDynamicOutput, networkHosts: req.body.networkHosts || [] });
 
 				// Expand command substitutions in output filenames (e.g., $(date +%Y%m%d))
 				const expandedOutputFiles = outputFiles.map(filename =>
@@ -227,7 +244,7 @@ router.post('/run-test-case', async (req, res) => {
 				);
 
 				// Hash the specified output files from the SAME tmpdir
-				fileHashes = await hashOutputFiles(tmpdir, expandedOutputFiles);
+				fileHashes = await inspectOutputFiles(tmpdir, expandedOutputFiles, req.body.artifactChecks || []);
 			} finally {
 				// Clean up tmpdir
 				try {
@@ -249,7 +266,13 @@ router.post('/run-test-case', async (req, res) => {
 			exitCode: result.exitCode,
 			timedOut: result.timedOut,
 			error: result.error,
-			fileHashes: fileHashes
+			fileHashes: fileHashes,
+            fileComparisons: fileHashes.map(file => ({ filename: file.filename, ...compareArtifactState(file,
+                (req.body.expectedOutputFiles || []).find(expected => expected.filename === file.filename),
+                (req.body.artifactChecks || []).find(check => check.filename === file.filename)) })),
+            functionStdout: result.functionStdout || '',
+            network: result.network || null,
+            outputLimited: !!result.outputLimited
 		});
 	} catch (error) {
 		console.error('Error running test case:', error);
@@ -268,6 +291,8 @@ router.post('/run-test-case', async (req, res) => {
 router.post('/exercises', async (req, res) => {
 	try {
 		const exerciseData = req.body;
+		try { require('../services/exerciseStarterService').validateStarterCode(exerciseData.starter_code); }
+		catch (error) { return res.status(400).json({ error: error.message }); }
 
 		// Validate required fields
 		if (!exerciseData.id || !exerciseData.title || !exerciseData.solution) {
@@ -287,6 +312,7 @@ router.post('/exercises', async (req, res) => {
             title: exerciseData.title,
             description: exerciseData.description || '',
             solution: exerciseData.solution,
+            starter_code: exerciseData.starter_code,
             testCases: exerciseData.testCases || [],
             chapter: exerciseData.chapter || 'Additional exercises',
             order: exerciseData.order, // Frontend calculates the correct order
@@ -320,6 +346,8 @@ router.post('/exercises', async (req, res) => {
 router.put('/exercises/:id', async (req, res) => {
 	try {
 		const exerciseData = req.body;
+		try { require('../services/exerciseStarterService').validateStarterCode(exerciseData.starter_code); }
+		catch (error) { return res.status(400).json({ error: error.message }); }
 		const exerciseId = req.params.id;
 
 		// Save fixture files if provided
@@ -335,6 +363,7 @@ router.put('/exercises/:id', async (req, res) => {
             title: exerciseData.title,
             description: exerciseData.description || '',
             solution: exerciseData.solution,
+            starter_code: exerciseData.starter_code,
             testCases: exerciseData.testCases || [],
             chapter: exerciseData.chapter || 'Additional exercises',
             order: exerciseData.order, // Don't default to 0, let service layer handle it

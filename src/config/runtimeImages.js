@@ -2,7 +2,7 @@
 // so updating BITLab cannot silently change grading for existing exercises.
 module.exports = Object.freeze({
 	bash: process.env.RUNNER_IMAGE || 'bitlab-runner:latest',
-	python: 'docker.io/library/python:3.11.16-alpine3.24',
+	python: process.env.PYTHON_COURSE_IMAGE || 'localhost/bitlab-python-course:2026.2',
 	javascript: 'docker.io/library/node:22.23.2-alpine3.24',
 	sql: 'docker.io/library/mariadb:11.8.9',
 	mariadb: 'docker.io/library/mariadb:11.8.9',

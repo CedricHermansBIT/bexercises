@@ -396,7 +396,7 @@ class WorkspacePage {
             }
 
             // Get code template - now included in exercise object
-            const defaultTemplate = exercise.code_template || '#!/bin/bash\n\n# Write your solution here\n';
+            const defaultTemplate = exercise.starter_code ?? exercise.code_template ?? '#!/bin/bash\n\n# Write your solution here\n';
 
             // Load saved code or default template
 			const localProgress = this.storageService.getExerciseProgress(exerciseId);
@@ -747,7 +747,7 @@ class WorkspacePage {
 
         if (confirm('Reset your code? This will remove all your changes.')) {
             // Use code template from exercise (already includes language template)
-            const defaultCode = this.currentExercise.code_template || '#!/bin/bash\n\n# Write your solution here\n';
+            const defaultCode = this.currentExercise.starter_code ?? this.currentExercise.code_template ?? '#!/bin/bash\n\n# Write your solution here\n';
 
             this.codeEditor.setValue(defaultCode);
             this.updateProgress(this.currentExercise.id, defaultCode,

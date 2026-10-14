@@ -67,6 +67,9 @@ function createApp() {
 	mountAtBothPaths('/api/admin', requireAdmin);
 	mountAtBothPaths('/api/admin/exam-grader/grade', bodyParser.json({ limit: '50mb' }));
 	mountAtBothPaths('/api/admin/fixtures', bodyParser.json({ limit: '10mb' }));
+	// Instructor-generated reference snapshots may contain several bounded image/cell reports.
+	mountAtBothPaths('/api/admin/exercises', bodyParser.json({ limit: '20mb' }));
+	mountAtBothPaths('/api/admin/run-test-case', bodyParser.json({ limit: '20mb' }));
 	app.use(bodyParser.json({ limit: '1mb' }));
 
 	// Serve static files from frontend directory with correct MIME types

@@ -1,9 +1,13 @@
 // src/services/databaseService.js
+const { validateFunctionTest } = require('./pythonFunctionService');
+const { validateNetworkHosts } = require('./networkPolicy');
+const { validateArtifactChecks } = require('./artifactService');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 const path = require('path');
 const fs = require('fs').promises;
 const { globalCache } = require('../utils/cache');
+const { validateStarterCode } = require('./exerciseStarterService');
 const { isAdmin } = require('../middleware/adminRole');
 const runtimeImages = require('../config/runtimeImages');
 
@@ -272,6 +276,23 @@ class DatabaseService {
 			await this.db.exec('ALTER TABLE test_cases ADD COLUMN output_files TEXT');
 		} catch (e) {
 			// Column already exists
+		}
+
+		const exerciseColumns = await this.db.all('PRAGMA table_info(exercises)');
+		if (!exerciseColumns.some(column => column.name === 'starter_code')) {
+			await this.db.exec('ALTER TABLE exercises ADD COLUMN starter_code TEXT');
+		}
+
+		const testColumns = await this.db.all('PRAGMA table_info(test_cases)');
+		if (!testColumns.some(column => column.name === 'function_test')) {
+			await this.db.exec('ALTER TABLE test_cases ADD COLUMN function_test TEXT');
+		}
+
+		if (!testColumns.some(column => column.name === 'network_hosts')) {
+			await this.db.exec("ALTER TABLE test_cases ADD COLUMN network_hosts TEXT DEFAULT '[]'");
+		}
+		if (!testColumns.some(column => column.name === 'artifact_checks')) {
+			await this.db.exec("ALTER TABLE test_cases ADD COLUMN artifact_checks TEXT DEFAULT '[]'");
 		}
 
 		// Add use_dynamic_output column to test_cases if it doesn't exist (for existing databases)
@@ -914,6 +935,9 @@ class DatabaseService {
 				expectedOutputFiles: tc.expected_output_files ? JSON.parse(tc.expected_output_files) : [],
 				outputFiles: tc.output_files != null ? JSON.parse(tc.output_files)
 					: (tc.expected_output_files ? JSON.parse(tc.expected_output_files).map(file => file.filename) : []),
+				functionTest: tc.function_test ? JSON.parse(tc.function_test) : null,
+                networkHosts: tc.network_hosts ? JSON.parse(tc.network_hosts) : [],
+                artifactChecks: tc.artifact_checks ? JSON.parse(tc.artifact_checks) : [],
 				useDynamicOutput: tc.use_dynamic_output === 1,
 				validationQuery: tc.validation_query || null,
                 expectedValidationOutput: tc.expected_validation_output || null,
@@ -955,26 +979,41 @@ class DatabaseService {
 		}
 	}
 
+	async validateFunctionTests(data, existing = null) {
+		const cases = data.testCases ?? existing?.testCases ?? [];
+        for (const tc of cases) validateNetworkHosts(tc.networkHosts || []);
+        for (const tc of cases) validateArtifactChecks(tc.artifactChecks || [],
+            tc.outputFiles ?? (tc.expectedOutputFiles || []).map(file => file.filename));
+		if (!cases.some(tc => tc.functionTest != null || tc.networkHosts?.length)) return;
+		const chapter = await this.getChapter(data.chapter_id || existing?.chapter_id);
+		for (const tc of cases) {
+            validateFunctionTest(tc.functionTest, chapter?.language_id, tc);
+            validateNetworkHosts(tc.networkHosts || [], chapter?.language_id);
+        }
+	}
+
 	async createExercise(data) {
+		await this.validateFunctionTests(data);
 		await this.validateFixtureReferences(data.testCases);
 		return this.withWriteTransaction(() => this.createExerciseInTransaction(data));
 	}
 
 	async createExerciseInTransaction(data) {
+		validateStarterCode(data.starter_code);
 		const { id, chapter_id, title, description, solution, order_num, testCases } = data;
 		
 		await this.db.run(`
-			INSERT INTO exercises (id, chapter_id, title, description, solution, order_num)
-			VALUES (?, ?, ?, ?, ?, ?)
-		`, [id, chapter_id, title, description || null, solution, order_num || 0]);
+			INSERT INTO exercises (id, chapter_id, title, description, solution, order_num, starter_code)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, [id, chapter_id, title, description || null, solution, order_num || 0, data.starter_code ?? null]);
 
 		// Insert test cases if provided
 		if (testCases && Array.isArray(testCases)) {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, output_files, use_dynamic_output, validation_query, expected_validation_output, function_test, artifact_checks, network_hosts, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -987,6 +1026,9 @@ class DatabaseService {
 					tc.useDynamicOutput ? 1 : 0,
 					tc.validationQuery || null,
 					tc.expectedValidationOutput || null,
+					tc.functionTest ? JSON.stringify(tc.functionTest) : null,
+                    JSON.stringify(tc.artifactChecks || []),
+                    JSON.stringify(tc.networkHosts || []),
 					i
 				]);
 
@@ -1011,11 +1053,13 @@ class DatabaseService {
 	}
 
 	async updateExercise(id, data) {
+		await this.validateFunctionTests(data, await this.getExerciseWithTests(id));
 		await this.validateFixtureReferences(data.testCases);
 		return this.withWriteTransaction(() => this.updateExerciseInTransaction(id, data));
 	}
 
 	async updateExerciseInTransaction(id, data) {
+		validateStarterCode(data.starter_code);
 		const { title, description, solution, order_num, chapter_id, testCases } = data;
 
 		// Build the UPDATE query dynamically based on what's provided
@@ -1043,6 +1087,11 @@ class DatabaseService {
 			values.push(chapter_id);
 		}
 
+		if (data.starter_code !== undefined) {
+			updates.push('starter_code = ?');
+			values.push(data.starter_code);
+		}
+
 		updates.push('updated_at = CURRENT_TIMESTAMP');
 		values.push(id);
 
@@ -1059,8 +1108,8 @@ class DatabaseService {
 			for (let i = 0; i < testCases.length; i++) {
 				const tc = testCases[i];
 				const result = await this.db.run(`
-					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, output_files, use_dynamic_output, validation_query, expected_validation_output, order_num)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					INSERT INTO test_cases (exercise_id, arguments, input, expected_output, expected_stderr, expected_exit_code, expected_output_files, output_files, use_dynamic_output, validation_query, expected_validation_output, function_test, artifact_checks, network_hosts, order_num)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`, [
 					id,
 					JSON.stringify(tc.arguments || []),
@@ -1073,6 +1122,9 @@ class DatabaseService {
 					tc.useDynamicOutput ? 1 : 0,
 					tc.validationQuery || null,
 					tc.expectedValidationOutput || null,
+					tc.functionTest ? JSON.stringify(tc.functionTest) : null,
+                    JSON.stringify(tc.artifactChecks || []),
+                    JSON.stringify(tc.networkHosts || []),
 					i
 				]);
 

@@ -1,6 +1,9 @@
 const database = require('../services/databaseService');
 const exercises = require('../services/exerciseService');
 const runner = require('../services/testRunner');
+const { validateFunctionTest } = require('../services/pythonFunctionService');
+const { validateNetworkHosts } = require('../services/networkPolicy');
+const { validateArtifactChecks } = require('../services/artifactService');
 const limiter = require('../services/executionLimiter');
 
 async function prepareExercise(draft, deps = { database, runner }) {
@@ -9,6 +12,9 @@ async function prepareExercise(draft, deps = { database, runner }) {
 	if (Buffer.byteLength(draft.solution, 'utf8') > 65536) throw new Error('Solution exceeds 64 KiB');
 	const testCases = [];
 	for (const tc of draft.testCases) {
+		validateFunctionTest(tc.functionTest, draft.language_id, tc);
+        validateNetworkHosts(tc.networkHosts || [], draft.language_id);
+        validateArtifactChecks(tc.artifactChecks || [], tc.outputFiles || []);
 		const fixturePermissions = {};
 		for (const filename of tc.fixtures || []) {
 			const fixture = await deps.database.getFixtureFile(filename);
@@ -23,17 +29,17 @@ async function prepareExercise(draft, deps = { database, runner }) {
 	if (generated.length !== testCases.length) throw new Error('Runner returned an incomplete test report');
 	exercise.testCases = testCases.map((tc, index) => {
 		const result = generated[index];
-		if (result.error || result.configurationError || result.timedOut || result.outputLimited || result.exitCode == null) {
+		if ((tc.functionTest && result.exitCode !== 0) || result.error || result.configurationError || result.timedOut || result.outputLimited || result.exitCode == null) {
 			throw new Error(`Reference test ${index + 1} failed: ${result.configurationError || result.error || 'timeout or output limit'}`);
 		}
-		if ((result.outputFiles || []).some(file => !file.exists)) {
+		if ((result.outputFiles || []).some(file => !file.exists || file.artifactSnapshot?.error)) {
 			throw new Error(`Reference test ${index + 1} did not create all output paths`);
 		}
 		return { ...tc, expectedOutput: result.actualOutput, expectedStderr: result.actualStderr,
 			expectedExitCode: result.exitCode, expectedValidationOutput: result.actualValidationOutput,
 			expectedOutputFiles: (result.outputFiles || []).map(file => ({
 				filename: file.filename, type: file.actualType, sha256: file.actualHash,
-				linkTarget: file.actualLinkTarget
+				linkTarget: file.actualLinkTarget, artifact: file.artifactSnapshot || null
 			})) };
 	});
 	const verification = await deps.runner.runTests(exercise, exercise.solution);

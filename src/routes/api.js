@@ -150,7 +150,7 @@ router.post('/exercises/:id/run', ensureAuthenticated, asyncHandler(async (req, 
 			runtimeMs = Date.now() - started;
 		}
 	}, req.user.id);
-	const results = rawResults.map(result => ({ ...result, failureCategory: classifyFailure(result) }));
+	const results = require('../services/artifactService').publicArtifactResults(rawResults).map(result => ({ ...result, failureCategory: classifyFailure(result) }));
 	const allPassed = results.length > 0 && results.every(r => r.passed);
 
 	// Save user progress if authenticated

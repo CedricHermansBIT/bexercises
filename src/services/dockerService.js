@@ -419,11 +419,22 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 	const deadline = Date.now() + timeoutMs;
 	let outputDir = null;
 	let containerStarted = false;
+	let networkGateway = null;
 	const stdin = inputs && Array.isArray(inputs) && inputs.length > 0
 		? inputs.map(String).join('\n') + '\n' : null;
 	const scriptLocation = options.isolateScript ? `${containerInputs}/${scriptFilename}` : `./${scriptFilename}`;
 	const shellCommand = `${languageConfig.interpreter} ${scriptLocation} "$@"${stdin === null ? ' < /dev/null' : ''}`;
 	try {
+        if (options.networkHosts?.length) {
+            networkGateway = await require('./networkGateway').createNetworkGateway(options.networkHosts, {timeoutMs});
+        }
+        const networkMount = '/tmp/.bitlab-network';
+        const networkArguments = networkGateway ? [
+            '-v', `${networkGateway.directory}:${networkMount}:ro`,
+            '--env', 'HTTP_PROXY=http://127.0.0.1:8765', '--env', 'HTTPS_PROXY=http://127.0.0.1:8765',
+            '--env', 'http_proxy=http://127.0.0.1:8765', '--env', 'https_proxy=http://127.0.0.1:8765',
+            '--env', 'NO_PROXY=', '--env', 'no_proxy='
+        ] : [];
 		const start = await runContainerCommand(runtime, [
 			'run', '-d', '--name', containerName,
 			'--label', 'bitlab.managed=true', '--label', `bitlab.created=${Date.now()}`,
@@ -436,6 +447,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 			'--tmpfs', `/tmp:rw,size=${config.docker.tmpSize},mode=1777`,
 			'--tmpfs', `/var/tmp:rw,size=${config.docker.tmpSize},mode=1777`,
 			'-v', `${tmpdir}:${containerInputs}:ro`,
+			...networkArguments,
 			'--entrypoint', '/bin/sh', languageConfig.dockerImage,
 			'-c', 'while :; do sleep 3600; done'
 		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes);
@@ -461,10 +473,19 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 			return { ...staged, exitCode: null,
 				error: staged.error || staged.stderr || 'Could not stage input files' };
 		}
+        if (networkGateway) {
+            const proxy = await runContainerCommand(runtime, ['exec', '-d', containerName, 'python3', '-I',
+                `${networkMount}/forwarder.py`, `${networkMount}/proxy.sock`], Math.max(1, deadline-Date.now()), 4096);
+            if (proxy.exitCode !== 0 || proxy.error) return {...proxy, exitCode:null, error:'Could not start restricted web proxy'};
+            const ready = await runContainerCommand(runtime, ['exec', containerName, 'python3', '-I', '-c',
+                'import socket,time\nfor attempt in range(50):\n try:\n  s=socket.create_connection(("127.0.0.1",8765),0.1); s.close(); break\n except OSError: time.sleep(0.05)\nelse: raise RuntimeError("Web proxy not ready")'], Math.max(1,deadline-Date.now()),4096);
+            if (ready.exitCode !== 0 || ready.error) return {...ready,exitCode:null,error:'Restricted web proxy did not become ready'};
+        }
 		const result = await runContainerCommand(runtime, [
 			'exec', ...(stdin === null ? [] : ['-i']), '-w', containerWorkdir, containerName,
 			'/bin/sh', '-c', shellCommand, '--', ...args
 		], Math.max(1, deadline - Date.now()), config.docker.maxOutputBytes, stdin);
+		if (networkGateway) result.network = networkGateway.feedback();
 		if (result.timedOut || result.outputLimited || result.error) return result;
 
 		const countLimit = Number.isSafeInteger(config.docker.maxGeneratedFiles) ? config.docker.maxGeneratedFiles : 2048;
@@ -495,10 +516,14 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		await fs.rm(tmpdir, { recursive: true, force: true });
 		await fs.rename(outputDir, tmpdir);
 		outputDir = null;
-		return result;
+		return { ...result, ...(networkGateway ? {network:networkGateway.feedback()} : {}) };
 	} finally {
-		await removeRunnerContainer(runtime, containerName, !containerStarted);
-		if (outputDir) await fs.rm(outputDir, { recursive: true, force: true });
+        try {
+            if (networkGateway) await networkGateway.close();
+        } finally {
+            await removeRunnerContainer(runtime, containerName, !containerStarted);
+            if (outputDir) await fs.rm(outputDir, { recursive: true, force: true });
+        }
 	}
 }
 

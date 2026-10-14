@@ -206,7 +206,8 @@ async function getExerciseById(id) {
 			chapter: chapterName,
 			language_id: languageId,
 			language: languageName,
-			code_template: codeTemplate,
+			starter_code: exercise.starter_code ?? null,
+			code_template: exercise.starter_code ?? codeTemplate,
 			exercise_type: exerciseType,
 			file_extension: fileExtension
 		};
@@ -258,7 +259,8 @@ async function getExerciseWithTests(id) {
 			chapter: chapter ? chapter.name : 'Unknown',
 			language_id: languageId,
 			language: languageName,
-			code_template: codeTemplate,
+			starter_code: exercise.starter_code ?? null,
+			code_template: exercise.starter_code ?? codeTemplate,
 			exercise_type: exerciseType,
 			file_extension: fileExtension
 		};
