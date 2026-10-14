@@ -1418,6 +1418,11 @@ body[data-theme="solarized"] {
     justify-content: space-between;
 }
 
+.database-schema-header[hidden],
+.database-schema[hidden] {
+    display: none;
+}
+
 .database-schema-refresh {
     border: 1px solid var(--border-color);
     border-radius: 3px;
@@ -4463,4 +4468,11 @@ body.light-mode .exit-code-box {
 .auth-network-error button {
     cursor: pointer;
 }
+
+
+/* Generated-file checks: keep typed values and differences readable. */
+.artifact-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 0.75rem; }
+.artifact-table th, .artifact-table td { padding: 0.45rem 0.6rem; border: 1px solid var(--border-color, #6b7a85); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.artifact-table th { background: var(--bg-tertiary); }
+.artifact-feedback summary { cursor: pointer; }
 

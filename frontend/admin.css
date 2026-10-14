@@ -1701,3 +1701,23 @@ body.light-mode .sql-result-table tbody tr:hover {
     background: rgba(137, 180, 250, 0.1);
 }
 
+
+/* Exercise help stays outside scrolling panels so explanations are not clipped. */
+.admin-field-label { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.5rem; }
+.admin-field-label > label { margin-bottom: 0; min-width: 0; }
+.admin-help-trigger {
+    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+    width: 1.35rem; height: 1.35rem; padding: 0; border: 1px solid var(--text-muted);
+    border-radius: 50%; background: var(--bg-tertiary); color: var(--text-secondary, var(--text-primary));
+    font: 600 0.8rem/1 sans-serif; cursor: help;
+}
+.admin-help-trigger:hover, .admin-help-trigger:focus-visible { color: var(--accent-blue); border-color: var(--accent-blue); }
+.admin-help-trigger:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.admin-help-tooltip {
+    position: fixed; z-index: 10000; width: max-content; max-width: min(360px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px); overflow-y: auto; box-sizing: border-box;
+    padding: 0.8rem 1rem; border: 1px solid var(--accent-blue); border-radius: 8px;
+    background: var(--bg-secondary); color: var(--text-primary); box-shadow: 0 4px 18px #0005;
+    font-size: 0.85rem; font-weight: normal; line-height: 1.5; white-space: normal;
+}
+.admin-help-tooltip[hidden] { display: none; }

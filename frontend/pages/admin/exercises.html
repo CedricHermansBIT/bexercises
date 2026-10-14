@@ -85,6 +85,14 @@
                         <textarea id="exercise-description" class="form-textarea" required placeholder="Exercise description (supports Markdown)"></textarea>
                     </div>
 
+                    <div class="form-group" id="exercise-starter-options" hidden>
+                        <label for="exercise-use-starter"><input type="checkbox" id="exercise-use-starter"> Use exercise-specific starter code</label>
+                        <div id="exercise-starter-editor" hidden>
+                            <textarea aria-label="Exercise starter code" id="exercise-starter-code" class="form-code" rows="12" maxlength="65536" spellcheck="false" disabled hidden placeholder="Code students receive when starting or resetting this exercise"></textarea>
+                        </div>
+                        <small>Turn this off to use the language template. When enabled, an empty box gives students a blank editor. Saved student work is kept.</small>
+                    </div>
+
                     <div class="form-group">
                         <label for="exercise-solution">Solution Code <span class="required">*</span></label>
                         <textarea id="exercise-solution" class="form-code" required></textarea>

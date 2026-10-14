@@ -103,3 +103,23 @@ test('workspace action saves first and stays in the editor if saving fails', asy
 	assert.deepEqual(calls, ['update', 'refresh']);
 	assert.deepEqual(navigation, ['workspace.html?exercise=redirect-output']);
 });
+
+test('admin starter controls load and save overrides, including blank and language fallback',async()=>{
+ const {page,elements}=savingPage();
+ elements['exercise-use-starter']={checked:false};
+ elements['exercise-starter-code']={value:'',disabled:true,hidden:true};
+ const payloads=[];
+ page.apiService.createExercise=async payload=>payloads.push(payload);
+ page.apiService.updateExercise=async (_id,payload)=>payloads.push(payload);
+ page.setStarterCode('# scaffold\n');
+ assert.equal(elements['exercise-use-starter'].checked,true);
+ assert.equal(elements['exercise-starter-code'].value,'# scaffold\n');
+ assert.equal(elements['exercise-starter-code'].hidden,false);
+ await page.saveExercise();
+ assert.equal(payloads[0].starter_code,'# scaffold\n');
+ page.setStarterCode('');await page.saveExercise();
+ assert.equal(payloads[1].starter_code,'');
+ page.setStarterCode(null);await page.saveExercise();
+ assert.equal(payloads[2].starter_code,null);
+ assert.equal(elements['exercise-starter-code'].disabled,true);
+});

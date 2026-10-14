@@ -1,10 +1,13 @@
 // frontend/js/pages/admin/exercisesPage.js
+import { installExerciseHelp } from '../../utils/exerciseHelp.js';
 import ApiService from '../../services/apiService.js';
 import AuthComponent from '../../components/authComponent.js';
 import NotificationBanner from '../../components/notificationBanner.js';
 import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
 import { escapeHtml } from './adminUtils.js';
+import { renderArtifactFeedback } from '../../utils/artifactResults.js';
+import { compareTestOutputs } from '../../utils/gradingComparison.js';
 import { initializeResizableSidebars } from '../../utils/resizeUtils.js';
 import { setFavicon } from '../../utils/faviconUtils.js';
 
@@ -19,8 +22,13 @@ class ExercisesPage {
 
         this.exercises = [];
         this.languages = [];
+        this.functionTestsAvailable = false;
+        this.semanticArtifactsAvailable = false;
+        this.documentArtifactsAvailable = false;
+        this.networkHostsAvailable = [];
         this.currentExercise = null;
         this.solutionEditor = null;
+        this.starterEditor = null;
         this.testCases = [];
         this.reorderMode = false;
         this.originalOrder = null;
@@ -57,7 +65,7 @@ class ExercisesPage {
             navbarContainer.innerHTML = this.navbar.render({
                 showBack: true,
                 backText: 'back',
-                backUrl: 'admin/index.html',
+                backUrl: this.getBackUrl(),
                 workspaceIndicator: '[admin]',
                 appTitle: 'Exercises',
                 isAdminPage: true
@@ -83,6 +91,7 @@ class ExercisesPage {
 
         // Setup event listeners
         this.setupEventListeners();
+        installExerciseHelp(document);
 
         // Check if we should auto-edit an exercise (from workspace)
         const urlParams = new URLSearchParams(window.location.search);
@@ -204,12 +213,46 @@ class ExercisesPage {
                 lineWrapping: true
             });
 
+            const starter = document.getElementById('exercise-starter-code');
+            if (starter) {
+                this.starterEditor = CodeMirror.fromTextArea(starter, {
+                    mode: 'shell', theme: editorTheme, lineNumbers: true,
+                    autoCloseBrackets: true, matchBrackets: true,
+                    indentUnit: 4, tabSize: 4, lineWrapping: true, readOnly: true
+                });
+                this.starterEditor.getInputField().setAttribute('aria-label', 'Exercise starter code');
+            }
+
             // Listen for theme changes and update CodeMirror theme
             window.addEventListener('themechange', (e) => {
                 const newTheme = ['light', 'paper', 'pink', 'nord'].includes(e.detail.theme) ? 'default' : 'dracula';
                 this.solutionEditor.setOption('theme', newTheme);
+                this.starterEditor?.setOption('theme', newTheme);
             });
         }
+    }
+
+    setStarterCode(code) {
+        const checkbox = document.getElementById('exercise-use-starter');
+        const field = document.getElementById('exercise-starter-code');
+        if (!checkbox || !field) return;
+        checkbox.checked = code !== null && code !== undefined;
+        field.value = code ?? '';
+        this.starterEditor?.setValue(code ?? '');
+        this.updateStarterEditorVisibility();
+    }
+
+    updateStarterEditorVisibility() {
+        const enabled = !!document.getElementById('exercise-use-starter')?.checked;
+        const field = document.getElementById('exercise-starter-code');
+        const wrapper = document.getElementById('exercise-starter-editor');
+        if (wrapper) wrapper.hidden = !enabled;
+        if (field) {
+            field.disabled = !enabled;
+            field.hidden = !!this.starterEditor || !enabled;
+        }
+        this.starterEditor?.setOption('readOnly', !enabled);
+        if (enabled) setTimeout(() => this.starterEditor?.refresh(), 0);
     }
 
     setupEventListeners() {
@@ -268,6 +311,11 @@ class ExercisesPage {
             this.setSaveStatus('Unsaved changes');
         });
         this.solutionEditor?.on('change', () => this.setSaveStatus('Unsaved changes'));
+        this.starterEditor?.on('change', () => this.setSaveStatus('Unsaved changes'));
+        document.getElementById('exercise-use-starter')?.addEventListener('change', () => {
+            this.updateStarterEditorVisibility();
+            this.setSaveStatus('Unsaved changes');
+        });
 
         // Test cases
         document.getElementById('add-test-case-btn')?.addEventListener('click', () => {
@@ -298,6 +346,7 @@ class ExercisesPage {
             if (this.solutionEditor) {
                 const mode = this.getCodeMirrorMode(this.selectedLanguage);
                 this.solutionEditor.setOption('mode', mode);
+            this.starterEditor?.setOption('mode', mode);
             }
 
             // Update chapter options to show chapters for the new language
@@ -311,6 +360,13 @@ class ExercisesPage {
     async loadLanguages() {
         try {
             this.languages = await this.apiService.getLanguages();
+            const capabilities = await this.apiService.getCapabilities();
+            const starterOptions = document.getElementById('exercise-starter-options');
+            if (starterOptions) starterOptions.hidden = !capabilities.exerciseStarters;
+            this.functionTestsAvailable = !!capabilities.pythonFunctionTests;
+            this.semanticArtifactsAvailable = !!capabilities.semanticArtifacts;
+            this.documentArtifactsAvailable = !!capabilities.documentArtifacts;
+            this.networkHostsAvailable = capabilities.restrictedNetwork ? capabilities.networkHosts || [] : [];
             this.populateLanguageSelector();
         } catch (error) {
             console.error('Failed to load languages:', error);
@@ -504,11 +560,13 @@ class ExercisesPage {
         }
 
         document.getElementById('exercise-description').value = '';
+        this.setStarterCode(null);
 
         // Set CodeMirror mode for the selected language
         if (this.solutionEditor) {
             const mode = this.getCodeMirrorMode(this.selectedLanguage);
             this.solutionEditor.setOption('mode', mode);
+            this.starterEditor?.setOption('mode', mode);
         }
 
         // Get code template from selected language
@@ -527,6 +585,7 @@ class ExercisesPage {
 
         setTimeout(() => {
             this.solutionEditor.refresh();
+                this.starterEditor?.refresh();
         }, 100);
     }
 
@@ -601,11 +660,13 @@ class ExercisesPage {
             document.getElementById('exercise-title').value = exercise.title;
             this.updateChapterOptions(exercise.chapter);
             document.getElementById('exercise-description').value = exercise.description;
+            this.setStarterCode(exercise.starter_code ?? null);
 
             // Set CodeMirror mode based on exercise language
             if (this.solutionEditor && exercise.language_id) {
                 const mode = this.getCodeMirrorMode(exercise.language_id);
                 this.solutionEditor.setOption('mode', mode);
+            this.starterEditor?.setOption('mode', mode);
             }
 
             this.solutionEditor.setValue(exercise.solution);
@@ -621,6 +682,7 @@ class ExercisesPage {
 
             setTimeout(() => {
                 this.solutionEditor.refresh();
+                this.starterEditor?.refresh();
             }, 100);
         } catch (error) {
             alert('Failed to load exercise: ' + error.message);
@@ -638,6 +700,16 @@ class ExercisesPage {
         }
     }
 
+    getBackUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const exerciseId = params.get('edit');
+        const fromWorkspace = params.get('from') === 'workspace'
+            || (!params.has('from') && sessionStorage.getItem('returnToExercise') === exerciseId);
+        return fromWorkspace && exerciseId
+            ? `workspace.html?exercise=${encodeURIComponent(exerciseId)}`
+            : 'admin/index.html';
+    }
+
     returnToWorkspace() {
         return this.saveExercise(true);
     }
@@ -647,7 +719,31 @@ class ExercisesPage {
         if (status) status.textContent = message;
     }
 
+    renderArtifactControls(testCase, index) {
+        return (testCase.outputFiles || []).map(filename => {
+            const check = (testCase.artifactChecks || []).find(item => item.filename === filename);
+            return `<div class="form-group-inline"><label>${escapeHtml(filename)} — file check</label>
+                <select class="form-input" data-artifact-input data-artifact-mode data-index="${index}" data-path="${escapeHtml(filename)}">
+                ${[['hash','Exact file hash'],['xlsx','Excel cells and types'],['sqlite','SQLite query results'],['image','Image pixels'], ...(this.documentArtifactsAvailable ? [['docx','Word text, headings and tables'],['pdf','PDF pages and text'],['plot','Plot appearance (with tolerance)']] : [])].map(([value,label]) => `<option value="${value}" ${(check?.kind || 'hash') === value ? 'selected' : ''}>${label}</option>`).join('')}</select>
+                ${check?.kind === 'sqlite' ? `<label>Read-only queries (JSON array)</label><textarea class="form-input" rows="4" data-artifact-input data-artifact-queries data-index="${index}" data-path="${escapeHtml(filename)}">${escapeHtml(JSON.stringify(check.queries, null, 2))}</textarea><small>Each query needs name and sql. Add ORDER BY for ordered rows, or set ordered to false. Optional parameters is an array.</small>` : ''}
+                ${check?.kind === 'xlsx' ? `<label>Sheets to check (comma-separated; empty checks all)</label><input class="form-input" data-artifact-input data-artifact-sheets data-index="${index}" data-path="${escapeHtml(filename)}" value="${escapeHtml((check.sheets || []).join(', '))}"><small>Checks values, types and formula text; ignores formatting.</small>` : ''}
+                ${check?.kind === 'docx' ? `<label><input type="checkbox" data-artifact-input data-artifact-option data-key="headings" data-index="${index}" data-path="${escapeHtml(filename)}" ${check.headings !== false ? 'checked' : ''}> Check heading levels as well as text and tables</label><small>Ignores fonts, page layout, headers, footers and embedded images.</small>` : ''}
+                ${check?.kind === 'pdf' ? `<label><input type="checkbox" data-artifact-input data-artifact-option data-key="layout" data-index="${index}" data-path="${escapeHtml(filename)}" ${check.layout ? 'checked' : ''}> Also check page sizes and text positions</label><label>Position tolerance (points)</label><input type="number" min="0" max="10" step="0.1" class="form-input" data-artifact-input data-artifact-option data-key="positionTolerance" data-index="${index}" data-path="${escapeHtml(filename)}" value="${check.positionTolerance ?? 2}"><small>Always checks page count and text. Scanned text and graphics require other checks.</small>` : ''}
+                ${check?.kind === 'plot' ? `<small>Checks dimensions and decoded appearance on a white background. Grade the underlying data separately.</small>${[['channelTolerance','Channel tolerance',3,0,20,1],['maxDifferentPixelRatio','Maximum changed-pixel fraction',0.005,0,0.05,0.001],['maxMeanAbsoluteError','Maximum mean channel error',0.5,0,10,0.1]].map(([key,label,value,min,max,step]) => `<label>${label}</label><input type="number" class="form-input" data-artifact-input data-artifact-option data-key="${key}" data-index="${index}" data-path="${escapeHtml(filename)}" min="${min}" max="${max}" step="${step}" value="${check[key] ?? value}">`).join('')}` : ''}
+                ${check?.kind === 'image' ? '<small>Checks dimensions and every decoded RGBA pixel; ignores file format and metadata.</small>' : ''}
+                </div>`;
+        }).join('');
+    }
+
+    validateFunctionInputs() {
+        for (const field of document.querySelectorAll?.('[data-function-input], [data-artifact-input]') || []) {
+            if (!field.reportValidity()) return false;
+        }
+        return true;
+    }
+
     async testSolution() {
+        if (!this.validateFunctionInputs()) return;
         const solution = this.solutionEditor.getValue();
 
         if (!solution.trim()) {
@@ -687,10 +783,20 @@ class ExercisesPage {
                     input: testCase.input || [],
                     fixtures: fixtures,
                     outputFiles: testCase.outputFiles || [],
+                    artifactChecks: testCase.artifactChecks || [],
+                    networkHosts: testCase.networkHosts || [],
+                    expectedOutputFiles: testCase.expectedOutputFiles || [],
+                    functionTest: testCase.functionTest || null,
                     useDynamicOutput: !!testCase.useDynamicOutput,
                     validationQuery: (isDatabaseExercise && testCase.validationQuery) ? testCase.validationQuery : null
                 });
 
+                if (testCase.functionTest && (result.exitCode !== 0 || result.error || result.timedOut || result.outputLimited)) {
+                    throw new Error(`Function reference test ${i + 1} failed: ${result.error || result.stderr || 'execution limit'}`);
+                }
+                if ((result.fileHashes || []).some(file => !file.exists || file.artifact?.error)) {
+                    throw new Error(`Reference output file failed: ${(result.fileHashes || []).find(file => !file.exists || file.artifact?.error)?.artifact?.error || 'file missing'}`);
+                }
                 this.testCases[i].expectedOutput = result.output;
                 this.testCases[i].expectedStderr = result.stderr || '';
                 this.testCases[i].expectedExitCode = result.exitCode;
@@ -709,7 +815,8 @@ class ExercisesPage {
                         sha256: fh.sha256,
                         type: fh.type,
                         linkTarget: fh.linkTarget,
-                        entries: fh.entries
+                        entries: fh.entries,
+                        artifact: fh.artifact || null
                     }));
                 }
 
@@ -724,7 +831,8 @@ class ExercisesPage {
                                 <span style="color: ${color};">${status}</span> <strong>${escapeHtml(fh.filename)}</strong><br>
                                 ${fh.exists ? `
                                     <small style="color: var(--text-muted);">Type: ${fh.type}</small><br>
-                                    ${fh.sha256 ? `<small style="color: var(--text-muted);">${fh.type === 'directory' ? 'Tree SHA-256' : 'SHA-256'}: ${fh.sha256}</small><br>` : ''}
+                                    ${fh.artifact ? renderArtifactFeedback({kind: fh.artifact.kind, totalDifferences: 0, differences: [], actualPreview: fh.artifact.preview}) : ''}
+                                    ${fh.sha256 && !fh.artifact ? `<small style="color: var(--text-muted);">${fh.type === 'directory' ? 'Tree SHA-256' : 'SHA-256'}: ${fh.sha256}</small><br>` : ''}
                                     ${fh.type === 'link' ? `<small style="color: var(--text-muted);">Target: ${escapeHtml(fh.linkTarget)}</small><br>` : ''}
                                     <small style="color: var(--text-muted);">Size: ${fh.size} bytes</small>
                                 ` : `<small style="color: var(--accent-red);">${fh.error || 'File not found'}</small>`}
@@ -815,6 +923,14 @@ class ExercisesPage {
     }
 
     async saveExercise(openWorkspace = false) {
+        if (!this.validateFunctionInputs()) return;
+        if (this.testCases.some(test => (test.artifactChecks || []).some(check => {
+            const reference = (test.expectedOutputFiles || []).find(file => file.filename === check.filename)?.artifact;
+            return !reference?.data || reference.error || reference.kind !== check.kind;
+        }))) {
+            alert('Test the reference solution before saving the generated-file checks');
+            return;
+        }
         const id = document.getElementById('exercise-id').value.trim();
         const title = document.getElementById('exercise-title').value.trim();
         const chapterSelect = document.getElementById('exercise-chapter');
@@ -862,6 +978,10 @@ class ExercisesPage {
             order,
             description,
             solution,
+            starter_code: document.getElementById('exercise-use-starter')
+                ? (document.getElementById('exercise-use-starter').checked
+                    ? (this.starterEditor?.getValue() ?? document.getElementById('exercise-starter-code').value) : null)
+                : this.currentExercise?.starter_code,
             testCases: this.testCases,
             language_id: this.selectedLanguage // Include the currently selected language
         };
@@ -950,8 +1070,8 @@ class ExercisesPage {
     formatOutputFiles(files) {
         if (!files || files.length === 0) return '';
         return files.map(f => {
-            const type = f.type || 'file';
-            const hash = f.sha256 ? `: ${f.sha256.substring(0, 16)}...` : '';
+            const type = f.artifact ? `${f.artifact.kind} content` : f.type || 'file';
+            const hash = f.sha256 && !f.artifact ? `: ${f.sha256.substring(0, 16)}...` : '';
             return `${f.filename} (${type})${hash}`;
         }).join('\n');
     }
@@ -960,6 +1080,7 @@ class ExercisesPage {
         document.getElementById('test-preview').style.display = 'none';
         setTimeout(() => {
             this.solutionEditor.refresh();
+                this.starterEditor?.refresh();
             this.solutionEditor.focus();
         }, 100);
     }
@@ -1019,6 +1140,7 @@ class ExercisesPage {
         })));
 
         this.testCases.forEach((testCase, index) => {
+            const isFunctionTest = !!testCase.functionTest;
             const testCaseDiv = document.createElement('div');
             testCaseDiv.className = 'test-case-item';
 
@@ -1049,7 +1171,33 @@ class ExercisesPage {
                         </select>
                         <small style="color: var(--text-muted); font-size: 0.85rem;">${fixtureHelpText}</small>
                     </div>
-                    ${!isDatabaseExercise ? `
+                    ${this.selectedLanguage === 'python' && this.functionTestsAvailable ? `
+                    <div class="form-group-inline">
+                        <label>Test mode</label>
+                        <select class="form-input" data-field="testMode" data-index="${index}">
+                            <option value="script" ${!isFunctionTest ? 'selected' : ''}>Run script</option>
+                            <option value="function" ${isFunctionTest ? 'selected' : ''}>Call a function</option>
+                        </select>
+                    </div>` : ''}
+                    ${isFunctionTest ? `
+                    <div class="form-group-inline">
+                        <label>Function name</label>
+                        <input class="form-input" data-field="functionName" data-function-input data-index="${index}"
+                            value="${escapeHtml(testCase.functionTest.name)}" required pattern="[A-Za-z_][A-Za-z0-9_]{0,99}" placeholder="double">
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Positional arguments (JSON array)</label>
+                        <textarea class="form-input" data-field="functionArgs" data-function-input data-index="${index}"
+                            rows="2">${escapeHtml(JSON.stringify(testCase.functionTest.args || []))}</textarea>
+                        <small>For example: [6] or ["sample A", 3]. Values are passed directly to the function.</small>
+                    </div>
+                    <div class="form-group-inline">
+                        <label>Keyword arguments (JSON object)</label>
+                        <textarea class="form-input" data-field="functionKwargs" data-function-input data-index="${index}"
+                            rows="2">${escapeHtml(JSON.stringify(testCase.functionTest.kwargs || {}))}</textarea>
+                        <small>For example: {"times": 3}. The expected return value is filled by testing the reference solution.</small>
+                    </div>` : ''}
+                    ${!isDatabaseExercise && !isFunctionTest ? `
                     <div class="form-group-inline">
                         <label>Arguments (comma-separated, include filenames)</label>
                         <input type="text" class="form-input" data-field="arguments" data-index="${index}"
@@ -1087,15 +1235,17 @@ class ExercisesPage {
                         <label>Expected Output Paths (comma-separated names to verify)</label>
                         <input type="text" class="form-input" data-field="outputFiles" data-index="${index}"
                                 value="${escapeHtml((testCase.outputFiles || []).join(', '))}" placeholder="output.txt, result.tar.gz">
-                        <small style="color: var(--text-muted); font-size: 0.85rem;">Files are hash-verified; directories and symbolic links are verified by type</small>
+                        <small style="color: var(--text-muted); font-size: 0.85rem;">Choose a content check below, or use exact file hashes; directories and symbolic links are verified by type</small>
                     </div>
                     ` : ''}
                     <div class="form-group-inline">
-                        <label>Expected Output ${isDatabaseExercise ? '(Database Query Result)' : '(auto-filled when testing)'}</label>
+                        <label>${isFunctionTest ? 'Expected return value' : 'Expected Output'} ${isDatabaseExercise ? '(Database Query Result)' : '(auto-filled when testing)'}</label>
                         <textarea class="form-input readonly-result" data-field="expectedOutput" data-index="${index}"
                                    rows="3" placeholder="Run tests to populate..." readonly>${testCase.expectedOutput || ''}</textarea>
                         ${isDatabaseExercise ? '<small style="color: var(--text-muted); font-size: 0.85rem;">Expected output from the validation query</small>' : ''}
                     </div>
+                    ${this.selectedLanguage === 'python' && this.networkHostsAvailable.length ? `<div class="form-group-inline"><label>Allowed HTTPS websites for this test</label><select multiple class="form-input" data-field="networkHosts" data-index="${index}" style="min-height:100px">${this.networkHostsAvailable.map(host => `<option value="${escapeHtml(host)}" ${(testCase.networkHosts || []).includes(host) ? 'selected' : ''}>${escapeHtml(host)}</option>`).join('')}</select><small>Hold Ctrl/Cmd to select sites. Empty means offline. Redirect destinations must also be selected. Live data can change; use stable inputs for grading.</small></div>` : ''}
+                    ${!isDatabaseExercise && this.semanticArtifactsAvailable ? this.renderArtifactControls(testCase, index) : ''}
                     ${!isDatabaseExercise ? `
                     <div class="form-group-inline">
                         <label>Expected STDERR (auto-filled when testing)</label>
@@ -1113,7 +1263,7 @@ class ExercisesPage {
                                 value="${testCase.expectedExitCode || 0}" readonly>
                     </div>
                     ` : ''}
-                    <div class="form-group-inline">
+                    ${!isFunctionTest ? `<div class="form-group-inline">
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                             <input type="checkbox" data-field="useDynamicOutput" data-index="${index}"
                                    ${testCase.useDynamicOutput ? 'checked' : ''} 
@@ -1124,11 +1274,13 @@ class ExercisesPage {
                             Enable this for changing output (e.g., date commands or directory listings).
                             The solution regenerates expected text and output path contents for each run. The runner script is kept outside the working directory.
                         </small>
-                    </div>
+                    </div>` : ''}
                 </div>
             `;
             container.appendChild(testCaseDiv);
         });
+
+        installExerciseHelp(container);
 
         container.querySelectorAll('[data-field]').forEach(input => {
             input.addEventListener('change', (e) => {
@@ -1136,7 +1288,36 @@ class ExercisesPage {
                 const field = e.target.dataset.field;
                 let value = e.target.value;
 
-                if (field === 'fixtures') {
+                if (field === 'testMode') {
+                    this.testCases[index].functionTest = value === 'function' ? { name: '', args: [], kwargs: {} } : null;
+                    this.testCases[index].arguments = [];
+                    this.testCases[index].input = [];
+                    this.testCases[index].useDynamicOutput = false;
+                    delete this.testCases[index].expectedOutput;
+                    this.renderTestCases();
+                    return;
+                }
+                if (field === 'functionName') {
+                    this.testCases[index].functionTest.name = value.trim();
+                    delete this.testCases[index].expectedOutput;
+                    return;
+                }
+                if (field === 'functionArgs' || field === 'functionKwargs') {
+                    try {
+                        const parsed = JSON.parse(value);
+                        const valid = field === 'functionArgs' ? Array.isArray(parsed)
+                            : parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
+                        if (!valid) throw new Error('Wrong JSON type');
+                        e.target.setCustomValidity('');
+                        this.testCases[index].functionTest[field === 'functionArgs' ? 'args' : 'kwargs'] = parsed;
+                        delete this.testCases[index].expectedOutput;
+                    } catch {
+                        e.target.setCustomValidity(field === 'functionArgs' ? 'Enter a valid JSON array' : 'Enter a valid JSON object');
+                        e.target.reportValidity();
+                    }
+                    return;
+                }
+                if (field === 'fixtures' || field === 'networkHosts') {
                     // Get all selected options for multi-select
                     const select = e.target;
                     value = Array.from(select.selectedOptions).map(opt => opt.value);
@@ -1156,8 +1337,40 @@ class ExercisesPage {
                 }
 
                 this.testCases[index][field] = value;
+                if (field === 'outputFiles') {
+                    this.testCases[index].artifactChecks = (this.testCases[index].artifactChecks || []).filter(check => value.includes(check.filename));
+                    this.renderTestCases();
+                }
             });
         });
+
+        container.querySelectorAll('[data-artifact-input]').forEach(field => field.addEventListener('change', () => {
+            const test = this.testCases[Number(field.dataset.index)];
+            const filename = field.dataset.path;
+            test.artifactChecks ||= [];
+            if (field.hasAttribute('data-artifact-mode')) {
+                test.artifactChecks = test.artifactChecks.filter(check => check.filename !== filename);
+                if (field.value !== 'hash') test.artifactChecks.push({filename, kind: field.value, ...(field.value === 'sqlite' ? {queries: [{name: 'result', sql: 'SELECT * FROM results ORDER BY 1', ordered: true}]} : {})});
+                delete test.expectedOutputFiles;
+                this.renderTestCases();
+                return;
+            }
+            const check = test.artifactChecks.find(item => item.filename === filename);
+            if (field.hasAttribute('data-artifact-option')) {
+                if (!field.reportValidity()) return;
+                check[field.dataset.key] = field.type === 'checkbox' ? field.checked : Number(field.value);
+            }
+            if (field.hasAttribute('data-artifact-sheets')) check.sheets = field.value.split(',').map(item => item.trim()).filter(Boolean);
+            if (field.hasAttribute('data-artifact-queries')) {
+                try {
+                    const queries = JSON.parse(field.value);
+                    if (!Array.isArray(queries) || !queries.length || queries.length > 8 || queries.some(query => !query.name || typeof query.sql !== 'string' || !/^\s*(SELECT|WITH)\b/i.test(query.sql))) throw new Error('Invalid queries');
+                    check.queries = queries;
+                    field.setCustomValidity('');
+                } catch { field.setCustomValidity('Enter a JSON array of 1–8 named SELECT queries'); field.reportValidity(); return; }
+            }
+            delete test.expectedOutputFiles;
+        }));
 
         container.querySelectorAll('.icon-btn.delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1331,6 +1544,10 @@ class ExercisesPage {
     }
 
     async runBulkVerification() {
+        if (this.bulkVerificationRunning) return;
+        this.bulkVerificationRunning = true;
+        const button = document.getElementById('bulk-verify-btn');
+        if (button) button.disabled = true;
         const statusDiv = document.getElementById('verification-status');
         const resultsDiv = document.getElementById('verification-results');
 
@@ -1339,6 +1556,8 @@ class ExercisesPage {
         resultsDiv.innerHTML = '';
 
         const verificationResults = [];
+        let completedExercises = 0;
+        const activeExercises = new Map();
         let totalTests = 0;
         let changedTests = 0;
         let errorTests = 0;
@@ -1350,21 +1569,24 @@ class ExercisesPage {
             return matchesLanguage && ex.solution && ex.solution.trim();
         });
 
-        for (let i = 0; i < exercisesWithSolutions.length; i++) {
-            const exercise = exercisesWithSolutions[i];
-            const progress = ((i + 1) / exercisesWithSolutions.length) * 100;
-
-            // Update status with progress - this creates new progress bar element
-			statusDiv.innerHTML = '<p></p><div class="progress-bar"><div class="progress-fill"></div></div>';
-			statusDiv.querySelector('p').textContent = `Testing ${exercise.title} (${i + 1}/${exercisesWithSolutions.length})...`;
-			statusDiv.querySelector('.progress-fill').style.width = `${progress}%`;
-
+        const updateProgress = () => {
+            const progress = exercisesWithSolutions.length
+                ? (completedExercises / exercisesWithSolutions.length) * 100 : 100;
+            statusDiv.innerHTML = '<p></p><div class="progress-bar"><div class="progress-fill"></div></div>';
+            const activeTitles = [...activeExercises.values()].join(' · ');
+            statusDiv.querySelector('p').textContent =
+                `${completedExercises}/${exercisesWithSolutions.length} exercises verified${activeTitles ? ` — testing ${activeTitles}` : ''}`;
+            statusDiv.querySelector('.progress-fill').style.width = `${progress}%`;
+        };
+        const verifyExercise = async (exercise, index) => {
+            activeExercises.set(index, exercise.title);
+            updateProgress();
             try {
                 // Get full exercise data with test cases (admin endpoint)
                 const fullExercise = await this.apiService.getExerciseWithTests(exercise.id);
 
                 if (!fullExercise.testCases || fullExercise.testCases.length === 0) {
-                    continue;
+                    return;
                 }
 
                 const testCaseResults = [];
@@ -1379,15 +1601,20 @@ class ExercisesPage {
                             languageId: fullExercise.language_id || fullExercise.language || 'bash',
                             arguments: testCase.arguments || [],
                             input: testCase.input || [],
-                            fixtures: fixtures
+                            fixtures: fixtures,
+                            functionTest: testCase.functionTest || null,
+                            exerciseType: fullExercise.exercise_type || 'programming',
+                            outputFiles: testCase.outputFiles || [],
+                    artifactChecks: testCase.artifactChecks || [],
+                    networkHosts: testCase.networkHosts || [],
+                    expectedOutputFiles: testCase.expectedOutputFiles || [],
+                            useDynamicOutput: !!testCase.useDynamicOutput,
+                            validationQuery: testCase.validationQuery || null
                         });
 
-                        // Check if results differ from database
-                        const outputChanged = (result.output || '') !== (testCase.expectedOutput || '');
-                        const stderrChanged = (result.stderr || '') !== (testCase.expectedStderr || '');
-                        const exitCodeChanged = result.exitCode !== testCase.expectedExitCode;
-
-                        const hasChanges = outputChanged || stderrChanged || exitCodeChanged;
+                        // Compare with the same whitespace rules as student grading.
+                        const { outputChanged, stderrChanged, exitCodeChanged, filesChanged, hasChanges } =
+                            compareTestOutputs(result, testCase);
 
                         if (hasChanges) {
                             changedTests++;
@@ -1399,7 +1626,7 @@ class ExercisesPage {
                             hasChanges,
                             outputChanged,
                             stderrChanged,
-                            exitCodeChanged
+                            exitCodeChanged, filesChanged
                         });
                     } catch (error) {
                         errorTests++;
@@ -1414,19 +1641,40 @@ class ExercisesPage {
                 // Only add to results if there are changes or errors
                 const hasAnyChanges = testCaseResults.some(r => r.hasChanges);
                 if (hasAnyChanges) {
-                    verificationResults.push({
+                    verificationResults[index] = {
                         exercise: fullExercise,
                         testCaseResults
-                    });
+                    };
                 }
             } catch (error) {
                 console.error(`Error verifying ${exercise.title}:`, error);
                 errorTests++;
+            } finally {
+                activeExercises.delete(index);
+                completedExercises++;
+                updateProgress();
             }
-        }
+        };
 
-        // Display results
-        this.displayVerificationResults(verificationResults, totalTests, changedTests, errorTests);
+        // Two exercise workers use the existing server execution queue. Each
+        // exercise keeps its test cases sequential and its own isolated runs.
+        let nextExercise = 0;
+        const worker = async () => {
+            while (nextExercise < exercisesWithSolutions.length) {
+                const index = nextExercise++;
+                await verifyExercise(exercisesWithSolutions[index], index);
+            }
+        };
+        try {
+            const workers = Array.from({ length: Math.min(2, exercisesWithSolutions.length) }, worker);
+            const settled = await Promise.allSettled(workers);
+            const failure = settled.find(result => result.status === 'rejected');
+            if (failure) throw failure.reason;
+            this.displayVerificationResults(verificationResults.filter(Boolean), totalTests, changedTests, errorTests);
+        } finally {
+            this.bulkVerificationRunning = false;
+            if (button) button.disabled = false;
+        }
     }
 
     displayVerificationResults(results, totalTests, changedTests, errorTests) {
@@ -1494,9 +1742,9 @@ class ExercisesPage {
                         <p style="color: var(--accent-red); font-size: 0.85rem;">Error: ${escapeHtml(testResult.error)}</p>
                     `;
                 } else {
-                    const { testCase, newResult, outputChanged, stderrChanged, exitCodeChanged } = testResult;
+                    const { testCase, newResult, outputChanged, stderrChanged, exitCodeChanged, filesChanged } = testResult;
 
-                    let changesHtml = '';
+                    let changesHtml = filesChanged ? '<p>Generated files changed</p>' + (newResult.fileComparisons || []).map(file => `<div><strong>${escapeHtml(file.filename)}</strong>${file.artifact ? renderArtifactFeedback(file.artifact) : `<p>${file.matches ? 'Match' : 'Mismatch'}</p>`}</div>`).join('') : '';
 
                     if (outputChanged) {
                         changesHtml += `
@@ -1591,17 +1839,24 @@ class ExercisesPage {
             if (!testResult || !testResult.newResult) return;
 
             const exercise = exerciseResult.exercise;
+            if (testResult.newResult.error || testResult.newResult.timedOut || testResult.newResult.outputLimited
+                || (testResult.newResult.fileHashes || []).some(file => !file.exists || file.artifact?.error)) {
+                throw new Error('Reference run failed; fix the solution or file checks before approving');
+            }
 
             // Update the test case with new values
             exercise.testCases[testIndex].expectedOutput = testResult.newResult.output || '';
             exercise.testCases[testIndex].expectedStderr = testResult.newResult.stderr || '';
             exercise.testCases[testIndex].expectedExitCode = testResult.newResult.exitCode;
 
+            exercise.testCases[testIndex].expectedOutputFiles = (testResult.newResult.fileHashes || []).map(file => ({ filename: file.filename, type: file.type, sha256: file.sha256, linkTarget: file.linkTarget, entries: file.entries, artifact: file.artifact || null }));
+
             // Save the updated exercise
             await this.apiService.updateExercise(exerciseId, {
                 title: exercise.title,
                 description: exercise.description,
                 solution: exercise.solution,
+                starter_code: exercise.starter_code,
                 chapter_id: exercise.chapter_id,
                 testCases: exercise.testCases
             });

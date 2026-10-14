@@ -332,6 +332,12 @@ class ApiService {
 		return response.json();
 	}
 
+    async getCapabilities() {
+        const response = await fetch(`${this.baseUrl}/api/admin/capabilities`);
+        if (!response.ok) return {};
+        return response.json();
+    }
+
 	/**
 	 * Run a specific test case (admin only)
 	 * @param {string} solution - Solution script
@@ -351,6 +357,10 @@ class ApiService {
 				fixtures: testCase.fixtures || [],
 				outputFiles: testCase.outputFiles || [],
 				useDynamicOutput: !!testCase.useDynamicOutput,
+				functionTest: testCase.functionTest || null,
+                artifactChecks: testCase.artifactChecks || [],
+                networkHosts: testCase.networkHosts || [],
+                expectedOutputFiles: testCase.expectedOutputFiles || [],
 				validationQuery: testCase.validationQuery || null
 			})
 		});
