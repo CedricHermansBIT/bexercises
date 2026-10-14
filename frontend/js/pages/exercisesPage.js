@@ -277,7 +277,7 @@ class ExercisesPage {
 
         // Get unique chapters from exercises
         const chapters = [...new Set(this.exercises.map(ex => ex.chapter || 'Uncategorized'))];
-        chapters.sort();
+        // Keep the course order already supplied by the backend.
 
         // Clear existing options except "All Chapters"
         chapterFilter.innerHTML = '<option value="all">All Chapters</option>';
@@ -326,7 +326,7 @@ class ExercisesPage {
         card.dataset.completed = isCompleted;
 
         // Extract first paragraph from description
-		const firstP = String(exercise.description || '').replace(/<[^>]*>/g, '').split(/\n\s*\n/)[0];
+		const firstP = String(exercise.description || '').replace(/<[^>]*>/g, '').replace(/^#{1,6} .*$/gm, '').trim().split(/\n\s*\n/)[0];
 
         // Get global stats for this exercise
         const stats = this.globalStats[exercise.id] || { usersCompleted: 0, avgTries: 0 };

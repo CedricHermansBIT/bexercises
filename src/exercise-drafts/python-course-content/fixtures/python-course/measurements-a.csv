@@ -1,0 +1,7 @@
+sample,group,value
+s3,treated,5.0
+s1,control,2.0
+s2,treated,3.0
+s4,control,
+s5,treated,
+s6,empty,

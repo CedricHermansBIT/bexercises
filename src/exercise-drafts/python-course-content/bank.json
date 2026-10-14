@@ -1,0 +1,2978 @@
+[
+  {
+    "id": "hello-world",
+    "title": "Hello, Python!",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 1,
+    "description": "### Task\nPrint the message `Hello, Python!` exactly. `print()` displays text; text literals use quotes.\n\n### Input\nNo input.\n\n### Output\nOne line: `Hello, Python!`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n(no input)\n```\nResult:\n```text\nHello, Python!\n```\n\nDifficulty: **easy**.",
+    "solution": "print(\"Hello, Python!\")\n",
+    "testCases": [
+      {
+        "input": [],
+        "oracle": "Hello, Python!"
+      }
+    ],
+    "starter_code": "# Add your print call here\n"
+  },
+  {
+    "id": "python-input-output",
+    "title": "A personalised greeting",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 2,
+    "description": "### Task\nRead a name into a variable and print `Hello, <name>!`. A variable stores a value for later use.\n\n### Input\nOne complete line containing a name, possibly with spaces.\n\n### Output\nOne greeting line.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nSam\n```\nResult:\n```text\nHello, Sam!\n```\n\n### Hint\n`input()` returns the whole line as text. An f-string inserts a variable using `{name}`.\n\nDifficulty: **easy**.",
+    "solution": "name = input()\nprint(f\"Hello, {name}!\")\n",
+    "testCases": [
+      {
+        "input": [
+          "Sam"
+        ],
+        "oracle": "Hello, Sam!"
+      },
+      {
+        "input": [
+          "Ada Lovelace"
+        ],
+        "oracle": "Hello, Ada Lovelace!"
+      },
+      {
+        "input": [
+          "Noor"
+        ],
+        "oracle": "Hello, Noor!"
+      }
+    ],
+    "starter_code": "name = input()\n# Print the greeting using name\n"
+  },
+  {
+    "id": "python-variables-two-inputs",
+    "title": "Variables and two inputs",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 3,
+    "description": "### Task\nRead a sample name and its read count. A sample is simply a labelled measurement here. Convert the second input to an integer and print `<name>: <count> reads`.\n\n### Input\nName on line 1; a non-negative integer on line 2.\n\n### Output\nOne labelled count.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nsample A\n12\n```\nResult:\n```text\nsample A: 12 reads\n```\n\n### Hint\n`int(text)` converts a valid integer string.\n\nDifficulty: **easy**.",
+    "solution": "name = input()\ncount = int(input())\nprint(f\"{name}: {count} reads\")\n",
+    "testCases": [
+      {
+        "input": [
+          "sample A",
+          "12"
+        ],
+        "oracle": "sample A: 12 reads"
+      },
+      {
+        "input": [
+          "control",
+          "0"
+        ],
+        "oracle": "control: 0 reads"
+      },
+      {
+        "input": [
+          "B",
+          "145"
+        ],
+        "oracle": "B: 145 reads"
+      }
+    ],
+    "starter_code": "name = input()\ncount = int(input())\n# Print name and count\n"
+  },
+  {
+    "id": "python-arithmetic",
+    "title": "Add two numbers",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 4,
+    "description": "### Task\nRead two integers and print their sum.\n\n### Input\nTwo integers, one per line.\n\n### Output\nThe sum as an integer.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n7\n5\n```\nResult:\n```text\n12\n```\n\nDifficulty: **easy**.",
+    "solution": "a = int(input())\nb = int(input())\nprint(a + b)\n",
+    "testCases": [
+      {
+        "input": [
+          "7",
+          "5"
+        ],
+        "oracle": "12"
+      },
+      {
+        "input": [
+          "0",
+          "0"
+        ],
+        "oracle": "0"
+      },
+      {
+        "input": [
+          "-8",
+          "3"
+        ],
+        "oracle": "-5"
+      }
+    ],
+    "starter_code": "a = int(input())\nb = int(input())\n# Print their sum\n"
+  },
+  {
+    "id": "python-minutes-seconds",
+    "title": "Minutes and seconds",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 5,
+    "description": "### Task\nConvert a total number of seconds into whole minutes and remaining seconds.\n\n### Input\nOne non-negative integer.\n\n### Output\n`<minutes> min <seconds> sec`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n125\n```\nResult:\n```text\n2 min 5 sec\n```\n\n### Hint\n`//` gives integer division; `%` gives the remainder.\n\nDifficulty: **easy**.",
+    "solution": "seconds = int(input())\nprint(f\"{seconds // 60} min {seconds % 60} sec\")\n",
+    "testCases": [
+      {
+        "input": [
+          "125"
+        ],
+        "oracle": "2 min 5 sec"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": "0 min 0 sec"
+      },
+      {
+        "input": [
+          "60"
+        ],
+        "oracle": "1 min 0 sec"
+      },
+      {
+        "input": [
+          "59"
+        ],
+        "oracle": "0 min 59 sec"
+      }
+    ],
+    "starter_code": "seconds = int(input())\n# Calculate minutes and remaining seconds\n"
+  },
+  {
+    "id": "python-two-decimal-mean",
+    "title": "A result with two decimals",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 6,
+    "description": "### Task\nRead two decimal measurements and print their arithmetic mean.\n\n### Input\nTwo valid decimal numbers, one per line.\n\n### Output\nThe mean with exactly two digits after the decimal point.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n2.5\n4.0\n```\nResult:\n```text\n3.25\n```\n\n### Hint\nUse `float(input())` and formatting such as `f\"{value:.2f}\"`.\n\nDifficulty: **easy**.",
+    "solution": "a = float(input())\nb = float(input())\nprint(f\"{(a + b) / 2:.2f}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "2.5",
+          "4.0"
+        ],
+        "oracle": "3.25"
+      },
+      {
+        "input": [
+          "0",
+          "0"
+        ],
+        "oracle": "0.00"
+      },
+      {
+        "input": [
+          "-2.5",
+          "1.5"
+        ],
+        "oracle": "-0.50"
+      }
+    ],
+    "starter_code": "a = float(input())\nb = float(input())\n# Calculate and format the mean\n"
+  },
+  {
+    "id": "python-sequence-length",
+    "title": "Sequence length",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 7,
+    "description": "### Task\nA DNA sequence is text made from letters such as A, C, G and T. Print the length of the supplied text.\n\n### Input\nOne line; it may be empty.\n\n### Output\nThe number of characters.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nACGTA\n```\nResult:\n```text\n5\n```\n\n### Hint\n`len(text)` counts its characters.\n\nDifficulty: **easy**.",
+    "solution": "sequence = input()\nprint(len(sequence))\n",
+    "testCases": [
+      {
+        "input": [
+          "ACGTA"
+        ],
+        "oracle": "5"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": "0"
+      },
+      {
+        "input": [
+          "T"
+        ],
+        "oracle": "1"
+      }
+    ],
+    "starter_code": "sequence = input()\n# Print its length\n"
+  },
+  {
+    "id": "python-first-last-character",
+    "title": "First and last character",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 8,
+    "description": "### Task\nPrint the first and last characters of a string on separate lines.\n\n### Input\nOne non-empty string.\n\n### Output\nFirst character, then last character.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nACGT\n```\nResult:\n```text\nA\nT\n```\n\n### Hint\nIndexes start at 0. Index -1 selects the last character.\n\nDifficulty: **easy**.",
+    "solution": "text = input()\nprint(text[0])\nprint(text[-1])\n",
+    "testCases": [
+      {
+        "input": [
+          "ACGT"
+        ],
+        "oracle": "A\nT"
+      },
+      {
+        "input": [
+          "G"
+        ],
+        "oracle": "G\nG"
+      },
+      {
+        "input": [
+          "sample"
+        ],
+        "oracle": "s\ne"
+      }
+    ],
+    "starter_code": "text = input()\n# Print the first and last characters\n"
+  },
+  {
+    "id": "python-small-slice",
+    "title": "A small slice",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 9,
+    "description": "### Task\nPrint the first three characters and last three characters of the input.\n\n### Input\nOne string with at least six characters.\n\n### Output\nTwo lines, each containing three characters.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nACGTTG\n```\nResult:\n```text\nACG\nTTG\n```\n\n### Hint\nA slice such as `text[:3]` stops before index 3.\n\nDifficulty: **easy**.",
+    "solution": "text = input()\nprint(text[:3])\nprint(text[-3:])\n",
+    "testCases": [
+      {
+        "input": [
+          "ACGTTG"
+        ],
+        "oracle": "ACG\nTTG"
+      },
+      {
+        "input": [
+          "ABCDEFGHI"
+        ],
+        "oracle": "ABC\nGHI"
+      },
+      {
+        "input": [
+          "123456"
+        ],
+        "oracle": "123\n456"
+      }
+    ],
+    "starter_code": "text = input()\n# Print two slices\n"
+  },
+  {
+    "id": "python-string-operations",
+    "title": "Clean a sample label",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 10,
+    "description": "### Task\nRemove spaces at the beginning and end, replace each remaining space with `_`, and convert the label to lowercase.\n\n### Input\nOne non-empty label after removing outer spaces.\n\n### Output\nThe cleaned label.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n  Sample A  \n```\nResult:\n```text\nsample_a\n```\n\n### Hint\nCombine `.strip()`, `.replace(\" \", \"_\")` and `.lower()`.\n\nDifficulty: **easy**.",
+    "solution": "label = input()\nprint(label.strip().replace(\" \", \"_\").lower())\n",
+    "testCases": [
+      {
+        "input": [
+          "  Sample A  "
+        ],
+        "oracle": "sample_a"
+      },
+      {
+        "input": [
+          "CONTROL"
+        ],
+        "oracle": "control"
+      },
+      {
+        "input": [
+          " A  B "
+        ],
+        "oracle": "a__b"
+      }
+    ],
+    "starter_code": "label = input()\n# Clean and print the label\n"
+  },
+  {
+    "id": "python-lists",
+    "title": "Make a list",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 11,
+    "description": "### Task\nRead three labels into a list, append a fourth label with `.append()`, and print each label in input order.\n\n### Input\nFour labels, one per line. Labels may contain spaces.\n\n### Output\nFour lines, one label per line.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nA\nB\nC\nD\n```\nResult:\n```text\nA\nB\nC\nD\n```\n\n### Hint\nThe supplied loop prints each list element. Complete the list creation and append step.\n\nDifficulty: **easy**.",
+    "solution": "labels = [input(), input(), input()]\nlabels.append(input())\nfor label in labels:\n    print(label)\n",
+    "testCases": [
+      {
+        "input": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "oracle": "A\nB\nC\nD"
+      },
+      {
+        "input": [
+          "sample A",
+          "A",
+          "A",
+          "control"
+        ],
+        "oracle": "sample A\nA\nA\ncontrol"
+      },
+      {
+        "input": [
+          "one",
+          "two",
+          "three",
+          "four"
+        ],
+        "oracle": "one\ntwo\nthree\nfour"
+      }
+    ],
+    "starter_code": "labels = []\n# Read three labels into labels, then append the fourth\nfor label in labels:\n    print(label)\n"
+  },
+  {
+    "id": "python-unpack-tuple",
+    "title": "Unpack a tuple",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 12,
+    "description": "### Task\nStore a name and integer count in a tuple `(name, count)`, unpack it into two variables, and print both fields. A tuple groups values in a fixed sequence.\n\n### Input\nName on line 1; non-negative integer count on line 2.\n\n### Output\n`name=<name>` and `count=<count>` on separate lines.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nsample A\n12\n```\nResult:\n```text\nname=sample A\ncount=12\n```\n\nDifficulty: **easy**.",
+    "solution": "record = (input(), int(input()))\nname, count = record\nprint(f\"name={name}\")\nprint(f\"count={count}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "sample A",
+          "12"
+        ],
+        "oracle": "name=sample A\ncount=12"
+      },
+      {
+        "input": [
+          "B",
+          "0"
+        ],
+        "oracle": "name=B\ncount=0"
+      },
+      {
+        "input": [
+          "control",
+          "8"
+        ],
+        "oracle": "name=control\ncount=8"
+      }
+    ],
+    "starter_code": "record = (input(), int(input()))\n# Unpack record and print its fields\n"
+  },
+  {
+    "id": "python-dictionaries",
+    "title": "Look up a dictionary value",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 13,
+    "description": "### Task\nUse the dictionary in the starter to translate one DNA letter into its full name. Dictionaries associate keys with values.\n\n### Input\nOne uppercase letter: A, C, G or T.\n\n### Output\nThe corresponding full name.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nA\n```\nResult:\n```text\nadenine\n```\n\n### Hint\nAccess a value with `bases[key]`.\n\nDifficulty: **easy**.",
+    "solution": "bases = {\"A\": \"adenine\", \"C\": \"cytosine\", \"G\": \"guanine\", \"T\": \"thymine\"}\nprint(bases[input()])\n",
+    "testCases": [
+      {
+        "input": [
+          "A"
+        ],
+        "oracle": "adenine"
+      },
+      {
+        "input": [
+          "G"
+        ],
+        "oracle": "guanine"
+      },
+      {
+        "input": [
+          "T"
+        ],
+        "oracle": "thymine"
+      },
+      {
+        "input": [
+          "C"
+        ],
+        "oracle": "cytosine"
+      }
+    ],
+    "starter_code": "bases = {\"A\": \"adenine\", \"C\": \"cytosine\", \"G\": \"guanine\", \"T\": \"thymine\"}\nkey = input()\n# Print the value for key\n"
+  },
+  {
+    "id": "python-unique-labels",
+    "title": "Count unique labels",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 14,
+    "description": "### Task\nSplit a line into labels and print how many distinct labels it contains. A set retains each distinct value once.\n\n### Input\nOne whitespace-separated line of labels; it may be empty.\n\n### Output\nThe number of distinct labels.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\ns1 s2 s1\n```\nResult:\n```text\n2\n```\n\n### Hint\n`input().split()` makes a list. `set(labels)` removes duplicates.\n\nDifficulty: **easy**.",
+    "solution": "labels = input().split()\nprint(len(set(labels)))\n",
+    "testCases": [
+      {
+        "input": [
+          "s1 s2 s1"
+        ],
+        "oracle": "2"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": "0"
+      },
+      {
+        "input": [
+          "A A A"
+        ],
+        "oracle": "1"
+      },
+      {
+        "input": [
+          "A B C"
+        ],
+        "oracle": "3"
+      }
+    ],
+    "starter_code": "labels = input().split()\n# Count distinct labels\n"
+  },
+  {
+    "id": "python-limit-check",
+    "title": "Above or below the limit",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 15,
+    "description": "### Task\nPrint `pass` if the count is at least 10; otherwise print `fail`. Use an `if`/`else` decision.\n\n### Input\nOne non-negative integer.\n\n### Output\nExactly `pass` or `fail`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n9\n```\nResult:\n```text\nfail\n```\n\n### Hint\nIndent the statements inside each branch by four spaces.\n\nDifficulty: **easy**.",
+    "solution": "count = int(input())\nif count >= 10:\n    print(\"pass\")\nelse:\n    print(\"fail\")\n",
+    "testCases": [
+      {
+        "input": [
+          "9"
+        ],
+        "oracle": "fail"
+      },
+      {
+        "input": [
+          "10"
+        ],
+        "oracle": "pass"
+      },
+      {
+        "input": [
+          "11"
+        ],
+        "oracle": "pass"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": "fail"
+      }
+    ],
+    "starter_code": "count = int(input())\n# Add an if/else decision\n"
+  },
+  {
+    "id": "python-loops",
+    "title": "Print a numbered range",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 16,
+    "description": "### Task\nUse a `for` loop to print all integers from 1 through n, inclusive.\n\n### Input\nOne integer n between 0 and 20.\n\n### Output\nOne integer per line. If n is 0, print nothing.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n3\n```\nResult:\n```text\n1\n2\n3\n```\n\n### Hint\n`range(start, stop)` excludes stop.\n\nDifficulty: **easy**.",
+    "solution": "n = int(input())\nfor number in range(1, n + 1):\n    print(number)\n",
+    "testCases": [
+      {
+        "input": [
+          "3"
+        ],
+        "oracle": "1\n2\n3"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": ""
+      },
+      {
+        "input": [
+          "1"
+        ],
+        "oracle": "1"
+      }
+    ],
+    "starter_code": "n = int(input())\n# Loop over the required range\n"
+  },
+  {
+    "id": "python-countdown",
+    "title": "A countdown",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 17,
+    "description": "### Task\nUse a `while` loop to print the input number down to 0, inclusive.\n\n### Input\nOne integer between 0 and 20.\n\n### Output\nOne number per line, in descending order.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n3\n```\nResult:\n```text\n3\n2\n1\n0\n```\n\n### Hint\nDecrease the number inside the loop so the condition eventually becomes false.\n\nDifficulty: **easy**.",
+    "solution": "number = int(input())\nwhile number >= 0:\n    print(number)\n    number -= 1\n",
+    "testCases": [
+      {
+        "input": [
+          "3"
+        ],
+        "oracle": "3\n2\n1\n0"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": "0"
+      },
+      {
+        "input": [
+          "1"
+        ],
+        "oracle": "1\n0"
+      }
+    ],
+    "starter_code": "number = int(input())\n# Write a while loop and update number\n"
+  },
+  {
+    "id": "python-functions",
+    "title": "Your first function",
+    "language_id": "python",
+    "chapter": "Python basics",
+    "order": 18,
+    "description": "### Task\nComplete `double(value)` so it returns twice its argument. Keep the caller below it. `return` sends a value back to the calling code.\n\n### Input\nOne integer from stdin.\n\n### Output\nThe returned integer, printed by the caller.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n6\n```\nResult:\n```text\n12\n```\n\nDifficulty: **easy**.",
+    "solution": "def double(value):\n    return value * 2\n\nvalue = int(input())\nprint(double(value))\n",
+    "testCases": [
+      {
+        "input": [
+          "6"
+        ],
+        "oracle": "12"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": "0"
+      },
+      {
+        "input": [
+          "-4"
+        ],
+        "oracle": "-8"
+      }
+    ],
+    "starter_code": "def double(value):\n    # Replace pass with a return statement\n    pass\n\nvalue = int(input())\nprint(double(value))\n"
+  },
+  {
+    "id": "python-every-third-character",
+    "title": "Every third character",
+    "language_id": "python",
+    "chapter": "Strings and collections",
+    "order": 1,
+    "description": "### Task\nPrint every third character starting at index 0, then the reversed input.\n\n### Input\nOne string, possibly empty.\n\n### Output\nTwo lines: stepped slice and reversed string. Empty slices are empty lines.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nABCDEFG\n```\nResult:\n```text\nADG\nGFEDCBA\n```\n\n### Hint\nUse `text[::3]` and a negative slice step.\n\nDifficulty: **easy**.",
+    "solution": "text = input()\nprint(text[::3])\nprint(text[::-1])\n",
+    "testCases": [
+      {
+        "input": [
+          "ABCDEFG"
+        ],
+        "oracle": "ADG\nGFEDCBA"
+      },
+      {
+        "input": [
+          "X"
+        ],
+        "oracle": "X\nX"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": "\n"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-sample-prefix",
+    "title": "Find a sample prefix",
+    "language_id": "python",
+    "chapter": "Strings and collections",
+    "order": 2,
+    "description": "### Task\nFind the first occurrence of a substring. Print its one-based position, or `not found` if absent.\n\n### Input\nLabel on line 1; non-empty substring on line 2.\n\n### Output\nA position starting at 1, or `not found`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nsample_A\n_\n```\nResult:\n```text\n7\n```\n\n### Hint\n`.find()` returns -1 when absent; Python indexes themselves start at 0.\n\nDifficulty: **easy**.",
+    "solution": "label = input()\nneedle = input()\nindex = label.find(needle)\nprint(index + 1 if index >= 0 else \"not found\")\n",
+    "testCases": [
+      {
+        "input": [
+          "sample_A",
+          "_"
+        ],
+        "oracle": "7"
+      },
+      {
+        "input": [
+          "ABABA",
+          "AB"
+        ],
+        "oracle": "1"
+      },
+      {
+        "input": [
+          "sample",
+          "X"
+        ],
+        "oracle": "not found"
+      },
+      {
+        "input": [
+          "ABABA",
+          "BA"
+        ],
+        "oracle": "2"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-merge-lists",
+    "title": "Merge two lists",
+    "language_id": "python",
+    "chapter": "Strings and collections",
+    "order": 3,
+    "description": "### Task\nExtend the first list with the second, preserving order and duplicates.\n\n### Input\nTwo lines of whitespace-separated labels; either line may be empty.\n\n### Output\nAll labels joined by one space, or an empty line if both lists are empty.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nA B\nB C\n```\nResult:\n```text\nA B B C\n```\n\n### Hint\nUse `.extend()` to add all elements and `\" \".join(labels)` to make text.\n\nDifficulty: **easy**.",
+    "solution": "first = input().split()\nfirst.extend(input().split())\nprint(\" \".join(first))\n",
+    "testCases": [
+      {
+        "input": [
+          "A B",
+          "B C"
+        ],
+        "oracle": "A B B C"
+      },
+      {
+        "input": [
+          "",
+          "X"
+        ],
+        "oracle": "X"
+      },
+      {
+        "input": [
+          "",
+          ""
+        ],
+        "oracle": ""
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-measurement-record",
+    "title": "Parse a measurement record",
+    "language_id": "python",
+    "chapter": "Strings and collections",
+    "order": 4,
+    "description": "### Task\nSplit `sample,count,group` into three fields and unpack them. Print a sentence using those fields.\n\n### Input\nOne line with exactly three comma-separated fields. Count is an integer; fields contain no commas or outer spaces.\n\n### Output\n`<sample> belongs to <group> and has <count> reads`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nA,12,treated\n```\nResult:\n```text\nA belongs to treated and has 12 reads\n```\n\n### Hint\nThis is a simple split task. Quoted CSV fields are introduced in the files chapter.\n\nDifficulty: **medium**.",
+    "solution": "sample, count, group = input().split(\",\")\nprint(f\"{sample} belongs to {group} and has {int(count)} reads\")\n",
+    "testCases": [
+      {
+        "input": [
+          "A,12,treated"
+        ],
+        "oracle": "A belongs to treated and has 12 reads"
+      },
+      {
+        "input": [
+          "control sample,0,control"
+        ],
+        "oracle": "control sample belongs to control and has 0 reads"
+      },
+      {
+        "input": [
+          "B,8,treated"
+        ],
+        "oracle": "B belongs to treated and has 8 reads"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-update-inventory",
+    "title": "Update a small inventory",
+    "language_id": "python",
+    "chapter": "Strings and collections",
+    "order": 5,
+    "description": "### Task\nStart with `{\"tube\": 3, \"plate\": 2}`. Add the supplied increment to the existing item. Print both entries in alphabetical key order.\n\n### Input\nItem (`tube` or `plate`) on line 1; non-negative integer increment on line 2.\n\n### Output\nOne `<item>: <count>` line per key.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\ntube\n4\n```\nResult:\n```text\nplate: 2\ntube: 7\n```\n\n### Hint\n`sorted(dictionary)` returns its keys in order.\n\nDifficulty: **medium**.",
+    "solution": "inventory = {\"tube\": 3, \"plate\": 2}\nitem = input()\ninventory[item] += int(input())\nfor key in sorted(inventory):\n    print(f\"{key}: {inventory[key]}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "tube",
+          "4"
+        ],
+        "oracle": "plate: 2\ntube: 7"
+      },
+      {
+        "input": [
+          "plate",
+          "0"
+        ],
+        "oracle": "plate: 2\ntube: 3"
+      },
+      {
+        "input": [
+          "plate",
+          "5"
+        ],
+        "oracle": "plate: 7\ntube: 3"
+      }
+    ],
+    "starter_code": "inventory = {\"tube\": 3, \"plate\": 2}\n# Read and update an item, then print both entries\n"
+  },
+  {
+    "id": "python-shared-labels",
+    "title": "Shared sample labels",
+    "language_id": "python",
+    "chapter": "Strings and collections",
+    "order": 6,
+    "description": "### Task\nTreat both lists as sets. Print their intersection, then their union, sorting each alphabetically.\n\n### Input\nTwo whitespace-separated lines of labels; duplicates and empty lines are allowed.\n\n### Output\nTwo lines. Each is labels joined by spaces, or `none` if empty.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nB A A\nB C\n```\nResult:\n```text\nB\nA B C\n```\n\n### Hint\n`&` is intersection and `|` is union.\n\nDifficulty: **medium**.",
+    "solution": "first = set(input().split())\nsecond = set(input().split())\nprint(\" \".join(sorted(first & second)) or \"none\")\nprint(\" \".join(sorted(first | second)) or \"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "B A A",
+          "B C"
+        ],
+        "oracle": "B\nA B C"
+      },
+      {
+        "input": [
+          "A",
+          "C"
+        ],
+        "oracle": "none\nA C"
+      },
+      {
+        "input": [
+          "",
+          ""
+        ],
+        "oracle": "none\nnone"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-conditionals",
+    "title": "Classify a measurement",
+    "language_id": "python",
+    "chapter": "Decisions, loops and comprehensions",
+    "order": 1,
+    "description": "### Task\nPrint `low` below 10, `normal` from 10 through 20 inclusive, and `high` above 20.\n\n### Input\nOne integer.\n\n### Output\nOne classification word.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n9\n```\nResult:\n```text\nlow\n```\n\n### Hint\nUse `elif` for the middle branch.\n\nDifficulty: **easy**.",
+    "solution": "value = int(input())\nif value < 10:\n    print(\"low\")\nelif value <= 20:\n    print(\"normal\")\nelse:\n    print(\"high\")\n",
+    "testCases": [
+      {
+        "input": [
+          "9"
+        ],
+        "oracle": "low"
+      },
+      {
+        "input": [
+          "10"
+        ],
+        "oracle": "normal"
+      },
+      {
+        "input": [
+          "20"
+        ],
+        "oracle": "normal"
+      },
+      {
+        "input": [
+          "21"
+        ],
+        "oracle": "high"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-number-samples",
+    "title": "Number the samples",
+    "language_id": "python",
+    "chapter": "Decisions, loops and comprehensions",
+    "order": 2,
+    "description": "### Task\nPrint each label with its position, starting at 1. Use `enumerate()`.\n\n### Input\nOne whitespace-separated line of labels, possibly empty.\n\n### Output\nOne `<position>: <label>` line per label; no output for an empty list.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nA B C\n```\nResult:\n```text\n1: A\n2: B\n3: C\n```\n\n### Hint\n`enumerate(labels, start=1)` supplies both position and value.\n\nDifficulty: **easy**.",
+    "solution": "for index, label in enumerate(input().split(), start=1):\n    print(f\"{index}: {label}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "A B C"
+        ],
+        "oracle": "1: A\n2: B\n3: C"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": ""
+      },
+      {
+        "input": [
+          "A A"
+        ],
+        "oracle": "1: A\n2: A"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-count-labels",
+    "title": "Count label occurrences",
+    "language_id": "python",
+    "chapter": "Decisions, loops and comprehensions",
+    "order": 3,
+    "description": "### Task\nCount each distinct label using a dictionary. Print labels alphabetically with their frequencies.\n\n### Input\nOne whitespace-separated line; it may be empty.\n\n### Output\nOne `<label>: <count>` line per distinct label; no output for an empty list.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\ns2 s1 s2\n```\nResult:\n```text\ns1: 1\ns2: 2\n```\n\n### Hint\n`counts.get(label, 0)` supplies zero before a key has been added.\n\nDifficulty: **medium**.",
+    "solution": "counts = {}\nfor label in input().split():\n    counts[label] = counts.get(label, 0) + 1\nfor label in sorted(counts):\n    print(f\"{label}: {counts[label]}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "s2 s1 s2"
+        ],
+        "oracle": "s1: 1\ns2: 2"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": ""
+      },
+      {
+        "input": [
+          "A A A B"
+        ],
+        "oracle": "A: 3\nB: 1"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-skip-stop",
+    "title": "Skip comments, stop at END",
+    "language_id": "python",
+    "chapter": "Decisions, loops and comprehensions",
+    "order": 4,
+    "description": "### Task\nRead n and then n supplied lines. Skip lines beginning with `#`. Print other lines until a line equals `END`, then stop. Use `continue` and `break`.\n\n### Input\nn (0–10) on line 1, followed by exactly n lines. No trimming: `#` must be the first character and END must match the whole line.\n\n### Output\nRetained lines in input order. Nothing after END is printed.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n5\n# note\nA\nB\nEND\nC\n```\nResult:\n```text\nA\nB\n```\n\nDifficulty: **medium**.",
+    "solution": "n = int(input())\nfor _ in range(n):\n    line = input()\n    if line == \"END\":\n        break\n    if line.startswith(\"#\"):\n        continue\n    print(line)\n",
+    "testCases": [
+      {
+        "input": [
+          "5",
+          "# note",
+          "A",
+          "B",
+          "END",
+          "C"
+        ],
+        "oracle": "A\nB"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": ""
+      },
+      {
+        "input": [
+          "3",
+          "A",
+          "#skip",
+          "B"
+        ],
+        "oracle": "A\nB"
+      },
+      {
+        "input": [
+          "2",
+          "END",
+          "A"
+        ],
+        "oracle": ""
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-list-comprehension",
+    "title": "Transform measurements",
+    "language_id": "python",
+    "chapter": "Decisions, loops and comprehensions",
+    "order": 5,
+    "description": "### Task\nUse a list comprehension to square only the strictly positive integers, preserving their input order.\n\n### Input\nOne whitespace-separated line of integers, possibly empty.\n\n### Output\nSquares joined by spaces, or `none` if there are none.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n-2 0 3 4\n```\nResult:\n```text\n9 16\n```\n\n### Hint\nA comprehension can end with an `if` condition.\n\nDifficulty: **medium**.",
+    "solution": "values = [int(value) for value in input().split()]\nsquares = [value ** 2 for value in values if value > 0]\nprint(\" \".join(map(str, squares)) or \"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "-2 0 3 4"
+        ],
+        "oracle": "9 16"
+      },
+      {
+        "input": [
+          "-1 0"
+        ],
+        "oracle": "none"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": "none"
+      },
+      {
+        "input": [
+          "2 2 1"
+        ],
+        "oracle": "4 4 1"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-two-comprehensions",
+    "title": "Build two comprehensions",
+    "language_id": "python",
+    "chapter": "Decisions, loops and comprehensions",
+    "order": 6,
+    "description": "### Task\nBuild a dictionary mapping labels to lengths and a set of distinct lengths using comprehensions. Print the dictionary by alphabetical key, then sorted lengths.\n\n### Input\nOne line of unique whitespace-separated labels, possibly empty.\n\n### Output\n`<label>:<length>` lines followed by `lengths: <numbers joined by spaces>`, or `lengths: none`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nBB A CCC\n```\nResult:\n```text\nA:1\nBB:2\nCCC:3\nlengths: 1 2 3\n```\n\n### Hint\nDictionary: `{key: value for ...}`. Set: `{value for ...}`.\n\nDifficulty: **medium**.",
+    "solution": "labels = input().split()\nlengths = {label: len(label) for label in labels}\ndistinct = {len(label) for label in labels}\nfor label in sorted(lengths):\n    print(f\"{label}:{lengths[label]}\")\nprint(\"lengths: \" + (\" \".join(map(str, sorted(distinct))) or \"none\"))\n",
+    "testCases": [
+      {
+        "input": [
+          "BB A CCC"
+        ],
+        "oracle": "A:1\nBB:2\nCCC:3\nlengths: 1 2 3"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": "lengths: none"
+      },
+      {
+        "input": [
+          "BB AA"
+        ],
+        "oracle": "AA:2\nBB:2\nlengths: 2"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-running-total",
+    "title": "A running total",
+    "language_id": "python",
+    "chapter": "Decisions, loops and comprehensions",
+    "order": 7,
+    "description": "### Task\nRead integers until 0. Count and sum the preceding integers; exclude the terminating 0.\n\n### Input\nIntegers, one per line. A terminating 0 is always supplied.\n\n### Output\n`count: <count>` then `total: <sum>`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n5\n-2\n0\n```\nResult:\n```text\ncount: 2\ntotal: 3\n```\n\n### Hint\nInitialise both accumulators before the loop.\n\nDifficulty: **harder**.",
+    "solution": "count = 0\ntotal = 0\nwhile True:\n    value = int(input())\n    if value == 0:\n        break\n    count += 1\n    total += value\nprint(f\"count: {count}\")\nprint(f\"total: {total}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "5",
+          "-2",
+          "0"
+        ],
+        "oracle": "count: 2\ntotal: 3"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": "count: 0\ntotal: 0"
+      },
+      {
+        "input": [
+          "-3",
+          "3",
+          "2",
+          "0"
+        ],
+        "oracle": "count: 3\ntotal: 2"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-default-function",
+    "title": "A function with a default",
+    "language_id": "python",
+    "chapter": "Functions and standard modules",
+    "order": 1,
+    "description": "### Task\nDefine `repeat_label(label, times=2)`. Return the label repeated times times, joined by `-`. Return an empty string when times is 0.\n\n### Input\nThe platform calls your function with a string label and optionally an integer times (0–5), including keyword arguments. Do not read stdin or call the function yourself.\n\n### Output\nReturn a string. Do not print it. Function results are displayed as JSON strings.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n{\"name\": \"repeat_label\", \"args\": [\"A\"]}\n```\nResult:\n```text\n\"A-A\"\n```\n\n### Hint\nThis is the first direct function test: the platform supplies the caller.\n\nDifficulty: **easy**.",
+    "solution": "def repeat_label(label, times=2):\n    return \"-\".join([label] * times)\n",
+    "testCases": [
+      {
+        "input": [],
+        "oracle": "\"A-A\"",
+        "functionTest": {
+          "name": "repeat_label",
+          "args": [
+            "A"
+          ]
+        }
+      },
+      {
+        "input": [],
+        "oracle": "\"sample-sample-sample\"",
+        "functionTest": {
+          "name": "repeat_label",
+          "args": [
+            "sample"
+          ],
+          "kwargs": {
+            "times": 3
+          }
+        }
+      },
+      {
+        "input": [],
+        "oracle": "\"\"",
+        "functionTest": {
+          "name": "repeat_label",
+          "args": [
+            "B",
+            0
+          ]
+        }
+      }
+    ],
+    "starter_code": "def repeat_label(label, times=2):\n    # Return the result\n    pass\n"
+  },
+  {
+    "id": "python-pair-counts",
+    "title": "Pair labels and counts",
+    "language_id": "python",
+    "chapter": "Functions and standard modules",
+    "order": 2,
+    "description": "### Task\nUse `zip()` to pair labels with counts and print each pair.\n\n### Input\nLine 1: labels. Line 2: integer counts. The lists have equal length; both may be empty.\n\n### Output\nOne `<label>: <count>` line per pair, in input order.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nA B\n3 0\n```\nResult:\n```text\nA: 3\nB: 0\n```\n\n### Hint\n`zip(labels, counts)` yields matching pairs.\n\nDifficulty: **easy**.",
+    "solution": "labels = input().split()\ncounts = [int(value) for value in input().split()]\nfor label, count in zip(labels, counts):\n    print(f\"{label}: {count}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "A B",
+          "3 0"
+        ],
+        "oracle": "A: 3\nB: 0"
+      },
+      {
+        "input": [
+          "",
+          ""
+        ],
+        "oracle": ""
+      },
+      {
+        "input": [
+          "C A B",
+          "8 2 5"
+        ],
+        "oracle": "C: 8\nA: 2\nB: 5"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-supplied-module",
+    "title": "Use a supplied module",
+    "language_id": "python",
+    "chapter": "Functions and standard modules",
+    "order": 3,
+    "description": "### Task\nImport `normalise` from the supplied module and use it on the input sequence. It removes all whitespace and uppercases letters.\n\n### Input\nOne sequence line, possibly empty. The fixture `python-course/sequence_tools.py` is supplied.\n\n### Output\nThe normalised sequence.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n ac gt \n```\nResult:\n```text\nACGT\n```\n\n### Hint\nKeep the supplied path setup: it makes the fixture directory importable.\n\nDifficulty: **medium**.",
+    "solution": "import sys\nsys.path.insert(0, \"python-course\")\nfrom sequence_tools import normalise\nprint(normalise(input()))\n",
+    "testCases": [
+      {
+        "input": [
+          " ac gt "
+        ],
+        "oracle": "ACGT",
+        "fixtures": [
+          "python-course/sequence_tools.py"
+        ]
+      },
+      {
+        "input": [
+          "a\tc g"
+        ],
+        "oracle": "ACG",
+        "fixtures": [
+          "python-course/sequence_tools.py"
+        ]
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/sequence_tools.py"
+        ]
+      }
+    ],
+    "starter_code": "import sys\nsys.path.insert(0, \"python-course\")\n# Import normalise from sequence_tools\nsequence = input()\n# Call it and print the result\n"
+  },
+  {
+    "id": "python-fixed-timestamp",
+    "title": "Format a fixed timestamp",
+    "language_id": "python",
+    "chapter": "Functions and standard modules",
+    "order": 4,
+    "description": "### Task\nConvert a Unix timestamp (seconds since 1970-01-01 UTC) to a UTC date and time using `time.gmtime()` and `time.strftime()`.\n\n### Input\nOne non-negative integer timestamp.\n\n### Output\nUTC `YYYY-MM-DD HH:MM:SS`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n0\n```\nResult:\n```text\n1970-01-01 00:00:00\n```\n\n### Hint\nUse format `%Y-%m-%d %H:%M:%S`. Do not use local time or the current clock.\n\nDifficulty: **medium**.",
+    "solution": "import time\nvalue = int(input())\nprint(time.strftime(\"%Y-%m-%d %H:%M:%S\", time.gmtime(value)))\n",
+    "testCases": [
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": "1970-01-01 00:00:00"
+      },
+      {
+        "input": [
+          "86400"
+        ],
+        "oracle": "1970-01-02 00:00:00"
+      },
+      {
+        "input": [
+          "1704067200"
+        ],
+        "oracle": "2024-01-01 00:00:00"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-extract-sample-numbers",
+    "title": "Extract sample numbers",
+    "language_id": "python",
+    "chapter": "Functions and standard modules",
+    "order": 5,
+    "description": "### Task\nUse `re.findall()` to extract the three digits from tags consisting of S followed by exactly three digits, with word boundaries on both sides.\n\n### Input\nOne text line.\n\n### Output\nMatched digit groups in occurrence order joined by spaces, retaining leading zeros; `none` if absent.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nS012 S345 X007 S12\n```\nResult:\n```text\n012 345\n```\n\n### Hint\nUse pattern `r\"\\bS(\\d{3})\\b\"`. Parentheses select only the digits.\n\nDifficulty: **medium**.",
+    "solution": "import re\nnumbers = re.findall(r\"\\bS(\\d{3})\\b\", input())\nprint(\" \".join(numbers) or \"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "S012 S345 X007 S12"
+        ],
+        "oracle": "012 345"
+      },
+      {
+        "input": [
+          "XS123 S1234 S99"
+        ],
+        "oracle": "none"
+      },
+      {
+        "input": [
+          "(S007), S007; S999"
+        ],
+        "oracle": "007 007 999"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-sample-combinations",
+    "title": "Generate sample combinations",
+    "language_id": "python",
+    "chapter": "Functions and standard modules",
+    "order": 6,
+    "description": "### Task\nUse `itertools.combinations(labels, 2)` to print every distinct two-label pair.\n\n### Input\nA sorted whitespace-separated list of unique labels, possibly empty.\n\n### Output\nOne `<first>,<second>` pair per line in combinations order; `none` if fewer than two labels.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nA B C\n```\nResult:\n```text\nA,B\nA,C\nB,C\n```\n\nDifficulty: **medium**.",
+    "solution": "from itertools import combinations\nlabels = input().split()\npairs = list(combinations(labels, 2))\nfor a, b in pairs:\n    print(f\"{a},{b}\")\nif not pairs:\n    print(\"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "A B C"
+        ],
+        "oracle": "A,B\nA,C\nB,C"
+      },
+      {
+        "input": [
+          "A"
+        ],
+        "oracle": "none"
+      },
+      {
+        "input": [
+          ""
+        ],
+        "oracle": "none"
+      },
+      {
+        "input": [
+          "X Y"
+        ],
+        "oracle": "X,Y"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-sampling-tool",
+    "title": "A command-line sampling tool",
+    "language_id": "python",
+    "chapter": "Functions and standard modules",
+    "order": 7,
+    "description": "### Task\nComplete the argument parser and use `random.Random(seed).randint(1, 6)` count times. Print the label and generated integers. A seed makes the result repeatable.\n\n### Input\nCommand-line arguments `--label` (text), `--seed` (non-negative integer), `--count` (integer 1–10). No stdin.\n\n### Output\n`<label>: <numbers joined by spaces>`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nArguments: --label sample A --seed 7 --count 3\n```\nResult:\n```text\nsample A: 3 2 4\n```\n\n### Hint\nCreate the generator once, before the loop. Do not reset its seed for every value.\n\nDifficulty: **harder**.",
+    "solution": "import argparse\nimport random\nparser = argparse.ArgumentParser()\nparser.add_argument(\"--label\", required=True)\nparser.add_argument(\"--seed\", type=int, required=True)\nparser.add_argument(\"--count\", type=int, required=True)\nargs = parser.parse_args()\nrng = random.Random(args.seed)\nvalues = [rng.randint(1, 6) for _ in range(args.count)]\nprint(args.label + \": \" + \" \".join(map(str, values)))\n",
+    "testCases": [
+      {
+        "input": [],
+        "oracle": "sample A: 3 2 4",
+        "arguments": [
+          "--label",
+          "sample A",
+          "--seed",
+          "7",
+          "--count",
+          "3"
+        ]
+      },
+      {
+        "input": [],
+        "oracle": "control: 4",
+        "arguments": [
+          "--label",
+          "control",
+          "--seed",
+          "0",
+          "--count",
+          "1"
+        ]
+      },
+      {
+        "input": [],
+        "oracle": "B: 6 1 1 6 3",
+        "arguments": [
+          "--label",
+          "B",
+          "--seed",
+          "42",
+          "--count",
+          "5"
+        ]
+      }
+    ],
+    "starter_code": "import argparse\nimport random\nparser = argparse.ArgumentParser()\nparser.add_argument(\"--label\", required=True)\nparser.add_argument(\"--seed\", type=int, required=True)\nparser.add_argument(\"--count\", type=int, required=True)\nargs = parser.parse_args()\n# Create the generator, generate values, and print\n"
+  },
+  {
+    "id": "python-nonempty-lines",
+    "title": "Count non-empty lines",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 1,
+    "description": "### Task\nOpen the supplied file using UTF-8 and count lines containing at least one non-whitespace character.\n\n### Input\nOne filename. Files are supplied and exist.\n\n### Output\nThe count as an integer.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/lines.txt\n```\nResult:\n```text\n3\n```\n\n### Hint\n`with open(filename, encoding=\"utf-8\") as source:` closes the file automatically. Use `line.strip()` to identify blank lines.\n\nDifficulty: **easy**.",
+    "solution": "filename = input()\nwith open(filename, encoding=\"utf-8\") as source:\n    print(sum(1 for line in source if line.strip()))\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/lines.txt"
+        ],
+        "oracle": "3",
+        "fixtures": [
+          "python-course/lines.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/empty.txt"
+        ],
+        "oracle": "0",
+        "fixtures": [
+          "python-course/empty.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/other lines.txt"
+        ],
+        "oracle": "2",
+        "fixtures": [
+          "python-course/other lines.txt"
+        ]
+      }
+    ],
+    "starter_code": "filename = input()\ncount = 0\nwith open(filename, encoding=\"utf-8\") as source:\n    # Count the non-empty lines\n    pass\nprint(count)\n"
+  },
+  {
+    "id": "python-uppercase-copy",
+    "title": "Write an uppercase copy",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 2,
+    "description": "### Task\nRead the entire supplied UTF-8 text file and write an uppercase copy to `uppercase.txt`, preserving its line breaks.\n\n### Input\nOne existing filename.\n\n### Output\nCreate `uppercase.txt`. Print nothing.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/lines.txt\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nuppercase.txt begins with ALPHA; all original blank lines and line breaks are retained.\n```\n\n### Hint\nMode `\"w\"` creates or replaces a file.\n\nDifficulty: **easy**.",
+    "solution": "filename = input()\nwith open(filename, encoding=\"utf-8\") as source:\n    contents = source.read()\nwith open(\"uppercase.txt\", \"w\", encoding=\"utf-8\") as target:\n    target.write(contents.upper())\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/lines.txt"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/lines.txt"
+        ],
+        "outputFiles": [
+          "uppercase.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/empty.txt"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/empty.txt"
+        ],
+        "outputFiles": [
+          "uppercase.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/other lines.txt"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/other lines.txt"
+        ],
+        "outputFiles": [
+          "uppercase.txt"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-append-sample",
+    "title": "Append a sample",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 3,
+    "description": "### Task\nAppend the new label followed by one newline to the supplied samples file. Preserve its existing content.\n\n### Input\nExisting filename on line 1; new label on line 2. Existing files are empty or end with a newline.\n\n### Output\nUpdate the supplied file. Print nothing.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/append-a/samples.txt\nC\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nA\nB\nC\n```\n\n### Hint\nMode `\"a\"` appends instead of replacing.\n\nDifficulty: **easy**.",
+    "solution": "filename = input()\nlabel = input()\nwith open(filename, \"a\", encoding=\"utf-8\") as target:\n    target.write(label + \"\\n\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/append-a/samples.txt",
+          "C"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/append-a/samples.txt"
+        ],
+        "outputFiles": [
+          "python-course/append-a/samples.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/append-b/samples.txt",
+          "sample A"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/append-b/samples.txt"
+        ],
+        "outputFiles": [
+          "python-course/append-b/samples.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/append-c/samples.txt",
+          "B"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/append-c/samples.txt"
+        ],
+        "outputFiles": [
+          "python-course/append-c/samples.txt"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-list-count-files",
+    "title": "List count files",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 4,
+    "description": "### Task\nList only top-level files with the extension `.count` in the supplied directory. Print each basename and byte size, sorted by basename. Do not recurse into subdirectories.\n\n### Input\nOne directory path. Each directory is supplied.\n\n### Output\n`<basename>: <byte size>` per matching file; no output when none match.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/counts-a\n```\nResult:\n```text\nA.count: 4\nsample B.count: 3\n```\n\n### Hint\nCombine `glob.glob()`, `os.path.basename()` and `os.path.getsize()`.\n\nDifficulty: **medium**.",
+    "solution": "import glob\nimport os\ndirectory = input()\nfor filename in sorted(glob.glob(os.path.join(directory, \"*.count\"))):\n    if os.path.isfile(filename):\n        print(f\"{os.path.basename(filename)}: {os.path.getsize(filename)}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/counts-a"
+        ],
+        "oracle": "A.count: 4\nsample B.count: 3",
+        "fixtures": [
+          "python-course/counts-a"
+        ]
+      },
+      {
+        "input": [
+          "python-course/counts-b"
+        ],
+        "oracle": "C.count: 0\nD.count: 5",
+        "fixtures": [
+          "python-course/counts-b"
+        ]
+      },
+      {
+        "input": [
+          "python-course/counts-c"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/counts-c"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-organise-copies",
+    "title": "Organise files and compare copies",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 5,
+    "description": "### Task\nCreate `selected` and copy only the input directory's top-level `.txt` files there with `shutil.copyfile()`. Print copied basenames alphabetically. Then compare all copied files using `filecmp.cmp(..., shallow=False)`.\n\n### Input\nOne supplied directory path.\n\n### Output\nCopied basenames, one per line, followed by `copies identical: yes` when every copy matches (also when no files match). Create exactly those copies under `selected`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/copy-a\n```\nResult:\n```text\nA.txt\nsample B.txt\ncopies identical: yes\n```\n\nGenerated file/content:\n```text\nselected/A.txt: alpha\nselected/sample B.txt: beta\n```\n\n### Hint\nThe supplied imports and directory creation are scaffolding; complete the copy loop.\n\nDifficulty: **medium**.",
+    "solution": "import glob\nimport os\nimport shutil\nimport filecmp\ndirectory = input()\nos.mkdir(\"selected\")\nidentical = True\nfor source in sorted(glob.glob(os.path.join(directory, \"*.txt\"))):\n    if not os.path.isfile(source):\n        continue\n    name = os.path.basename(source)\n    target = os.path.join(\"selected\", name)\n    shutil.copyfile(source, target)\n    identical = identical and filecmp.cmp(source, target, shallow=False)\n    print(name)\nprint(\"copies identical: \" + (\"yes\" if identical else \"no\"))\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/copy-a"
+        ],
+        "oracle": "A.txt\nsample B.txt\ncopies identical: yes",
+        "fixtures": [
+          "python-course/copy-a"
+        ],
+        "outputFiles": [
+          "selected",
+          "selected/A.txt",
+          "selected/sample B.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/copy-b"
+        ],
+        "oracle": "C.txt\ncopies identical: yes",
+        "fixtures": [
+          "python-course/copy-b"
+        ],
+        "outputFiles": [
+          "selected",
+          "selected/C.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/copy-c"
+        ],
+        "oracle": "copies identical: yes",
+        "fixtures": [
+          "python-course/copy-c"
+        ],
+        "outputFiles": [
+          "selected"
+        ]
+      }
+    ],
+    "starter_code": "import glob\nimport os\nimport shutil\nimport filecmp\ndirectory = input()\nos.mkdir(\"selected\")\n# Copy, compare and list the matching files\n"
+  },
+  {
+    "id": "python-filter-csv",
+    "title": "Filter a CSV table",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 6,
+    "description": "### Task\nRead a CSV with columns `sample,count`. Write the header and rows with count at least the threshold to `selected.csv`, preserving row order. Use the csv module so quoted names containing commas work.\n\n### Input\nExisting CSV filename on line 1; non-negative integer threshold on line 2.\n\n### Output\nCreate `selected.csv` with comma delimiter, standard minimal quoting, UTF-8 and `\n` line endings. Print nothing.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/samples-a.csv\n3\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nsample,count\nA,12\n\"sample, B\",3\n```\n\n### Hint\nUse `csv.DictReader` and `csv.DictWriter(..., lineterminator=\"\\n\")`. Open files with `newline=\"\"`.\n\nDifficulty: **medium**.",
+    "solution": "import csv\nfilename = input()\nthreshold = int(input())\nwith open(filename, newline=\"\", encoding=\"utf-8\") as source, open(\"selected.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as target:\n    reader = csv.DictReader(source)\n    writer = csv.DictWriter(target, fieldnames=[\"sample\", \"count\"], lineterminator=\"\\n\")\n    writer.writeheader()\n    for row in reader:\n        if int(row[\"count\"]) >= threshold:\n            writer.writerow(row)\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/samples-a.csv",
+          "3"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-a.csv"
+        ],
+        "outputFiles": [
+          "selected.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-b.csv",
+          "6"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-b.csv"
+        ],
+        "outputFiles": [
+          "selected.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-empty.csv",
+          "0"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-empty.csv"
+        ],
+        "outputFiles": [
+          "selected.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-a.csv",
+          "0"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-a.csv"
+        ],
+        "outputFiles": [
+          "selected.csv"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-missing-file",
+    "title": "Handle a missing file",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 7,
+    "description": "### Task\nCount non-empty lines as before. Catch `FileNotFoundError`: print `Error: file not found` to stderr and exit with code 1. Successful runs exit 0.\n\n### Input\nOne filename; it may not exist.\n\n### Output\nSuccess: integer count on stdout, empty stderr. Missing file: empty stdout, the error on stderr, exit 1.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/lines.txt\n```\nResult:\n```text\n3\n```\n\n### Hint\nUse `try`/`except FileNotFoundError`. Import `sys` for stderr and exit status.\n\nDifficulty: **medium**.",
+    "solution": "import sys\nfilename = input()\ntry:\n    with open(filename, encoding=\"utf-8\") as source:\n        print(sum(1 for line in source if line.strip()))\nexcept FileNotFoundError:\n    print(\"Error: file not found\", file=sys.stderr)\n    sys.exit(1)\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/lines.txt"
+        ],
+        "oracle": "3",
+        "fixtures": [
+          "python-course/lines.txt"
+        ]
+      },
+      {
+        "input": [
+          "python-course/absent.txt"
+        ],
+        "oracle": "",
+        "oracleStderr": "Error: file not found",
+        "oracleExit": 1
+      },
+      {
+        "input": [
+          "python-course/empty.txt"
+        ],
+        "oracle": "0",
+        "fixtures": [
+          "python-course/empty.txt"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-variant-table",
+    "title": "Summarise a tiny variant table",
+    "language_id": "python",
+    "chapter": "Files and small reports",
+    "order": 8,
+    "description": "### Task\nRead a simplified TSV. Ignore lines beginning with `#`; the first remaining line is the header `CHROM`, `POS`, `EFFECT`. Keep `stop_gained` and `frameshift` rows and write columns `chrom,position,effect` to `variants.csv` in original order. These labels identify two example kinds of sequence change.\n\n### Input\nOne supplied TSV filename. Fields are tab-separated; positions are positive integers.\n\n### Output\nCreate `variants.csv` with the lowercase header, minimal CSV quoting and `\n` line endings. Print nothing.\n\n### Assumptions\nThis documented, simplified table is not a complete VCF format. Inputs are valid. Do not print prompts.\n\n### Example\nInput:\n```text\npython-course/variants-a.tsv\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nchrom,position,effect\n1,100,stop_gained\n2,80,frameshift\n```\n\n### Hint\nPass only non-comment lines into `csv.DictReader(..., delimiter=\"\t\")`.\n\nDifficulty: **harder**.",
+    "solution": "import csv\nfilename = input()\nwith open(filename, encoding=\"utf-8\") as source, open(\"variants.csv\", \"w\", newline=\"\", encoding=\"utf-8\") as target:\n    reader = csv.DictReader((line for line in source if not line.startswith(\"#\")), delimiter=\"\t\")\n    writer = csv.writer(target, lineterminator=\"\\n\")\n    writer.writerow([\"chrom\", \"position\", \"effect\"])\n    for row in reader:\n        if row[\"EFFECT\"] in {\"stop_gained\", \"frameshift\"}:\n            writer.writerow([row[\"CHROM\"], row[\"POS\"], row[\"EFFECT\"]])\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/variants-a.tsv"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/variants-a.tsv"
+        ],
+        "outputFiles": [
+          "variants.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/variants-b.tsv"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/variants-b.tsv"
+        ],
+        "outputFiles": [
+          "variants.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/variants-c.tsv"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/variants-c.tsv"
+        ],
+        "outputFiles": [
+          "variants.csv"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-read-worksheet",
+    "title": "Read a worksheet",
+    "language_id": "python",
+    "chapter": "Spreadsheets and documents",
+    "order": 1,
+    "description": "### Task\nOpen the supplied workbook with openpyxl. Read `Samples`, skip its first header row, and print each data row.\n\n### Input\nOne existing workbook filename. The only sheet is Samples, with columns sample and count and no blank data rows.\n\n### Output\n`<sample>: <count>` per data row in worksheet order; no output if there is only a header.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/worksheet-a.xlsx\n```\nResult:\n```text\nA: 12\nB: 0\n```\n\n### Hint\n`iter_rows(min_row=2, values_only=True)` yields cell values after the header.\n\nDifficulty: **easy**.",
+    "solution": "from openpyxl import load_workbook\nwb = load_workbook(input(), read_only=True, data_only=True)\nfor sample, count in wb[\"Samples\"].iter_rows(min_row=2, values_only=True):\n    print(f\"{sample}: {count}\")\nwb.close()\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/worksheet-a.xlsx"
+        ],
+        "oracle": "A: 12\nB: 0",
+        "fixtures": [
+          "python-course/worksheet-a.xlsx"
+        ]
+      },
+      {
+        "input": [
+          "python-course/worksheet-b.xlsx"
+        ],
+        "oracle": "control: 5\nsample C: 8\nD: 1",
+        "fixtures": [
+          "python-course/worksheet-b.xlsx"
+        ]
+      },
+      {
+        "input": [
+          "python-course/worksheet-empty.xlsx"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/worksheet-empty.xlsx"
+        ]
+      }
+    ],
+    "starter_code": "from openpyxl import load_workbook\nfilename = input()\n# Open Samples and iterate over its data rows\n"
+  },
+  {
+    "id": "python-first-excel-report",
+    "title": "Create your first Excel file",
+    "language_id": "python",
+    "chapter": "Spreadsheets and documents",
+    "order": 2,
+    "description": "### Task\nRead a student name and score. Create one worksheet named `Scores` in `scores.xlsx`. Put `Name` in A1, `Score` in B1, the name in A2 and the integer score in B2. Leave all other cells empty.\n\n### Input\nName on line 1; integer score (0–20) on line 2.\n\n### Output\nCreate scores.xlsx; print nothing. B2 must be a number, not text.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nAda Lovelace\n17\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nScores\nName          | Score\nAda Lovelace  | 17 (number)\n```\n\n### Hint\nUse `Workbook()`, its `.active` worksheet, and `.save()`. Grading checks sheet names and cell values/types, allowing different styles.\n\nDifficulty: **easy**.",
+    "solution": "from openpyxl import Workbook\nname = input()\nscore = int(input())\nwb = Workbook()\nws = wb.active\nws.title = \"Scores\"\nws.append([\"Name\", \"Score\"])\nws.append([name, score])\nwb.save(\"scores.xlsx\")\n",
+    "testCases": [
+      {
+        "input": [
+          "Ada Lovelace",
+          "17"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "scores.xlsx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "scores.xlsx",
+            "kind": "xlsx"
+          }
+        ]
+      },
+      {
+        "input": [
+          "Sam",
+          "0"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "scores.xlsx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "scores.xlsx",
+            "kind": "xlsx"
+          }
+        ]
+      },
+      {
+        "input": [
+          "Noor",
+          "20"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "scores.xlsx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "scores.xlsx",
+            "kind": "xlsx"
+          }
+        ]
+      }
+    ],
+    "starter_code": "from openpyxl import Workbook\nname = input()\nscore = int(input())\nwb = Workbook()\nws = wb.active\n# Name the sheet, fill the cells and save\n"
+  },
+  {
+    "id": "python-write-worksheet",
+    "title": "Write a worksheet from CSV",
+    "language_id": "python",
+    "chapter": "Spreadsheets and documents",
+    "order": 3,
+    "description": "### Task\nRead a sample,count CSV and create `samples.xlsx` with exactly one worksheet named `Samples`. Write the same header and data rows, converting counts to numbers. Leave all other cells empty.\n\n### Input\nOne existing CSV filename; quoted sample names may contain commas.\n\n### Output\nCreate samples.xlsx. Print nothing. Grading checks sheet names, cell values and types; styles are free.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/samples-a.csv\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nSamples\nsample    | count\nA         | 12\nsample, B | 3\nC         | 0\n```\n\n### Hint\nUse the CSV reading skills from the files chapter; use `ws.append([sample, int(count)])`.\n\nDifficulty: **medium**.",
+    "solution": "import csv\nfrom openpyxl import Workbook\nwb = Workbook()\nws = wb.active\nws.title = \"Samples\"\nws.append([\"sample\", \"count\"])\nwith open(input(), newline=\"\", encoding=\"utf-8\") as source:\n    for row in csv.DictReader(source):\n        ws.append([row[\"sample\"], int(row[\"count\"])])\nwb.save(\"samples.xlsx\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/samples-a.csv"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-a.csv"
+        ],
+        "outputFiles": [
+          "samples.xlsx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "samples.xlsx",
+            "kind": "xlsx"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-b.csv"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-b.csv"
+        ],
+        "outputFiles": [
+          "samples.xlsx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "samples.xlsx",
+            "kind": "xlsx"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-empty.csv"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-empty.csv"
+        ],
+        "outputFiles": [
+          "samples.xlsx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "samples.xlsx",
+            "kind": "xlsx"
+          }
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-short-word-report",
+    "title": "Create a short Word report",
+    "language_id": "python",
+    "chapter": "Spreadsheets and documents",
+    "order": 4,
+    "description": "### Task\nCreate `report.docx` with, in order: a level-1 heading `Sample Report`; a paragraph `Sample: <name>`; a 2-row, 2-column table. Its header is Name, Count; its second row contains the name and count as text. Do not add other text or tables.\n\n### Input\nSample name on line 1; integer count (0–100) on line 2.\n\n### Output\nCreate report.docx; print nothing. Checks cover text, heading level and table cells; fonts and borders may differ.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nSample A\n7\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nSample Report (heading 1)\nSample: Sample A\nName     | Count\nSample A | 7\n```\n\n### Hint\nUse `Document()`, `.add_heading(text, level=1)`, `.add_paragraph()`, `.add_table(rows=2, cols=2)` and `.save()`. Table cell values must be strings.\n\nDifficulty: **medium**.",
+    "solution": "from docx import Document\nname = input()\ncount = int(input())\ndoc = Document()\ndoc.add_heading(\"Sample Report\", level=1)\ndoc.add_paragraph(f\"Sample: {name}\")\ntable = doc.add_table(rows=2, cols=2)\nfor r, row in enumerate([[\"Name\", \"Count\"], [name, str(count)]]):\n    for c, value in enumerate(row):\n        table.cell(r, c).text = value\ndoc.save(\"report.docx\")\n",
+    "testCases": [
+      {
+        "input": [
+          "Sample A",
+          "7"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "report.docx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.docx",
+            "kind": "docx",
+            "headings": true
+          }
+        ]
+      },
+      {
+        "input": [
+          "Control",
+          "0"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "report.docx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.docx",
+            "kind": "docx",
+            "headings": true
+          }
+        ]
+      },
+      {
+        "input": [
+          "Sample B",
+          "100"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "report.docx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.docx",
+            "kind": "docx",
+            "headings": true
+          }
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-one-page-pdf-report",
+    "title": "Create a one-page PDF report",
+    "language_id": "python",
+    "chapter": "Spreadsheets and documents",
+    "order": 5,
+    "description": "### Task\nCreate `report.pdf` with one 300 × 300 point page. Use Helvetica 12 points. Draw `Sample: <name>` at (40, 240) and `Count: <count>` at (40, 210), with no additional text.\n\n### Input\nSample name on line 1 (at most 15 ASCII characters); integer count (0–100) on line 2.\n\n### Output\nCreate report.pdf; print nothing. Checks cover one page, text, size and text positions with a 2-point tolerance.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nSample A\n7\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nSample: Sample A   at (40, 240)\nCount: 7           at (40, 210)\n```\n\n### Hint\nCoordinates are points from the bottom-left. Use `canvas.Canvas()`, `.setFont()`, `.drawString()` and `.save()`.\n\nDifficulty: **medium**.",
+    "solution": "from reportlab.pdfgen import canvas\nname = input()\ncount = int(input())\npdf = canvas.Canvas(\"report.pdf\", pagesize=(300, 300))\npdf.setFont(\"Helvetica\", 12)\npdf.drawString(40, 240, f\"Sample: {name}\")\npdf.drawString(40, 210, f\"Count: {count}\")\npdf.save()\n",
+    "testCases": [
+      {
+        "input": [
+          "Sample A",
+          "7"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "report.pdf"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.pdf",
+            "kind": "pdf",
+            "layout": true,
+            "positionTolerance": 2
+          }
+        ]
+      },
+      {
+        "input": [
+          "Control",
+          "0"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "report.pdf"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.pdf",
+            "kind": "pdf",
+            "layout": true,
+            "positionTolerance": 2
+          }
+        ]
+      },
+      {
+        "input": [
+          "B",
+          "100"
+        ],
+        "oracle": "",
+        "outputFiles": [
+          "report.pdf"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.pdf",
+            "kind": "pdf",
+            "layout": true,
+            "positionTolerance": 2
+          }
+        ]
+      }
+    ],
+    "starter_code": "from reportlab.pdfgen import canvas\nname = input()\ncount = int(input())\npdf = canvas.Canvas(\"report.pdf\", pagesize=(300, 300))\npdf.setFont(\"Helvetica\", 12)\n# Draw both lines, then save\n"
+  },
+  {
+    "id": "python-read-database",
+    "title": "Read a small database",
+    "language_id": "python",
+    "chapter": "Python and SQLite",
+    "order": 1,
+    "description": "### Task\nConnect to the supplied SQLite database. Table `samples(id INTEGER PRIMARY KEY, name TEXT UNIQUE, reads INTEGER)` contains small sample records. Select name and reads ordered by id and print them.\n\n### Input\nOne existing database filename.\n\n### Output\n`<name>: <reads>` per row in id order; no output for an empty table.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/samples-a.db\n```\nResult:\n```text\nA: 12\nO'Brien: 0\nB: 5\n```\n\n### Hint\n`.execute(query)` yields row tuples. SQLite is a local file database; no server is needed.\n\nDifficulty: **easy**.",
+    "solution": "import sqlite3\nwith sqlite3.connect(input()) as connection:\n    for name, reads in connection.execute(\"SELECT name, reads FROM samples ORDER BY id\"):\n        print(f\"{name}: {reads}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/samples-a.db"
+        ],
+        "oracle": "A: 12\nO'Brien: 0\nB: 5",
+        "fixtures": [
+          "python-course/samples-a.db"
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-b.db"
+        ],
+        "oracle": "control: 3\ntreated: 8",
+        "fixtures": [
+          "python-course/samples-b.db"
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-empty.db"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/samples-empty.db"
+        ]
+      }
+    ],
+    "starter_code": "import sqlite3\nfilename = input()\nwith sqlite3.connect(filename) as connection:\n    # Select and print the ordered rows\n    pass\n"
+  },
+  {
+    "id": "python-find-sample",
+    "title": "Find one sample safely",
+    "language_id": "python",
+    "chapter": "Python and SQLite",
+    "order": 2,
+    "description": "### Task\nLook up a sample by name in table `samples(id, name, reads)`. Use an SQL `?` placeholder and a parameter tuple, not string interpolation. Print its reads or `not found`.\n\n### Input\nExisting database filename on line 1; sample name on line 2.\n\n### Output\nA read count, or `not found`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/samples-a.db\nO'Brien\n```\nResult:\n```text\n0\n```\n\n### Hint\nA one-element tuple is `(name,)`. A parameter keeps apostrophes safe. Behavioural tests cannot prove which SQL construction you used.\n\nDifficulty: **medium**.",
+    "solution": "import sqlite3\nfilename = input()\nname = input()\nwith sqlite3.connect(filename) as connection:\n    row = connection.execute(\"SELECT reads FROM samples WHERE name = ?\", (name,)).fetchone()\n    print(row[0] if row is not None else \"not found\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/samples-a.db",
+          "O'Brien"
+        ],
+        "oracle": "0",
+        "fixtures": [
+          "python-course/samples-a.db"
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-a.db",
+          "missing"
+        ],
+        "oracle": "not found",
+        "fixtures": [
+          "python-course/samples-a.db"
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-b.db",
+          "treated"
+        ],
+        "oracle": "8",
+        "fixtures": [
+          "python-course/samples-b.db"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-insert-commit",
+    "title": "Insert and commit",
+    "language_id": "python",
+    "chapter": "Python and SQLite",
+    "order": 3,
+    "description": "### Task\nInsert the supplied new sample into `samples(id INTEGER PRIMARY KEY, name TEXT UNIQUE, reads INTEGER)`, letting SQLite assign id. Use parameters, commit, close, reopen, and print all rows ordered by name.\n\n### Input\nDatabase filename, unique new name and non-negative reads, each on its own line.\n\n### Output\n`<name>: <reads>` lines sorted by name. Persist the new row in the supplied database file. The platform also queries the saved file independently.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/samples-a.db\nC\n7\n```\nResult:\n```text\nA: 12\nB: 5\nC: 7\nO'Brien: 0\n```\n\n### Hint\nA printout alone does not save a change. Call `.commit()` before closing.\n\nDifficulty: **medium**.",
+    "solution": "import sqlite3\nfilename = input()\nname = input()\nreads = int(input())\nconnection = sqlite3.connect(filename)\nconnection.execute(\"INSERT INTO samples(name, reads) VALUES(?, ?)\", (name, reads))\nconnection.commit()\nconnection.close()\nwith sqlite3.connect(filename) as connection:\n    for name, reads in connection.execute(\"SELECT name, reads FROM samples ORDER BY name\"):\n        print(f\"{name}: {reads}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/samples-a.db",
+          "C",
+          "7"
+        ],
+        "oracle": "A: 12\nB: 5\nC: 7\nO'Brien: 0",
+        "fixtures": [
+          "python-course/samples-a.db"
+        ],
+        "outputFiles": [
+          "python-course/samples-a.db"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "python-course/samples-a.db",
+            "kind": "sqlite",
+            "queries": [
+              {
+                "name": "samples",
+                "sql": "SELECT name, reads FROM samples ORDER BY name",
+                "ordered": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-b.db",
+          "A",
+          "0"
+        ],
+        "oracle": "A: 0\ncontrol: 3\ntreated: 8",
+        "fixtures": [
+          "python-course/samples-b.db"
+        ],
+        "outputFiles": [
+          "python-course/samples-b.db"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "python-course/samples-b.db",
+            "kind": "sqlite",
+            "queries": [
+              {
+                "name": "samples",
+                "sql": "SELECT name, reads FROM samples ORDER BY name",
+                "ordered": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/samples-empty.db",
+          "sample A",
+          "15"
+        ],
+        "oracle": "sample A: 15",
+        "fixtures": [
+          "python-course/samples-empty.db"
+        ],
+        "outputFiles": [
+          "python-course/samples-empty.db"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "python-course/samples-empty.db",
+            "kind": "sqlite",
+            "queries": [
+              {
+                "name": "samples",
+                "sql": "SELECT name, reads FROM samples ORDER BY name",
+                "ordered": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-join-transcripts",
+    "title": "Join genes and transcripts",
+    "language_id": "python",
+    "chapter": "Python and SQLite",
+    "order": 4,
+    "description": "### Task\nJoin `genes(gene_id INTEGER PRIMARY KEY, symbol TEXT)` to `transcripts(transcript_id TEXT PRIMARY KEY, gene_id INTEGER)` on gene_id. A transcript belongs to one gene; a gene may have several transcripts.\n\n### Input\nOne existing database filename. Every transcript has a matching gene.\n\n### Output\n`<transcript_id>,<symbol>` per transcript, ordered by transcript_id. No header; no output for empty tables.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/genes-a.db\n```\nResult:\n```text\nT1,TP53\nT2,TP53\nT3,BRCA1\n```\n\n### Hint\nUse a JOIN with an ON condition and an explicit ORDER BY.\n\nDifficulty: **harder**.",
+    "solution": "import sqlite3\nwith sqlite3.connect(input()) as connection:\n    query = \"SELECT t.transcript_id, g.symbol FROM transcripts t JOIN genes g ON t.gene_id = g.gene_id ORDER BY t.transcript_id\"\n    for transcript, symbol in connection.execute(query):\n        print(f\"{transcript},{symbol}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/genes-a.db"
+        ],
+        "oracle": "T1,TP53\nT2,TP53\nT3,BRCA1",
+        "fixtures": [
+          "python-course/genes-a.db"
+        ]
+      },
+      {
+        "input": [
+          "python-course/genes-b.db"
+        ],
+        "oracle": "A,G1\nZ,G1",
+        "fixtures": [
+          "python-course/genes-b.db"
+        ]
+      },
+      {
+        "input": [
+          "python-course/genes-empty.db"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/genes-empty.db"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-query-url",
+    "title": "Build a query URL",
+    "language_id": "python",
+    "chapter": "Web data and HTML",
+    "order": 1,
+    "description": "### Task\nUse `urllib.parse.urlencode()` to build a URL with query keys in this order: db=protein, then term=<input>. Prefix it with `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?`. Do not fetch the URL.\n\n### Input\nOne non-empty search term.\n\n### Output\nThe encoded URL on one line.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\nhuman kinase\n```\nResult:\n```text\nhttps://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=protein&term=human+kinase\n```\n\n### Hint\nURL encoding distinguishes a literal + from a space. This task tests URL construction, not a network request.\n\nDifficulty: **easy**.",
+    "solution": "from urllib.parse import urlencode\nterm = input()\nprint(\"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?\" + urlencode({\"db\": \"protein\", \"term\": term}))\n",
+    "testCases": [
+      {
+        "input": [
+          "human kinase"
+        ],
+        "oracle": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=protein&term=human+kinase"
+      },
+      {
+        "input": [
+          "A+B"
+        ],
+        "oracle": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=protein&term=A%2BB"
+      },
+      {
+        "input": [
+          "kinase[Title]"
+        ],
+        "oracle": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=protein&term=kinase%5BTitle%5D"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-fetch-pfam-entry",
+    "title": "Read a saved API response",
+    "language_id": "python",
+    "chapter": "Web data and HTML",
+    "order": 2,
+    "description": "### Task\nParse a supplied InterPro-style JSON response. Print metadata.accession, metadata.name.short and metadata.type. A Pfam accession identifies a protein family or domain entry. No network request is needed.\n\n### Input\nOne UTF-8 JSON filename. Schema: `{\"metadata\":{\"accession\":\"...\",\"name\":{\"short\":\"...\"},\"type\":\"...\"}}`.\n\n### Output\nThree lines: `Accession: <accession>`, `Short name: <short>`, `Type: <type>`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/interpro-a.json\n```\nResult:\n```text\nAccession: PF00001\nShort name: 7tm_1\nType: domain\n```\n\n### Hint\nJSON objects become dictionaries; access nested keys one level at a time.\n\nDifficulty: **medium**.",
+    "solution": "import json\nwith open(input(), encoding=\"utf-8\") as source:\n    metadata = json.load(source)[\"metadata\"]\nprint(f\"Accession: {metadata['accession']}\")\nprint(f\"Short name: {metadata['name']['short']}\")\nprint(f\"Type: {metadata['type']}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/interpro-a.json"
+        ],
+        "oracle": "Accession: PF00001\nShort name: 7tm_1\nType: domain",
+        "fixtures": [
+          "python-course/interpro-a.json"
+        ]
+      },
+      {
+        "input": [
+          "python-course/interpro-b.json"
+        ],
+        "oracle": "Accession: PF00069\nShort name: Pkinase\nType: domain",
+        "fixtures": [
+          "python-course/interpro-b.json"
+        ]
+      },
+      {
+        "input": [
+          "python-course/interpro-c.json"
+        ],
+        "oracle": "Accession: DEMO001\nShort name: café protein\nType: family",
+        "fixtures": [
+          "python-course/interpro-c.json"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-search-ids",
+    "title": "Read saved search IDs",
+    "language_id": "python",
+    "chapter": "Web data and HTML",
+    "order": 3,
+    "description": "### Task\nParse a saved NCBI-style XML response with ElementTree. Print the text of every `IdList/Id` element, in document order.\n\n### Input\nOne XML filename. Root eSearchResult contains an IdList element with zero or more Id children.\n\n### Output\nOne ID per line, or `none` if IdList is empty.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/search-a.xml\n```\nResult:\n```text\n105\n42\n```\n\n### Hint\nThis tests parsing saved XML, rather than using a live esearch client.\n\nDifficulty: **medium**.",
+    "solution": "import xml.etree.ElementTree as ET\nroot = ET.parse(input()).getroot()\nids = root.findall(\"IdList/Id\")\nfor entry in ids:\n    print(entry.text)\nif not ids:\n    print(\"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/search-a.xml"
+        ],
+        "oracle": "105\n42",
+        "fixtures": [
+          "python-course/search-a.xml"
+        ]
+      },
+      {
+        "input": [
+          "python-course/search-b.xml"
+        ],
+        "oracle": "none",
+        "fixtures": [
+          "python-course/search-b.xml"
+        ]
+      },
+      {
+        "input": [
+          "python-course/search-c.xml"
+        ],
+        "oracle": "7",
+        "fixtures": [
+          "python-course/search-c.xml"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-html-links",
+    "title": "Extract links from saved HTML",
+    "language_id": "python",
+    "chapter": "Web data and HTML",
+    "order": 4,
+    "description": "### Task\nUse Beautiful Soup with the built-in `html.parser` to select anchors with an href attribute. For each, print its visible text, then its href, separated by ` | `. Use `get_text(\" \", strip=True)` for text. Preserve document order and duplicate links.\n\n### Input\nOne UTF-8 HTML filename.\n\n### Output\n`<text> | <href>` per matching anchor, or `none` if none exist.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/links-a.html\n```\nResult:\n```text\nEntry A | /entry/A\nEntry B | https://example.org/B\n```\n\n### Hint\nSupplied HTML keeps this task reproducible; `.select(\"a[href]\")` skips anchors without an href.\n\nDifficulty: **medium**.",
+    "solution": "from bs4 import BeautifulSoup\nwith open(input(), encoding=\"utf-8\") as source:\n    soup = BeautifulSoup(source.read(), \"html.parser\")\nlinks = soup.select(\"a[href]\")\nfor link in links:\n    print(f\"{link.get_text(' ', strip=True)} | {link['href']}\")\nif not links:\n    print(\"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/links-a.html"
+        ],
+        "oracle": "Entry A | /entry/A\nEntry B | https://example.org/B",
+        "fixtures": [
+          "python-course/links-a.html"
+        ]
+      },
+      {
+        "input": [
+          "python-course/links-b.html"
+        ],
+        "oracle": "none",
+        "fixtures": [
+          "python-course/links-b.html"
+        ]
+      },
+      {
+        "input": [
+          "python-course/links-c.html"
+        ],
+        "oracle": "One | /one\nAgain | /one",
+        "fixtures": [
+          "python-course/links-c.html"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-html-table",
+    "title": "Read a small HTML table",
+    "language_id": "python",
+    "chapter": "Web data and HTML",
+    "order": 5,
+    "description": "### Task\nFind the table with id `samples`. Skip its header row, read each remaining row's two td cells, and print sample and integer count.\n\n### Input\nOne HTML filename. The target table has a header and zero or more two-cell data rows; there are no nested tables.\n\n### Output\n`<sample>: <count>` per data row, or `none` when there are no data rows.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/table-a.html\n```\nResult:\n```text\nA: 12\nsample B: 0\n```\n\n### Hint\nSelect the requested table rather than the first table in the document.\n\nDifficulty: **harder**.",
+    "solution": "from bs4 import BeautifulSoup\nwith open(input(), encoding=\"utf-8\") as source:\n    soup = BeautifulSoup(source.read(), \"html.parser\")\nrows = soup.select(\"table#samples tr\")[1:]\nfor row in rows:\n    cells = row.find_all(\"td\")\n    print(f\"{cells[0].get_text(strip=True)}: {int(cells[1].get_text(strip=True))}\")\nif not rows:\n    print(\"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/table-a.html"
+        ],
+        "oracle": "A: 12\nsample B: 0",
+        "fixtures": [
+          "python-course/table-a.html"
+        ]
+      },
+      {
+        "input": [
+          "python-course/table-b.html"
+        ],
+        "oracle": "C: 5",
+        "fixtures": [
+          "python-course/table-b.html"
+        ]
+      },
+      {
+        "input": [
+          "python-course/table-empty.html"
+        ],
+        "oracle": "none",
+        "fixtures": [
+          "python-course/table-empty.html"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-inspect-array",
+    "title": "Inspect a numerical array",
+    "language_id": "python",
+    "chapter": "Scientific data and plots",
+    "order": 1,
+    "description": "### Task\nRead six integers and form a NumPy array of shape (2, 3) using dtype `np.int64`. Print its shape, number of dimensions, size and the element at row 1, column 2 (zero-based).\n\n### Input\nOne line containing exactly six integers. Fill the array in row order.\n\n### Output\nFour lines: `shape: (2, 3)`, `dimensions: 2`, `size: 6`, `selected: <element>`.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n1 2 3 4 5 6\n```\nResult:\n```text\nshape: (2, 3)\ndimensions: 2\nsize: 6\nselected: 6\n```\n\n### Hint\nNumPy is installed. Use `.reshape(2, 3)` after creating the array.\n\nDifficulty: **easy**.",
+    "solution": "import numpy as np\narray = np.array([int(value) for value in input().split()], dtype=np.int64).reshape(2, 3)\nprint(f\"shape: {array.shape}\")\nprint(f\"dimensions: {array.ndim}\")\nprint(f\"size: {array.size}\")\nprint(f\"selected: {array[1, 2]}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "1 2 3 4 5 6"
+        ],
+        "oracle": "shape: (2, 3)\ndimensions: 2\nsize: 6\nselected: 6"
+      },
+      {
+        "input": [
+          "0 -1 2 3 4 -5"
+        ],
+        "oracle": "shape: (2, 3)\ndimensions: 2\nsize: 6\nselected: -5"
+      },
+      {
+        "input": [
+          "9 8 7 6 5 0"
+        ],
+        "oracle": "shape: (2, 3)\ndimensions: 2\nsize: 6\nselected: 0"
+      }
+    ],
+    "starter_code": "import numpy as np\nvalues = [int(value) for value in input().split()]\n# Create the array and print its properties\n"
+  },
+  {
+    "id": "python-summarise-array",
+    "title": "Summarise an array",
+    "language_id": "python",
+    "chapter": "Scientific data and plots",
+    "order": 2,
+    "description": "### Task\nCreate a NumPy integer array and print its minimum, maximum and mean.\n\n### Input\nA non-empty whitespace-separated line of integers.\n\n### Output\n`min: <integer>`, `max: <integer>`, `mean: <two decimals>` on separate lines.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\n1 2 6\n```\nResult:\n```text\nmin: 1\nmax: 6\nmean: 3.00\n```\n\n### Hint\nCall `.min()`, `.max()` and `.mean()` on the array.\n\nDifficulty: **medium**.",
+    "solution": "import numpy as np\narray = np.array([int(value) for value in input().split()], dtype=np.int64)\nprint(f\"min: {array.min()}\")\nprint(f\"max: {array.max()}\")\nprint(f\"mean: {array.mean():.2f}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "1 2 6"
+        ],
+        "oracle": "min: 1\nmax: 6\nmean: 3.00"
+      },
+      {
+        "input": [
+          "-4 -1 2"
+        ],
+        "oracle": "min: -4\nmax: 2\nmean: -1.00"
+      },
+      {
+        "input": [
+          "0"
+        ],
+        "oracle": "min: 0\nmax: 0\nmean: 0.00"
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-inspect-pandas",
+    "title": "Inspect a CSV with pandas",
+    "language_id": "python",
+    "chapter": "Scientific data and plots",
+    "order": 3,
+    "description": "### Task\nRead the CSV with pandas and print its number of rows, number of columns, and first three sample IDs in file order.\n\n### Input\nOne CSV filename with columns sample,group,value. It may have only a header.\n\n### Output\n`rows: <n>`, `columns: 3`, `samples: <IDs joined by spaces>`. Use `samples: none` for no rows.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/measurements-a.csv\n```\nResult:\n```text\nrows: 6\ncolumns: 3\nsamples: s3 s1 s2\n```\n\n### Hint\nUse `.shape`, select `frame[\"sample\"]`, and `.head(3)`. Do not print the entire DataFrame.\n\nDifficulty: **easy**.",
+    "solution": "import pandas as pd\nframe = pd.read_csv(input())\nprint(f\"rows: {frame.shape[0]}\")\nprint(f\"columns: {frame.shape[1]}\")\nprint(\"samples: \" + (\" \".join(frame[\"sample\"].head(3).tolist()) or \"none\"))\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/measurements-a.csv"
+        ],
+        "oracle": "rows: 6\ncolumns: 3\nsamples: s3 s1 s2",
+        "fixtures": [
+          "python-course/measurements-a.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/measurements-b.csv"
+        ],
+        "oracle": "rows: 3\ncolumns: 3\nsamples: B A C",
+        "fixtures": [
+          "python-course/measurements-b.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/measurements-empty.csv"
+        ],
+        "oracle": "rows: 0\ncolumns: 3\nsamples: none",
+        "fixtures": [
+          "python-course/measurements-empty.csv"
+        ]
+      }
+    ],
+    "starter_code": "import pandas as pd\nframe = pd.read_csv(input())\n# Print scalar counts and the first IDs\n"
+  },
+  {
+    "id": "python-select-measurements",
+    "title": "Select and sort measurements",
+    "language_id": "python",
+    "chapter": "Scientific data and plots",
+    "order": 4,
+    "description": "### Task\nKeep rows where group is treated and value is at least the threshold. Sort by sample ID and print sample and value. Missing values do not pass the filter.\n\n### Input\nCSV filename on line 1; numeric threshold on line 2. CSV columns are sample,group,value. Sample IDs are unique.\n\n### Output\n`<sample>,<value to two decimals>` per selected row, no header; `none` when empty.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/measurements-a.csv\n3\n```\nResult:\n```text\ns2,3.00\ns3,5.00\n```\n\n### Hint\nUse parentheses around each condition and `&` between them. `.loc` selects by labels/conditions; `.iloc` selects by integer position.\n\nDifficulty: **medium**.",
+    "solution": "import pandas as pd\nframe = pd.read_csv(input())\nthreshold = float(input())\nselected = frame.loc[(frame[\"group\"] == \"treated\") & (frame[\"value\"] >= threshold)].sort_values(\"sample\")\nfor row in selected.itertuples(index=False):\n    print(f\"{row.sample},{row.value:.2f}\")\nif selected.empty:\n    print(\"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/measurements-a.csv",
+          "3"
+        ],
+        "oracle": "s2,3.00\ns3,5.00",
+        "fixtures": [
+          "python-course/measurements-a.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/measurements-b.csv",
+          "1.5"
+        ],
+        "oracle": "A,1.50\nB,1.50",
+        "fixtures": [
+          "python-course/measurements-b.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/measurements-a.csv",
+          "6"
+        ],
+        "oracle": "none",
+        "fixtures": [
+          "python-course/measurements-a.csv"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-group-missing-data",
+    "title": "Summarise groups with missing data",
+    "language_id": "python",
+    "chapter": "Scientific data and plots",
+    "order": 5,
+    "description": "### Task\nDrop rows missing value. For each remaining group, print its number of rows and mean value. Sort by group. Groups with no remaining values are omitted.\n\n### Input\nOne CSV filename with sample,group,value columns. Group names are non-empty.\n\n### Output\n`<group>: count=<n>, mean=<two decimals>` per remaining group; `none` when no rows remain.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/measurements-a.csv\n```\nResult:\n```text\ncontrol: count=1, mean=2.00\ntreated: count=2, mean=4.00\n```\n\n### Hint\n`.dropna(subset=[\"value\"])` removes only missing measurements. `.groupby()` collects rows with the same group.\n\nDifficulty: **harder**.",
+    "solution": "import pandas as pd\nframe = pd.read_csv(input()).dropna(subset=[\"value\"])\nsummary = frame.groupby(\"group\", sort=True)[\"value\"].agg([\"count\", \"mean\"])\nfor group, row in summary.iterrows():\n    print(f\"{group}: count={int(row['count'])}, mean={row['mean']:.2f}\")\nif summary.empty:\n    print(\"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/measurements-a.csv"
+        ],
+        "oracle": "control: count=1, mean=2.00\ntreated: count=2, mean=4.00",
+        "fixtures": [
+          "python-course/measurements-a.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/measurements-b.csv"
+        ],
+        "oracle": "control: count=1, mean=4.00\ntreated: count=2, mean=1.50",
+        "fixtures": [
+          "python-course/measurements-b.csv"
+        ]
+      },
+      {
+        "input": [
+          "python-course/measurements-empty.csv"
+        ],
+        "oracle": "none",
+        "fixtures": [
+          "python-course/measurements-empty.csv"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-read-fasta",
+    "title": "Read a FASTA file",
+    "language_id": "python",
+    "chapter": "Scientific data and plots",
+    "order": 6,
+    "description": "### Task\nUse Biopython `SeqIO.parse(filename, \"fasta\")`. For each record, print its ID, sequence length and reverse complement. FASTA is a text format with a > header before each sequence; complement pairs are A/T and C/G.\n\n### Input\nOne supplied FASTA filename. All sequences contain only uppercase A, C, G and T; the file may be empty.\n\n### Output\n`<id>: length=<n>, reverse_complement=<sequence>` per record in file order; `none` when empty.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/sequences-a.fasta\n```\nResult:\n```text\nseq1: length=4, reverse_complement=ACGT\nseq2: length=5, reverse_complement=GACTT\n```\n\n### Hint\nUse `record.id`, `len(record.seq)` and `record.seq.reverse_complement()`. Biopython is installed.\n\nDifficulty: **medium**.",
+    "solution": "from Bio import SeqIO\nrecords = list(SeqIO.parse(input(), \"fasta\"))\nfor record in records:\n    print(f\"{record.id}: length={len(record.seq)}, reverse_complement={record.seq.reverse_complement()}\")\nif not records:\n    print(\"none\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/sequences-a.fasta"
+        ],
+        "oracle": "seq1: length=4, reverse_complement=ACGT\nseq2: length=5, reverse_complement=GACTT",
+        "fixtures": [
+          "python-course/sequences-a.fasta"
+        ]
+      },
+      {
+        "input": [
+          "python-course/sequences-b.fasta"
+        ],
+        "oracle": "one: length=5, reverse_complement=AATTT",
+        "fixtures": [
+          "python-course/sequences-b.fasta"
+        ]
+      },
+      {
+        "input": [
+          "python-course/sequences-empty.fasta"
+        ],
+        "oracle": "none",
+        "fixtures": [
+          "python-course/sequences-empty.fasta"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-small-bar-chart",
+    "title": "Plot small group counts",
+    "language_id": "python",
+    "chapter": "Scientific data and plots",
+    "order": 7,
+    "description": "### Task\nCount rows belonging to groups A and B in the CSV, including zero for an absent group. Save a bar chart as counts.png. Use matplotlib defaults, a 4 × 3 inch figure at 100 DPI, bars A then B, title `Sample counts`, x-label `Sample`, y-label `Count`, and y-limits 0 to max(counts)+1. Call tight_layout before saving; close afterward.\n\n### Input\nOne CSV filename with sample,group columns; group is A or B. Header-only CSV is allowed.\n\n### Output\nPrint `Counts: <A>, <B>` and create a 400 × 300 pixel counts.png. The values and chart appearance are graded; small rendering differences are tolerated.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/groups-a.csv\n```\nResult:\n```text\nCounts: 2, 3\n```\n\nGenerated file/content:\n```text\ncounts.png: bars A=2 and B=3, with the specified title and axis labels\n```\n\n### Hint\nA display window is unnecessary. Keep default colours/width/style and use `plt.figure`, `plt.bar`, `plt.title`, `plt.xlabel`, `plt.ylabel`, `plt.ylim`, `plt.tight_layout` and `plt.savefig`.\n\nDifficulty: **harder**.",
+    "solution": "import csv\nimport matplotlib.pyplot as plt\ncounts = {\"A\": 0, \"B\": 0}\nwith open(input(), newline=\"\", encoding=\"utf-8\") as source:\n    for row in csv.DictReader(source):\n        counts[row[\"group\"]] += 1\nvalues = [counts[\"A\"], counts[\"B\"]]\nprint(f\"Counts: {values[0]}, {values[1]}\")\nplt.figure(figsize=(4, 3), dpi=100)\nplt.bar([\"A\", \"B\"], values)\nplt.title(\"Sample counts\")\nplt.xlabel(\"Sample\")\nplt.ylabel(\"Count\")\nplt.ylim(0, max(values) + 1)\nplt.tight_layout()\nplt.savefig(\"counts.png\")\nplt.close()\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/groups-a.csv"
+        ],
+        "oracle": "Counts: 2, 3",
+        "fixtures": [
+          "python-course/groups-a.csv"
+        ],
+        "outputFiles": [
+          "counts.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "counts.png",
+            "kind": "plot",
+            "channelTolerance": 3,
+            "maxDifferentPixelRatio": 0.005,
+            "maxMeanAbsoluteError": 0.5
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/groups-b.csv"
+        ],
+        "oracle": "Counts: 0, 2",
+        "fixtures": [
+          "python-course/groups-b.csv"
+        ],
+        "outputFiles": [
+          "counts.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "counts.png",
+            "kind": "plot",
+            "channelTolerance": 3,
+            "maxDifferentPixelRatio": 0.005,
+            "maxMeanAbsoluteError": 0.5
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/groups-empty.csv"
+        ],
+        "oracle": "Counts: 0, 0",
+        "fixtures": [
+          "python-course/groups-empty.csv"
+        ],
+        "outputFiles": [
+          "counts.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "counts.png",
+            "kind": "plot",
+            "channelTolerance": 3,
+            "maxDifferentPixelRatio": 0.005,
+            "maxMeanAbsoluteError": 0.5
+          }
+        ]
+      }
+    ],
+    "starter_code": "import csv\nimport matplotlib.pyplot as plt\n# Count the rows for A and B\n# Print the counts, create the specified chart, save and close\n"
+  },
+  {
+    "id": "python-inspect-image",
+    "title": "Inspect an image",
+    "language_id": "python",
+    "chapter": "Image processing",
+    "order": 1,
+    "description": "### Task\nOpen the supplied PNG with Pillow and print its width, height and colour mode.\n\n### Input\nOne PNG filename.\n\n### Output\n`width: <n>`, `height: <n>`, `mode: <mode>` on separate lines.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/rgb-a.png\n```\nResult:\n```text\nwidth: 6\nheight: 4\nmode: RGB\n```\n\n### Hint\nUse `Image.open()`. RGB stores colour channels; L is grayscale. Do not call `Image.show()`.\n\nDifficulty: **easy**.",
+    "solution": "from PIL import Image\nwith Image.open(input()) as image:\n    print(f\"width: {image.width}\")\n    print(f\"height: {image.height}\")\n    print(f\"mode: {image.mode}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/rgb-a.png"
+        ],
+        "oracle": "width: 6\nheight: 4\nmode: RGB",
+        "fixtures": [
+          "python-course/rgb-a.png"
+        ]
+      },
+      {
+        "input": [
+          "python-course/rgb-b.png"
+        ],
+        "oracle": "width: 4\nheight: 6\nmode: RGB",
+        "fixtures": [
+          "python-course/rgb-b.png"
+        ]
+      },
+      {
+        "input": [
+          "python-course/gray.png"
+        ],
+        "oracle": "width: 5\nheight: 3\nmode: L",
+        "fixtures": [
+          "python-course/gray.png"
+        ]
+      }
+    ],
+    "starter_code": "from PIL import Image\nfilename = input()\n# Open the image and print its properties\n"
+  },
+  {
+    "id": "python-crop-rectangle",
+    "title": "Crop a rectangle",
+    "language_id": "python",
+    "chapter": "Image processing",
+    "order": 2,
+    "description": "### Task\nUse Pillow to crop the rectangle (left, top, right, bottom) and save it as crop.png. Right and bottom are exclusive: width is right-left, height is bottom-top.\n\n### Input\nPNG filename on line 1; four space-separated integer coordinates on line 2. The rectangle is non-empty and within the image.\n\n### Output\nCreate crop.png; print nothing. Decoded dimensions and pixels are graded, allowing different PNG compression.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/rgb-a.png\n1 1 5 3\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\ncrop.png is 4 × 2 pixels, containing original columns 1–4 and rows 1–2\n```\n\n### Hint\nPass a four-integer tuple to `.crop(box)`.\n\nDifficulty: **medium**.",
+    "solution": "from PIL import Image\nfilename = input()\nbox = tuple(int(value) for value in input().split())\nwith Image.open(filename) as image:\n    image.crop(box).save(\"crop.png\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/rgb-a.png",
+          "1 1 5 3"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-a.png"
+        ],
+        "outputFiles": [
+          "crop.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "crop.png",
+            "kind": "image"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/rgb-b.png",
+          "0 0 4 6"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-b.png"
+        ],
+        "outputFiles": [
+          "crop.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "crop.png",
+            "kind": "image"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/rgb-a.png",
+          "0 0 1 1"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-a.png"
+        ],
+        "outputFiles": [
+          "crop.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "crop.png",
+            "kind": "image"
+          }
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-flip-rotate",
+    "title": "Flip and rotate",
+    "language_id": "python",
+    "chapter": "Image processing",
+    "order": 3,
+    "description": "### Task\nFrom the original image, save a left-right flip as flipped.png and a 90-degree counterclockwise rotation as rotated.png. Perform both operations independently on the original.\n\n### Input\nOne PNG filename. Fixtures are asymmetric so direction matters.\n\n### Output\nCreate flipped.png and rotated.png; print nothing. Dimensions and pixels are graded.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/rgb-a.png\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nflipped.png: 6 × 4 pixels, mirrored horizontally\nrotated.png: 4 × 6 pixels, rotated counterclockwise\n```\n\n### Hint\nUse `Image.Transpose.FLIP_LEFT_RIGHT` and `Image.Transpose.ROTATE_90` with `.transpose()`.\n\nDifficulty: **medium**.",
+    "solution": "from PIL import Image\nwith Image.open(input()) as image:\n    image.transpose(Image.Transpose.FLIP_LEFT_RIGHT).save(\"flipped.png\")\n    image.transpose(Image.Transpose.ROTATE_90).save(\"rotated.png\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/rgb-a.png"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-a.png"
+        ],
+        "outputFiles": [
+          "flipped.png",
+          "rotated.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "flipped.png",
+            "kind": "image"
+          },
+          {
+            "filename": "rotated.png",
+            "kind": "image"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/rgb-b.png"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-b.png"
+        ],
+        "outputFiles": [
+          "flipped.png",
+          "rotated.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "flipped.png",
+            "kind": "image"
+          },
+          {
+            "filename": "rotated.png",
+            "kind": "image"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/gray.png"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/gray.png"
+        ],
+        "outputFiles": [
+          "flipped.png",
+          "rotated.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "flipped.png",
+            "kind": "image"
+          },
+          {
+            "filename": "rotated.png",
+            "kind": "image"
+          }
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-thumbnail",
+    "title": "Make a thumbnail",
+    "language_id": "python",
+    "chapter": "Image processing",
+    "order": 4,
+    "description": "### Task\nUse Pillow `.thumbnail()` with `Image.Resampling.LANCZOS` to fit the image inside the supplied maximum size, keeping its aspect ratio and never enlarging it. Save thumbnail.png.\n\n### Input\nPNG filename on line 1; positive maximum width and height on line 2.\n\n### Output\nCreate thumbnail.png; print nothing. The platform compares dimensions and pixels produced by this specified Pillow operation.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/rgb-a.png\n3 3\n```\nResult:\n```text\n(no console output)\n```\n\nGenerated file/content:\n```text\nthumbnail.png: 3 × 2 pixels for the 6 × 4 input and 3 × 3 maximum\n```\n\n### Hint\n`.thumbnail()` changes the image in place. Pillow chooses integer dimensions preserving the ratio as closely as possible.\n\nDifficulty: **medium**.",
+    "solution": "from PIL import Image\nfilename = input()\nsize = tuple(int(value) for value in input().split())\nwith Image.open(filename) as image:\n    image.thumbnail(size, resample=Image.Resampling.LANCZOS)\n    image.save(\"thumbnail.png\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/rgb-a.png",
+          "3 3"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-a.png"
+        ],
+        "outputFiles": [
+          "thumbnail.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "thumbnail.png",
+            "kind": "image"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/rgb-b.png",
+          "2 2"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-b.png"
+        ],
+        "outputFiles": [
+          "thumbnail.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "thumbnail.png",
+            "kind": "image"
+          }
+        ]
+      },
+      {
+        "input": [
+          "python-course/rgb-a.png",
+          "20 20"
+        ],
+        "oracle": "",
+        "fixtures": [
+          "python-course/rgb-a.png"
+        ],
+        "outputFiles": [
+          "thumbnail.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "thumbnail.png",
+            "kind": "image"
+          }
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-grayscale",
+    "title": "Convert to grayscale",
+    "language_id": "python",
+    "chapter": "Image processing",
+    "order": 5,
+    "description": "### Task\nLoad an RGB PNG with skimage.io.imread and convert it using skimage.color.rgb2gray. Print the shape and intensities at row/column (0,0) and (1,1).\n\n### Input\nOne RGB PNG filename, at least 2 × 2 pixels.\n\n### Output\n`shape: (<height>, <width>)`, `pixel(0,0): <four decimals>`, `pixel(1,1): <four decimals>`. Intensities range from 0 to 1.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/rgb-a.png\n```\nResult:\n```text\nshape: (4, 6)\npixel(0,0): 0.0000\npixel(1,1): 0.2217\n```\n\n### Hint\nThis is a weighted conversion, not a simple average. Images are indexed as [row, column].\n\nDifficulty: **medium**.",
+    "solution": "from skimage import io, color\ngray = color.rgb2gray(io.imread(input()))\nprint(f\"shape: {gray.shape}\")\nprint(f\"pixel(0,0): {gray[0, 0]:.4f}\")\nprint(f\"pixel(1,1): {gray[1, 1]:.4f}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/rgb-a.png"
+        ],
+        "oracle": "shape: (4, 6)\npixel(0,0): 0.0000\npixel(1,1): 0.2217",
+        "fixtures": [
+          "python-course/rgb-a.png"
+        ]
+      },
+      {
+        "input": [
+          "python-course/rgb-b.png"
+        ],
+        "oracle": "shape: (6, 4)\npixel(0,0): 0.0000\npixel(1,1): 0.2217",
+        "fixtures": [
+          "python-course/rgb-b.png"
+        ]
+      },
+      {
+        "input": [
+          "python-course/black.png"
+        ],
+        "oracle": "shape: (2, 2)\npixel(0,0): 0.0000\npixel(1,1): 0.0000",
+        "fixtures": [
+          "python-course/black.png"
+        ]
+      }
+    ],
+    "starter_code": null
+  },
+  {
+    "id": "python-synthetic-edges",
+    "title": "Detect edges in a synthetic image",
+    "language_id": "python",
+    "chapter": "Image processing",
+    "order": 6,
+    "description": "### Task\nLoad the grayscale PNG as a floating-point array with values 0–1 using skimage.io.imread(..., as_gray=True) and img_as_float. Run feature.canny with sigma=1.0, low_threshold=0.1 and high_threshold=0.2. Print the number of true pixels, then mask rows 4 and 8 as contiguous 0/1 strings.\n\n### Input\nOne small grayscale PNG filename. Rows 4 and 8 always exist.\n\n### Output\n`edges: <count>`, `row4: <bits>`, `row8: <bits>`. Each bit string has one character per image column.\n\n### Assumptions\nAll inputs satisfy the stated limits. Do not print input prompts.\n\n### Example\nInput:\n```text\npython-course/square-a.png\n```\nResult:\n```text\nedges: 28\nrow4: 0000111111110000\nrow8: 0000100000010000\n```\n\n### Hint\nA true mask pixel marks an edge. The synthetic examples isolate this operation; no circle detector or photograph analysis is required.\n\nDifficulty: **harder**.",
+    "solution": "from skimage import io, feature, img_as_float\nimage = img_as_float(io.imread(input(), as_gray=True))\nmask = feature.canny(image, sigma=1.0, low_threshold=0.1, high_threshold=0.2)\nprint(f\"edges: {int(mask.sum())}\")\nfor row in [4, 8]:\n    print(f\"row{row}: \" + \"\".join(\"1\" if value else \"0\" for value in mask[row]))\n",
+    "testCases": [
+      {
+        "input": [
+          "python-course/square-a.png"
+        ],
+        "oracle": "edges: 28\nrow4: 0000111111110000\nrow8: 0000100000010000",
+        "fixtures": [
+          "python-course/square-a.png"
+        ]
+      },
+      {
+        "input": [
+          "python-course/square-b.png"
+        ],
+        "oracle": "edges: 36\nrow4: 00000000000000000000\nrow8: 00000100000000100000",
+        "fixtures": [
+          "python-course/square-b.png"
+        ]
+      },
+      {
+        "input": [
+          "python-course/square-blank.png"
+        ],
+        "oracle": "edges: 0\nrow4: 0000000000000000\nrow8: 0000000000000000",
+        "fixtures": [
+          "python-course/square-blank.png"
+        ]
+      }
+    ],
+    "starter_code": "from skimage import io, feature, img_as_float\nfilename = input()\n# Load, convert to floating point, compute the mask, then print\n"
+  }
+]

@@ -67,3 +67,7 @@ data/
 fixtures/
 # Private environment backups from local MCP setup
 .env.before-*
+
+# Commit generated teaching fixtures while keeping live fixtures private
+!src/exercise-drafts/python-course-content/fixtures/
+!src/exercise-drafts/python-course-content/fixtures/**

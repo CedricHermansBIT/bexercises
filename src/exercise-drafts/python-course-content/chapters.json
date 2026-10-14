@@ -1,0 +1,72 @@
+[
+  {
+    "id": "python-basics",
+    "language_id": "python",
+    "name": "Python basics",
+    "description": "First steps: input, values, strings, collections, decisions, loops and a first function.",
+    "order_num": 1
+  },
+  {
+    "id": "python-strings-collections",
+    "language_id": "python",
+    "name": "Strings and collections",
+    "description": "Practice indexing, methods, lists, tuples, dictionaries and sets after the basics.",
+    "order_num": 2
+  },
+  {
+    "id": "python-control-flow",
+    "language_id": "python",
+    "name": "Decisions, loops and comprehensions",
+    "description": "Build from branching and iteration to counting, comprehensions and sentinel input.",
+    "order_num": 3
+  },
+  {
+    "id": "python-functions-modules",
+    "language_id": "python",
+    "name": "Functions and standard modules",
+    "description": "Return values, default arguments, imports and small standard-library tools.",
+    "order_num": 4
+  },
+  {
+    "id": "python-files",
+    "language_id": "python",
+    "name": "Files and small reports",
+    "description": "Read, write, append, organise and filter tiny local files; introduce exceptions.",
+    "order_num": 5
+  },
+  {
+    "id": "python-documents",
+    "language_id": "python",
+    "name": "Spreadsheets and documents",
+    "description": "Read and create small Excel, Word and PDF files using supplied libraries.",
+    "order_num": 6
+  },
+  {
+    "id": "python-sqlite",
+    "language_id": "python",
+    "name": "Python and SQLite",
+    "description": "Connect, query, insert and join using tiny local SQLite databases.",
+    "order_num": 7
+  },
+  {
+    "id": "python-web-data",
+    "language_id": "python",
+    "name": "Web data and HTML",
+    "description": "Build URLs and parse saved JSON, XML and HTML responses without depending on external services.",
+    "order_num": 8
+  },
+  {
+    "id": "python-scientific-data",
+    "language_id": "python",
+    "name": "Scientific data and plots",
+    "description": "Use NumPy, pandas, Biopython and matplotlib with small local datasets.",
+    "order_num": 9
+  },
+  {
+    "id": "python-images",
+    "language_id": "python",
+    "name": "Image processing",
+    "description": "Inspect and transform tiny images, then introduce grayscale conversion and edge detection.",
+    "order_num": 10
+  }
+]

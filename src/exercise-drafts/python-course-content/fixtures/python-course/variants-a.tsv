@@ -1,0 +1,5 @@
+# simplified variants, not a full VCF
+CHROM	POS	EFFECT
+1	100	stop_gained
+1	120	missense
+2	80	frameshift

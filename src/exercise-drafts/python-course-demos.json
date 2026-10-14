@@ -1,0 +1,164 @@
+[
+  {
+    "language_id": "python",
+    "chapter": "Additional exercises",
+    "id": "python-short-word-report",
+    "title": "Create a Short Word Report",
+    "order": 2,
+    "description": "Create a small Word document using `python-docx`.\n\n### Instructions\n1. Read a sample name from the first input line and an integer count from the second line. The count is between 0 and 100.\n2. Create `report.docx` with these content blocks, in this order:\n   - A **level 1 heading**: `Sample Report`\n   - A paragraph: `Sample: <name>`\n   - A table with **2 rows and 2 columns**. Its first row contains `Name` and `Count`. Its second row contains the sample name and count.\n3. Save the file in the current directory. Do not add other text or tables.\n\n### Input\n```\nSample A\n7\n```\n\n### Generated File\n`report.docx` contains the heading **Sample Report**, the paragraph **Sample: Sample A**, and this table:\n\n| Name | Count |\n| --- | --- |\n| Sample A | 7 |\n\n### Output\nDo not print anything or use input prompts.\n\n### Notes\n- Start with `from docx import Document` and `document = Document()`.\n- Use `document.add_heading(text, level=1)` and `document.add_paragraph(text)`.\n- Create the table with `document.add_table(rows=2, cols=2)`. Set a cell with `table.cell(row, column).text = value`; indices start at zero and values must be strings.\n- Save with `document.save(\"report.docx\")`.\n- Grading checks text, heading levels and table cells. Fonts, colours and table borders may differ.\n- File feedback shows a content preview and specific differences.",
+    "solution": "from docx import Document\nname = input()\ncount = int(input())\ndocument = Document()\ndocument.add_heading(\"Sample Report\", level=1)\ndocument.add_paragraph(f\"Sample: {name}\")\ntable = document.add_table(rows=2, cols=2)\ntable.cell(0, 0).text = \"Name\"\ntable.cell(0, 1).text = \"Count\"\ntable.cell(1, 0).text = name\ntable.cell(1, 1).text = str(count)\ndocument.save(\"report.docx\")\n",
+    "testCases": [
+      {
+        "input": [
+          "Sample A",
+          "7"
+        ],
+        "outputFiles": [
+          "report.docx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.docx",
+            "kind": "docx",
+            "headings": true
+          }
+        ]
+      },
+      {
+        "input": [
+          "Control",
+          "0"
+        ],
+        "outputFiles": [
+          "report.docx"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.docx",
+            "kind": "docx",
+            "headings": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "language_id": "python",
+    "chapter": "Additional exercises",
+    "id": "python-one-page-pdf-report",
+    "title": "Create a One-Page PDF Report",
+    "order": 3,
+    "description": "Create a simple PDF using `reportlab`.\n\n### Instructions\n1. Read a sample name from the first input line and an integer count from the second line. The count is between 0 and 100.\n2. Create `report.pdf` with exactly **one page**, sized **300 \u00d7 300 points**.\n3. Use **Helvetica, 12 points** to draw these two lines:\n   - `Sample: <name>` at **(40, 240)**.\n   - `Count: <count>` at **(40, 210)**.\n4. Save the PDF in the current directory. Do not add other text.\n\n### Input\n```\nSample A\n7\n```\n\n### Generated File\n`report.pdf` has one page containing:\n```\nSample: Sample A\nCount: 7\n```\n\n### Output\nDo not print anything or use input prompts.\n\n### Notes\n- Start with `from reportlab.pdfgen import canvas`.\n- Create the PDF with `pdf = canvas.Canvas(\"report.pdf\", pagesize=(300, 300))`.\n- Set the font with `pdf.setFont(\"Helvetica\", 12)`; draw text with `pdf.drawString(x, y, text)` and finish with `pdf.save()`.\n- Coordinates use points measured from the **bottom-left** of the page. One point is 1/72 inch.\n- Grading checks page count, text, page size and text positions, allowing a 2-point position difference. Creation dates and PDF metadata do not affect your grade.\n- File feedback includes a page preview.",
+    "solution": "from reportlab.pdfgen import canvas\nname = input()\ncount = int(input())\npdf = canvas.Canvas(\"report.pdf\", pagesize=(300, 300))\npdf.setFont(\"Helvetica\", 12)\npdf.drawString(40, 240, f\"Sample: {name}\")\npdf.drawString(40, 210, f\"Count: {count}\")\npdf.save()\n",
+    "testCases": [
+      {
+        "input": [
+          "Sample A",
+          "7"
+        ],
+        "outputFiles": [
+          "report.pdf"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.pdf",
+            "kind": "pdf",
+            "layout": true,
+            "positionTolerance": 2
+          }
+        ]
+      },
+      {
+        "input": [
+          "Control",
+          "0"
+        ],
+        "outputFiles": [
+          "report.pdf"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "report.pdf",
+            "kind": "pdf",
+            "layout": true,
+            "positionTolerance": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "language_id": "python",
+    "chapter": "Additional exercises",
+    "id": "python-small-bar-chart",
+    "title": "Plot Two Sample Counts",
+    "order": 4,
+    "description": "Create a small bar chart using `matplotlib`.\n\n### Instructions\n1. Read the count for sample **A** from the first input line and the count for sample **B** from the second line. Both are integers between 0 and 20.\n2. Create a figure with size **4 \u00d7 3 inches** and **100 DPI**.\n3. Draw a bar chart for `A` and `B`, in that order, using their counts as the bar heights. Keep matplotlib's default colours and bar width.\n4. Set:\n   - Title: `Sample counts`\n   - Horizontal-axis label: `Sample`\n   - Vertical-axis label: `Count`\n   - Vertical-axis limits: **0** to **the largest input count plus 1**.\n5. Call `plt.tight_layout()` and save the figure as **counts.png** in the current directory. Close the figure afterward.\n6. Print the underlying values as `Counts: <A>, <B>`.\n\n### Input\n```\n3\n5\n```\n\n### Output\n```\nCounts: 3, 5\n```\n\n### Generated File\n`counts.png` is a **400 \u00d7 300 pixel** bar chart showing A with height 3 and B with height 5, with the title and labels above.\n\n### Notes\n- Start with `import matplotlib.pyplot as plt`.\n- Use `plt.figure(figsize=(4, 3), dpi=100)`, then `plt.bar([\"A\", \"B\"], [count_a, count_b])`.\n- Useful functions are `plt.title()`, `plt.xlabel()`, `plt.ylabel()`, `plt.ylim()`, `plt.tight_layout()`, `plt.savefig()` and `plt.close()`.\n- Plots are saved to files; a display window is not needed.\n- Grading checks the printed counts and plot appearance. Small rendering differences are tolerated; dimensions, labels, layout and bars should follow the instructions.\n- File feedback shows the expected and submitted chart.",
+    "solution": "import matplotlib.pyplot as plt\ncount_a = int(input())\ncount_b = int(input())\nplt.figure(figsize=(4, 3), dpi=100)\nplt.bar([\"A\", \"B\"], [count_a, count_b])\nplt.title(\"Sample counts\")\nplt.xlabel(\"Sample\")\nplt.ylabel(\"Count\")\nplt.ylim(0, max(count_a, count_b) + 1)\nplt.tight_layout()\nplt.savefig(\"counts.png\")\nplt.close()\nprint(f\"Counts: {count_a}, {count_b}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "3",
+          "5"
+        ],
+        "outputFiles": [
+          "counts.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "counts.png",
+            "kind": "plot",
+            "channelTolerance": 3,
+            "maxDifferentPixelRatio": 0.005,
+            "maxMeanAbsoluteError": 0.5
+          }
+        ]
+      },
+      {
+        "input": [
+          "0",
+          "4"
+        ],
+        "outputFiles": [
+          "counts.png"
+        ],
+        "artifactChecks": [
+          {
+            "filename": "counts.png",
+            "kind": "plot",
+            "channelTolerance": 3,
+            "maxDifferentPixelRatio": 0.005,
+            "maxMeanAbsoluteError": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "language_id": "python",
+    "chapter": "Additional exercises",
+    "id": "python-fetch-pfam-entry",
+    "title": "Fetch a Pfam Entry from InterPro",
+    "order": 5,
+    "description": "Fetch a small JSON response from the InterPro API and read its metadata.\n\n### Instructions\n1. Read a Pfam accession, such as `PF00001`, from input.\n2. Fetch this HTTPS URL, replacing `<accession>` with the input:\n   `https://www.ebi.ac.uk/interpro/api/entry/pfam/<accession>/`\n3. Parse the response as JSON.\n4. Read `metadata.accession`, `metadata.name.short` and `metadata.type` from the response.\n5. Print them using the format below. The supplied accessions exist; you do not need to implement retry logic.\n\n### Input\n```\nPF00001\n```\n\n### Output\n```\nAccession: PF00001\nShort name: 7tm_1\nType: domain\n```\n\n### Notes\n- Use `import urllib.request` and `import json`.\n- Open the URL with `with urllib.request.urlopen(url, timeout=10) as response:` and load it with `data = json.load(response)`.\n- JSON objects become dictionaries. For example, `data[\"metadata\"][\"name\"][\"short\"]` accesses the short name.\n- This exercise permits HTTPS access to **www.ebi.ac.uk**. Other websites are blocked. `urllib.request` uses the configured proxy automatically.\n- This is a live API exercise: if the provider is unavailable, try again later. Instructor reference results should be refreshed if the API metadata changes.",
+    "solution": "import urllib.request\nimport json\naccession = input().strip()\nurl = f\"https://www.ebi.ac.uk/interpro/api/entry/pfam/{accession}/\"\nwith urllib.request.urlopen(url, timeout=10) as response:\n    data = json.load(response)\nmetadata = data[\"metadata\"]\nprint(f\"Accession: {metadata['accession']}\")\nprint(f\"Short name: {metadata['name']['short']}\")\nprint(f\"Type: {metadata['type']}\")\n",
+    "testCases": [
+      {
+        "input": [
+          "PF00001"
+        ],
+        "networkHosts": [
+          "www.ebi.ac.uk"
+        ]
+      },
+      {
+        "input": [
+          "PF00069"
+        ],
+        "networkHosts": [
+          "www.ebi.ac.uk"
+        ]
+      }
+    ]
+  }
+]
