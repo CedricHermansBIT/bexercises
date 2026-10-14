@@ -39,12 +39,31 @@
                 <p class="stage-note">Your look is saved to your account. Only admins can access this preview.</p>
             </aside>
             <section class="studio-wardrobe" aria-label="Wardrobe">
+                <div class="studio-extras">
+                <details class="studio-panel"><summary>Saved looks</summary>
+                    <p>Five favourites, saved to your account. Loading a look previews it; Save avatar equips it.</p>
+                    <div id="saved-looks" class="saved-look-grid"></div>
+                    <form id="saved-look-form" class="studio-form">
+                        <label>Look slot<select id="look-slot"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+                        <label>Look name<input id="look-name" maxlength="40" placeholder="Everyday" required></label>
+                        <button type="submit" id="look-save">Save current look</button>
+                        <button type="button" id="look-delete">Delete look</button>
+                    </form>
+                </details>
+                <details class="studio-panel"><summary>Next unlocks</summary><p>Earn the achievement to claim its reward. Previewing never changes your progress.</p><div id="next-unlocks"></div></details>
+                </div>
                 <div class="wardrobe-heading"><h2>Your wardrobe</h2><p>Unlocked items are yours to keep. You can preview locked items before earning them.</p></div>
                 <div class="wardrobe-tabs" id="wardrobe-tabs" role="group" aria-label="Wardrobe category">
                     <button type="button" data-slot="character" aria-pressed="true">Characters</button>
                     <button type="button" data-slot="outfit" aria-pressed="false">Outfits</button>
-                    <button type="button" data-slot="accessory" aria-pressed="false">Accessories</button>
+                    <button type="button" data-slot="accessory" aria-pressed="false">Glasses</button>
                     <button type="button" data-slot="hat" aria-pressed="false">Hats & helmets</button>
+                    <button type="button" data-slot="audio" aria-pressed="false">Audio</button>
+                    <button type="button" data-slot="jewellery" aria-pressed="false">Jewellery</button>
+                    <button type="button" data-slot="back" aria-pressed="false">Back gear</button>
+                    <button type="button" data-slot="companion" aria-pressed="false">Companions</button>
+                    <button type="button" data-slot="idle" aria-pressed="false">Idle personality</button>
+                    <button type="button" data-slot="celebration" aria-pressed="false">Celebration</button>
                     <button type="button" data-slot="color" aria-pressed="false">Top color</button>
                     <button type="button" data-slot="skin" aria-pressed="false">Skin tone</button>
                     <button type="button" data-slot="hair" aria-pressed="false">Hairstyles</button>

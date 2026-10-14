@@ -117,10 +117,12 @@ test('Blender wardrobe exports all modular selections and local thumbnails', asy
     assert.ok(gltf.buffers.every(buffer => !buffer.uri));
     const ids = gltf.nodes.filter(node => node.extras?.avatar_slot).map(node => node.extras.avatar_id).sort();
     const { CATALOG } = require('../services/avatarService');
-    assert.deepEqual(ids, CATALOG.filter(item => ['character', 'outfit', 'accessory', 'hair', 'hat'].includes(item.slot) && !['none', 'hat-none'].includes(item.id)).map(item => item.id).sort());
+    assert.deepEqual(ids, CATALOG.filter(item => ['character', 'outfit', 'accessory', 'audio', 'jewellery', 'back', 'companion', 'hair', 'hat'].includes(item.slot) && !['none', 'hat-none', 'audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(item.id)).map(item => item.id).sort());
     assert.ok(gltf.materials.some(material => material.name === 'Skin'));
-    for (const item of CATALOG.filter(item => ['character', 'outfit', 'accessory', 'hair', 'hat'].includes(item.slot))) {
-        const png = fs.readFileSync(`frontend/assets/avatars/${item.slot}-${item.id}.png`);
+    const renderSource = fs.readFileSync('frontend/js/utils/avatarRenderer.js', 'utf8');
+    const { AVATAR_ASSET_SLOTS } = await import(`data:text/javascript;base64,${Buffer.from(renderSource).toString('base64')}`);
+    for (const item of CATALOG.filter(item => ['character', 'outfit', 'accessory', 'audio', 'jewellery', 'back', 'companion', 'hair', 'hat'].includes(item.slot) && !['audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(item.id))) {
+        const png = fs.readFileSync(`frontend/assets/avatars/${AVATAR_ASSET_SLOTS[item.id] || item.slot}-${item.id}.png`);
         assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     }
     assert.equal(fs.readFileSync('src/avatar-models/wardrobe.blend').toString('ascii', 0, 7), 'BLENDER');
@@ -132,7 +134,7 @@ test('3D selections toggle model groups and apply only trusted skin and clothing
     const { applyAvatarSelection } = await import(`data:text/javascript;base64,${Buffer.from(bundle).toString('base64')}`);
     const data = fs.readFileSync('frontend/assets/avatars/wardrobe.glb');
     const { scene } = await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset, data.byteOffset + data.length), '');
-    const chosen = { ...DEFAULT_SELECTION, character: 'fox', hair: 'braid', outfit: 'lab-coat', accessory: 'crown', color: 'rose',
+    const chosen = { ...DEFAULT_SELECTION, character: 'fox', hair: 'braid', outfit: 'lab-coat', hat: 'crown', color: 'rose',
         skin: 'skin-deep', hairColor: 'hair-copper', pantsColor: 'pants-plum', shoesColor: 'shoes-mint' };
     applyAvatarSelection(scene, chosen);
     const active = [];
@@ -214,7 +216,7 @@ test('every built-in achievement has a themed reward, with secrets revealed only
         assert.equal(earned.catalog.find(item => item.id === 'matrix-shades').unlocked, true);
         const look = { ...DEFAULT_SELECTION, accessory: 'glasses-69', hat: 'cap', hair: 'long-waves', color: 'teal' };
         await service.saveSelection(1, look);
-        const oldClient = { ...look }; delete oldClient.hat;
+        const oldClient = Object.fromEntries(['character', 'outfit', 'accessory', 'color', 'skin', 'hair', 'hairColor', 'pantsColor', 'shoesColor'].map(k => [k, look[k]]));
         assert.equal((await service.saveSelection(1, { ...oldClient, color: 'lemon' })).selection.hat, 'cap');
         const incomplete = { ...look }; delete incomplete.hairColor;
         await assert.rejects(service.saveSelection(1, incomplete), /complete/);
@@ -230,7 +232,7 @@ test('language mastery unlocks a permanent medal using existing language achieve
         await db.awardAchievement(1, 'language-master-bash');
         const state = await service.getState(1);
         assert.equal(state.catalog.find(item => item.id === 'language-medal').reward.name, 'Bash Master');
-        const look = { ...DEFAULT_SELECTION, accessory: 'language-medal' };
+        const look = { ...DEFAULT_SELECTION, jewellery: 'language-medal' };
         await service.saveSelection(1, look);
         await db.db.run('DELETE FROM user_achievements WHERE user_id = 1');
         assert.deepEqual((await service.saveSelection(1, look)).selection, look);
@@ -297,7 +299,7 @@ test('large hair fits headwear, backpack clears wings, and repeated selections d
     const crown = find(o => o.userData.avatar_id === 'crown');
     const band = find(o => o.userData.avatar_fit === 'headband');
     const wings = find(o => o.userData.avatar_id === 'wings');
-    const hood = find(o => o.userData.avatar_hide_hair);
+    const hood = find(o => o.userData.avatar_hide_hair?.includes('long-waves'));
     applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'long-waves', outfit: 'hoodie' });
     assert.equal(hood.visible, false);
     applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'long-waves', outfit: 'hoodie', hat: 'cap' });
@@ -310,9 +312,9 @@ test('large hair fits headwear, backpack clears wings, and repeated selections d
     assert.ok(crown.position.y < high - 0.2);
     applyAvatarSelection(scene, { ...DEFAULT_SELECTION, hair: 'afro', accessory: 'headphones' });
     assert.ok(band.scale.y > 1.4);
-    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'space-suit', accessory: 'wings' });
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'space-suit', back: 'wings' });
     const backpackOffset = wings.position.z;
-    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'tee', accessory: 'wings' });
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'tee', back: 'wings' });
     assert.ok(wings.position.z > backpackOffset + 0.1);
 });
 
@@ -339,18 +341,51 @@ test('propeller animation rotates only its pivot, pauses hidden parts, and honor
 
 test('character gestures, blinks, wings and decorations animate and return to their rest pose', async () => {
     const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
-    const required = ['spin', 'duck', 'bird', 'tassel', 'wing', 'head', 'arm', 'flame', 'sparkle', 'pulse', 'blink'];
+    const required = ['spin', 'duck', 'bird', 'tassel', 'wing', 'head', 'arm', 'elbow', 'torso', 'flame', 'sparkle', 'pulse', 'blink'];
     for (const kind of required) assert.ok(find(o => o.userData.avatar_motion === kind), kind);
-    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, accessory: 'wings', hat: 'flame' });
+    applyAvatarSelection(scene, { ...DEFAULT_SELECTION, back: 'wings', hat: 'flame' });
     const wing = find(o => o.userData.avatar_motion === 'wing');
-    const flame = find(o => o.userData.avatar_motion === 'flame');
+    const flame = find(o => o.userData.avatar_motion === 'flame' && o.parent?.userData.avatar_id === 'flame');
     const head = find(o => o.userData.avatar_motion === 'head');
     const rest = { wing: wing.rotation.y, flame: flame.scale.y, head: head.rotation.y };
     const animator = createAvatarAnimator(scene); animator.gesture('wave', 0); animator.update(1);
     assert.notEqual(wing.rotation.y, rest.wing); assert.notEqual(flame.scale.y, rest.flame); assert.notEqual(head.rotation.y, rest.head);
     let raised = false;
-    scene.traverse(o => { if (o.userData.avatar_motion === 'arm' && o.userData.avatar_side === 1 && o.visible && o.rotation.z > 1) raised = true; });
+    scene.traverse(o => { if (o.userData.avatar_motion === 'arm' && o.userData.avatar_side === 1 && o.visible && o.rotation.z > 0.5) raised = true; });
     assert.equal(raised, true);
     animator.update(2, true);
     assert.equal(wing.rotation.y, rest.wing); assert.equal(flame.scale.y, rest.flame); assert.equal(head.rotation.y, rest.head);
+});
+
+
+test('every visible wardrobe category has at least five actual choices, excluding none and secrets', () => {
+    const { CATALOG } = require('../services/avatarService');
+    for (const slot of Object.keys(DEFAULT_SELECTION)) {
+        const choices = CATALOG.filter(item => item.slot === slot && !item.secret && !['none', 'hat-none', 'audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(item.id));
+        assert.ok(choices.length >= 5, `${slot} has only ${choices.length} actual choices`);
+    }
+});
+
+test('personalities and celebrations produce distinct poses; reduced motion preserves static personality', async () => {
+    const { scene, find, applyAvatarSelection, createAvatarAnimator } = await loadWardrobe();
+    applyAvatarSelection(scene, DEFAULT_SELECTION);
+    const arm = find(o => o.userData.avatar_motion === 'arm' && o.userData.avatar_side === 1 && o.name.includes('Body'));
+    const elbow = find(o => o.userData.avatar_motion === 'elbow' && o.userData.avatar_side === 1 && o.name.includes('Body'));
+    const torso = find(o => o.userData.avatar_motion === 'torso' && o.name === 'Waist_Body');
+    const animator = createAvatarAnimator(scene);
+    const signatures = [];
+    for (const idle of ['idle-relaxed','idle-confident','idle-shy','idle-bouncy','idle-drowsy']) {
+        animator.update(1, true, { ...DEFAULT_SELECTION, idle });
+        signatures.push(JSON.stringify([arm.rotation.toArray(), elbow.rotation.toArray(), find(o => o.userData.avatar_motion === 'head').rotation.toArray()]));
+    }
+    assert.equal(new Set(signatures).size, 5);
+    const celebrations = [];
+    for (const name of ['wave','celebrate','bounce','dance','bow']) {
+        animator.gesture(name, 0); const motion = animator.update(1, false, DEFAULT_SELECTION);
+        celebrations.push(JSON.stringify([arm.rotation.toArray(), elbow.rotation.toArray(), torso.rotation.toArray(), motion]));
+    }
+    assert.equal(new Set(celebrations).size, 5);
+    assert.ok(torso.rotation.x > 0.4, 'bow bends at the waist');
+    animator.update(1, true, { ...DEFAULT_SELECTION, idle: 'idle-confident' });
+    assert.ok(arm.rotation.z > 0.3); assert.ok(elbow.rotation.z < -0.9);
 });

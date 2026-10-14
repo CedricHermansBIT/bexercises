@@ -141,6 +141,14 @@ class DatabaseService {
                 selection TEXT NOT NULL,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS user_avatar_looks (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                slot INTEGER NOT NULL CHECK(slot BETWEEN 1 AND 5),
+                name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 40),
+                selection TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, slot)
+            );
             CREATE TABLE IF NOT EXISTS user_avatar_unlocks (
                 user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 item_id TEXT NOT NULL,
@@ -1853,7 +1861,7 @@ class DatabaseService {
 			FROM user_progress 
 			WHERE user_id = ? 
 			AND completed = 1 
-			AND completed_at >= ?
+			AND datetime(completed_at) >= datetime(?)
 		`, [userId, oneHourAgo.toISOString()]);
 
 		if (lastHourCompletions.count >= 3) {
@@ -1875,7 +1883,7 @@ class DatabaseService {
 			FROM user_progress 
 			WHERE user_id = ? 
 			AND completed = 1 
-			AND completed_at >= ?
+			AND datetime(completed_at) >= datetime(?)
 		`, [userId, todayStart]);
 
 		if (todayCompletions.count >= 10) {

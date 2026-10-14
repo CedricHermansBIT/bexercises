@@ -1,8 +1,9 @@
 # Original BITLab avatar models
 
 `wardrobe.blend` is the editable Blender source. `build_avatar.py` generates the
-rounded human models from Blender primitives: four face shapes, 16 hairstyles,
-four outfits, 14 hat/helmet meshes and 13 accessory meshes. The full space suit
+rounded human models from Blender primitives: five face shapes, 16 hairstyles,
+five outfits, hats/helmets, independent audio, jewellery, back gear and shoulder
+companions. Each studio category has at least five visible actual choices. The full space suit
 includes boots, gloves, seals, an oxygen hose and life-support backpack. This artwork was created for
 BITLab; it does not contain GeoGuessr assets or downloaded character models.
 
@@ -35,7 +36,7 @@ required on the production server.
 
 Animation is procedural in the browser rather than baked into glTF clips.
 `avatar_motion` identifies separate propeller, duck, bird, tassel, flame, wing,
-head, blink and shoulder pivots; `avatar_side` identifies left/right limbs.
+head, blink, waist, shoulder and elbow pivots; `avatar_side` identifies left/right limbs.
 `avatar_fit`, `avatar_hair_top` and `avatar_hair_width` support fitting headwear
 and backpack clearance. Preserve these custom properties when exporting manual
 edits. Child geometry must retain its rest transform relative to its pivot.
@@ -45,3 +46,10 @@ For metadata or pivot-only edits, add `-- --skip-thumbnails` to the Blender comm
 to rebuild the GLB and editable project while keeping existing PNG renders.
 `avatar_hide_hair` suppresses the hood beneath long hair without changing the
 selected outfit.
+
+Language mastery artwork includes a Python shoulder snake, Bash terminal backpack
+and SQL database hat. New slot metadata is `audio`, `jewellery`, `back` and
+`companion`; existing legacy thumbnail filenames are mapped by the renderer.
+`-- --thumbnail-id=ITEM` regenerates one chosen thumbnail together with the model
+and editable project. Preserve `avatar_hide_back` when exporting: replacement
+backpacks hide the built-in space-suit oxygen pack.

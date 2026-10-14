@@ -20,20 +20,29 @@ export const AVATAR_SHOES_COLORS = { 'shoes-cream': [0.92, 0.92, 0.85], 'shoes-i
     ...Object.fromEntries(['crimson','orange','lemon','violet','cyan','white','chocolate'].map(id => [`shoes-${id}`, AVATAR_COLORS[id]])), 'shoes-silver': [.60,.65,.70] };
 export const AVATAR_PALETTES = { color: AVATAR_COLORS, skin: AVATAR_SKINS, hairColor: AVATAR_HAIR_COLORS,
     pantsColor: AVATAR_PANTS_COLORS, shoesColor: AVATAR_SHOES_COLORS };
-export const AVATAR_OPTIONS = { character: ['robot', 'sprout', 'fox', 'cat'], outfit: ['tee', 'hoodie', 'lab-coat', 'space-suit'],
-    accessory: ['none', 'glasses', 'headphones', 'crown', 'glasses-69', 'glasses-67', 'star-glasses', 'pixel-shades', 'owl-glasses', 'lightning', 'bow-tie', 'wings', 'language-medal', 'matrix-shades'], hair: ['crop', 'curls', 'bob', 'bun', 'mohawk', 'braid', 'bald', 'buzz', 'pixie', 'afro', 'ponytail', 'twin-buns', 'spiky', 'long-waves', 'dreads', 'pompadour'],
-    hat: ['hat-none', 'cap', 'beanie', 'duck', 'propeller', 'wizard', 'graduation', 'space-helmet', 'viking', 'centurion-helmet', 'mushroom', 'top-hat', 'runner', 'early-bird-hat', 'flame'],
+export const AVATAR_OPTIONS = { character: ['robot', 'sprout', 'fox', 'cat', 'nova'], outfit: ['tee', 'hoodie', 'lab-coat', 'space-suit', 'dungarees'],
+    accessory: ['none', 'glasses', 'glasses-69', 'glasses-67', 'star-glasses', 'pixel-shades', 'owl-glasses', 'matrix-shades'],
+    audio: ['audio-none', 'headphones', 'studio-headset', 'cat-headphones', 'earbuds', 'retro-headphones', 'gamer-headset'], jewellery: ['jewel-none', 'lightning', 'bow-tie', 'language-medal', 'star-pin', 'scarf'],
+    back: ['back-none', 'wings', 'terminal-pack', 'rocket-pack', 'bookbag', 'turtle-shell'], companion: ['companion-none', 'python-snake', 'owl-pal', 'duck-pal', 'robot-pal', 'cat-pal'],
+    idle: ['idle-relaxed', 'idle-confident', 'idle-shy', 'idle-bouncy', 'idle-drowsy'], celebration: ['cel-wave', 'cel-celebrate', 'cel-bounce', 'cel-dance', 'cel-bow'], hair: ['crop', 'curls', 'bob', 'bun', 'mohawk', 'braid', 'bald', 'buzz', 'pixie', 'afro', 'ponytail', 'twin-buns', 'spiky', 'long-waves', 'dreads', 'pompadour'],
+    hat: ['hat-none', 'crown', 'database-hat', 'cap', 'beanie', 'duck', 'propeller', 'wizard', 'graduation', 'space-helmet', 'viking', 'centurion-helmet', 'mushroom', 'top-hat', 'runner', 'early-bird-hat', 'flame'],
     ...Object.fromEntries(Object.entries(AVATAR_PALETTES).map(([slot, palette]) => [slot, Object.keys(palette)])) };
 
+export const AVATAR_ASSET_SLOTS = Object.fromEntries(['headphones', 'crown', 'lightning', 'bow-tie', 'wings', 'language-medal'].map(id => [id, 'accessory']));
 // Local Blender renders provide wardrobe thumbnails and a non-WebGL fallback.
 export function renderAvatar(selection, label = 'Your character', slot = 'character') {
     if (!AVATAR_OPTIONS[slot]) slot = 'character';
     const id = AVATAR_OPTIONS[slot].includes(selection[slot]) ? selection[slot] : AVATAR_OPTIONS[slot][0];
     const safeLabel = String(label).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    if (['audio-none', 'jewel-none', 'back-none', 'companion-none'].includes(id)) return `<span class="avatar-choice-symbol" aria-hidden="true">∅</span>`;
+    if (slot === 'idle' || slot === 'celebration') {
+        const symbol = { 'idle-relaxed': '☕', 'idle-confident': '😎', 'idle-shy': '☺️', 'idle-bouncy': '✨', 'idle-drowsy': '💤', 'cel-wave': '👋', 'cel-celebrate': '🙌', 'cel-bounce': '🎉', 'cel-dance': '🕺', 'cel-bow': '🎩' }[id];
+        return `<span class="avatar-choice-symbol" aria-hidden="true">${symbol}</span>`;
+    }
     const palette = AVATAR_PALETTES[slot];
     if (palette) {
         const rgb = palette[id].map(v => Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055)));
         return `<span class="avatar-swatch" role="img" aria-label="${safeLabel}" style="background-color:rgb(${rgb.join(',')})"></span>`;
     }
-    return `<img class="avatar-thumbnail" src="../../assets/avatars/${slot}-${id}.png" alt="${safeLabel}" loading="lazy" decoding="async">`;
+    return `<img class="avatar-thumbnail" src="../../assets/avatars/${AVATAR_ASSET_SLOTS[id] || slot}-${id}.png" alt="${safeLabel}" loading="lazy" decoding="async">`;
 }

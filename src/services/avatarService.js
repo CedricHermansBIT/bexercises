@@ -1,13 +1,17 @@
+const { getAvatarProgress, progressFor } = require('./avatarProgressService');
 const DEFAULT_SELECTION = Object.freeze({ character: 'robot', outfit: 'tee', accessory: 'none', color: 'sky',
-    skin: 'skin-warm', hair: 'crop', hairColor: 'hair-chestnut', pantsColor: 'pants-navy', shoesColor: 'shoes-cream', hat: 'hat-none' });
-const LEGACY_KEYS = ['character', 'outfit', 'accessory', 'color'];
+    skin: 'skin-warm', hair: 'crop', hairColor: 'hair-chestnut', pantsColor: 'pants-navy', shoesColor: 'shoes-cream', hat: 'hat-none',
+    audio: 'audio-none', jewellery: 'jewel-none', back: 'back-none', companion: 'companion-none', idle: 'idle-relaxed', celebration: 'cel-wave' });
 const CHARACTER_PRESETS = { robot: {}, sprout: { skin: 'skin-deep', hair: 'curls', hairColor: 'hair-black' },
     fox: { skin: 'skin-fair', hair: 'bob', hairColor: 'hair-copper' }, cat: { skin: 'skin-brown', hair: 'bun', hairColor: 'hair-black' } };
+const LEGACY_SLOTS = { headphones: 'audio', crown: 'hat', lightning: 'jewellery', 'bow-tie': 'jewellery', 'language-medal': 'jewellery', wings: 'back' };
 const CATALOG = Object.freeze([
     { id: 'robot', slot: 'character', name: 'Alex', description: 'Easygoing explorer. Always up for the next challenge.' },
     { id: 'sprout', slot: 'character', name: 'Mika', description: 'A curious mind, with a little extra bounce.' },
     { id: 'fox', slot: 'character', name: 'Robin', description: 'Resourceful, adventurous, and ready to go.', achievement: 'quick-learner' },
     { id: 'cat', slot: 'character', name: 'Sage', description: 'A calm head for tricky problems.', achievement: 'dedicated' },
+    { id: 'nova', slot: 'character', name: 'Nova', description: 'Bright-eyed dreamer with big ideas.' },
+    { id: 'dungarees', slot: 'outfit', name: 'Workshop dungarees' },
     { id: 'tee', slot: 'outfit', name: 'Everyday tee' },
     { id: 'hoodie', slot: 'outfit', name: 'Cosy hoodie' },
     { id: 'lab-coat', slot: 'outfit', name: 'Lab coat', achievement: 'first-steps' },
@@ -57,6 +61,29 @@ const CATALOG = Object.freeze([
     { id: 'long-waves', slot: 'hair', name: 'Long waves' },
     { id: 'dreads', slot: 'hair', name: 'Locs' },
     { id: 'pompadour', slot: 'hair', name: 'Retro pop pompadour', achievement: 'rickrolled', secret: true },
+    { id: 'gamer-headset', slot: 'audio', name: 'RGB gaming headset', achievement: 'elite' },
+    { id: 'studio-headset', slot: 'audio', name: 'Studio headset', achievement: 'dedicated' },
+    { id: 'cat-headphones', slot: 'audio', name: 'Cat-ear headphones', achievement: 'nice' },
+    { id: 'earbuds', slot: 'audio', name: 'Everyday earbuds' },
+    { id: 'retro-headphones', slot: 'audio', name: 'Retro headphones', achievement: 'rickrolled', secret: true },
+    { id: 'rocket-pack', slot: 'back', name: 'Rocket backpack', achievement: 'master' },
+    { id: 'bookbag', slot: 'back', name: 'Scholar bookbag', achievement: 'chapter-complete' },
+    { id: 'turtle-shell', slot: 'back', name: 'Slow-and-steady shell', achievement: 'never-give-up' },
+    { id: 'owl-pal', slot: 'companion', name: 'Night owl pal', achievement: 'night-owl' },
+    { id: 'duck-pal', slot: 'companion', name: 'Rubber duck pal', achievement: 'helpful-nudge' },
+    { id: 'robot-pal', slot: 'companion', name: 'Tiny robot pal', achievement: 'answer-to-everything' },
+    { id: 'cat-pal', slot: 'companion', name: 'Curious cat pal', achievement: 'quick-learner' },
+    { id: 'star-pin', slot: 'jewellery', name: 'First-step star pin', achievement: 'first-steps' },
+    { id: 'scarf', slot: 'jewellery', name: 'Cosy scarf' },
+    { id: 'audio-none', slot: 'audio', name: 'No headphones' },
+    { id: 'jewel-none', slot: 'jewellery', name: 'No jewellery' },
+    { id: 'back-none', slot: 'back', name: 'No back accessory' },
+    { id: 'companion-none', slot: 'companion', name: 'No companion' },
+    { id: 'python-snake', slot: 'companion', name: 'Python shoulder pal', languageIds: ['python'] },
+    { id: 'terminal-pack', slot: 'back', name: 'Bash terminal backpack', languageIds: ['bash'] },
+    { id: 'database-hat', slot: 'hat', name: 'SQL database hat', languageIds: ['sql', 'mysql', 'mariadb', 'postgresql'] },
+    ...[['relaxed', 'Relaxed', 'Easy breathing and relaxed arms.'], ['confident', 'Confident', 'Hands on hips, chin lifted.'], ['shy', 'Shy', 'Arms folded forward, head lowered.'], ['bouncy', 'Happy bounce', 'Raised arms and gentle hops.'], ['drowsy', 'Sleepy daydreamer', 'Closed eyes and sleepy nods.']].map(([id, name, description]) => ({ id: `idle-${id}`, slot: 'idle', name, description })),
+    ...[['wave', 'Friendly wave'], ['celebrate', 'Victory cheer'], ['bounce', 'Happy bounce'], ['dance', 'Victory dance'], ['bow', 'Take a bow']].map(([id, name]) => ({ id: `cel-${id}`, slot: 'celebration', name })),
     ...['sky', 'mint', 'rose', 'amber', 'violet', 'slate', 'crimson', 'orange', 'lemon', 'lime', 'forest', 'teal', 'cyan', 'ocean', 'navy', 'lavender', 'magenta', 'chocolate', 'sand', 'cream', 'white', 'black'].map(id => ({ id, slot: 'color', name: id[0].toUpperCase() + id.slice(1) })),
     { id: 'golden', slot: 'color', name: 'Learner gold', achievement: 'quick-learner' },
     ...['fair', 'warm', 'olive', 'brown', 'deep', 'porcelain', 'peach', 'umber', 'ebony'].map(id => ({ id: `skin-${id}`, slot: 'skin', name: id[0].toUpperCase() + id.slice(1) })),
@@ -65,16 +92,18 @@ const CATALOG = Object.freeze([
     { id: 'hair-ember', slot: 'hairColor', name: 'Streak ember', achievement: 'streak-starter' },
     ...['navy', 'sand', 'charcoal', 'plum', 'forest', 'sky', 'rose', 'white', 'black', 'orange', 'teal', 'chocolate'].map(id => ({ id: `pants-${id}`, slot: 'pantsColor', name: id[0].toUpperCase() + id.slice(1) })),
     ...['cream', 'ink', 'rose', 'mint', 'crimson', 'orange', 'lemon', 'violet', 'cyan', 'white', 'chocolate', 'silver'].map(id => ({ id: `shoes-${id}`, slot: 'shoesColor', name: id[0].toUpperCase() + id.slice(1) })),
-]);
+].map(item => ({ ...item, slot: LEGACY_SLOTS[item.id] || item.slot })));
 
 function validateSelection(value) {
+    const oldKeys = ['character', 'outfit', 'accessory', 'color', 'skin', 'hair', 'hairColor', 'pantsColor', 'shoesColor', 'hat'];
     if (!value || typeof value !== 'object' || Array.isArray(value)
-        || Object.keys(value).some(key => !Object.hasOwn(DEFAULT_SELECTION, key))
-        || ![4, 9, Object.keys(DEFAULT_SELECTION).length].includes(Object.keys(value).length)
-        || Object.keys(value).length === 9 && Object.hasOwn(value, 'hat')
-        || !LEGACY_KEYS.every(key => Object.hasOwn(value, key))) throw new Error('Choose a complete avatar selection');
-    // Older saved looks had only four fields. Expand those into the new wardrobe.
-    const selection = { ...DEFAULT_SELECTION, ...(Object.keys(value).length === 4 ? CHARACTER_PRESETS[value.character] : {}), ...value };
+        || Object.keys(value).some(key => !Object.hasOwn(DEFAULT_SELECTION, key))) throw new Error('Choose a complete avatar selection');
+    const keys = Object.keys(value);
+    const legacy = [4, 9, 10].includes(keys.length);
+    const required = legacy ? oldKeys.slice(0, keys.length) : Object.keys(DEFAULT_SELECTION);
+    if (keys.length !== required.length || !required.every(key => Object.hasOwn(value, key))) throw new Error('Choose a complete avatar selection');
+    const selection = { ...DEFAULT_SELECTION, ...(keys.length === 4 ? CHARACTER_PRESETS[value.character] : {}), ...value };
+    if (legacy && LEGACY_SLOTS[value.accessory]) { selection[LEGACY_SLOTS[value.accessory]] = value.accessory; selection.accessory = 'none'; }
     for (const slot of Object.keys(DEFAULT_SELECTION)) {
         if (!CATALOG.some(item => item.slot === slot && item.id === selection[slot])) throw new Error(`Unknown avatar ${slot}`);
     }
@@ -86,9 +115,11 @@ function createAvatarService(database) {
         return database.withWriteTransaction(async () => {
             const { completed } = await database.db.get('SELECT COUNT(*) AS completed FROM user_progress WHERE user_id = ? AND completed = 1', [userId]);
             const earned = new Set((await database.db.all('SELECT achievement_id FROM user_achievements WHERE user_id = ? AND earned_at IS NOT NULL', [userId])).map(row => row.achievement_id));
-            const achievements = new Map((await database.db.all('SELECT id, name, description, icon, hidden FROM achievements')).map(row => [row.id, row]));
+            const achievements = new Map((await database.db.all('SELECT id, name, description, icon, hidden, requirement_type, requirement_value FROM achievements')).map(row => [row.id, row]));
+            const progress = await getAvatarProgress(database.db, userId);
+            const languageMatches = item => [...achievements.values()].filter(a => a.id.startsWith('language-master-') && (item.languageMaster || item.languageIds?.includes(a.id.slice('language-master-'.length))));
             for (const item of CATALOG) {
-                if ((item.achievement && earned.has(item.achievement)) || (item.languageMaster && [...earned].some(id => id.startsWith('language-master-')))) {
+                if ((item.achievement && earned.has(item.achievement)) || ((item.languageMaster || item.languageIds) && languageMatches(item).some(a => earned.has(a.id)))) {
                     await database.db.run('INSERT OR IGNORE INTO user_avatar_unlocks (user_id, item_id) VALUES (?, ?)', [userId, item.id]);
                 }
             }
@@ -100,26 +131,56 @@ function createAvatarService(database) {
                 await database.db.run('INSERT OR IGNORE INTO user_avatar_unlocks (user_id, item_id) VALUES (?, ?)', [userId, selection.hair]);
             }
             const unlocked = new Set((await database.db.all('SELECT item_id FROM user_avatar_unlocks WHERE user_id = ?', [userId])).map(row => row.item_id));
-            return { selection, completed, catalog: CATALOG.filter(item => !item.secret || unlocked.has(item.id)).map(item => {
-                const languageReward = item.languageMaster ? [...achievements.values()].find(a => a.id.startsWith('language-master-') && earned.has(a.id)) : null;
-                const reward = languageReward || achievements.get(item.achievement) || null;
-                return { ...item, reward, unlocked: (!item.achievement && !item.languageMaster) || unlocked.has(item.id),
-                    requirement: item.achievement ? `Earn ${reward?.name || item.achievement}${reward ? ` — ${reward.description}` : ''}` : item.languageMaster ? 'Master any language — complete all its chapters' : 'Available from the start', progress: null };
-            }) };
+            const catalog = CATALOG.filter(item => !item.secret || unlocked.has(item.id)).map(item => {
+                const languages = languageMatches(item);
+                const languageReward = languages.find(a => earned.has(a.id)) || languages.sort((a, b) => progressFor(b, progress).fraction - progressFor(a, progress).fraction)[0];
+                const reward = (item.languageMaster || item.languageIds ? languageReward : achievements.get(item.achievement)) || null;
+                const measure = reward ? progressFor(reward, progress) : null;
+                return { ...item, reward, unlocked: (!item.achievement && !item.languageMaster && !item.languageIds) || unlocked.has(item.id),
+                    progress: measure?.current ?? null, target: measure?.target ?? null, progressLabel: measure?.label || null,
+                    requirement: reward ? `Earn ${reward.name} — ${reward.description}` : item.languageIds ? `Master ${item.languageIds.join(' or ')} to unlock` : item.languageMaster ? 'Master any language — complete all its chapters' : 'Available from the start' };
+            });
+            const looks = await database.db.all('SELECT slot, name, selection, updated_at AS updatedAt FROM user_avatar_looks WHERE user_id = ? ORDER BY slot', [userId]);
+            const nextUnlocks = catalog.filter(i => !i.unlocked && i.progress !== null && i.target > 0)
+                .sort((a, b) => b.progress / b.target - a.progress / a.target || (a.target - a.progress) - (b.target - b.progress));
+            const unique = [...new Map(nextUnlocks.map(i => [i.reward.id, i])).values()].slice(0, 4);
+            return { selection, completed, catalog, nextUnlocks: unique, looks: looks.map(l => ({ ...l, selection: validateSelection(JSON.parse(l.selection)) })) };
         });
     }
-    async function saveSelection(userId, value) {
+    async function checked(userId, value) {
         const parsed = validateSelection(value);
         const state = await getState(userId);
-        // Old clients cannot accidentally overwrite newly customized skin/hair/colors.
-        const selection = Object.keys(value).length < Object.keys(DEFAULT_SELECTION).length ? validateSelection({ ...state.selection, ...value }) : parsed;
+        let selection = parsed;
+        if (Object.keys(value).length < Object.keys(DEFAULT_SELECTION).length) {
+            const migrated = { ...state.selection, ...value };
+            if (LEGACY_SLOTS[value.accessory]) { migrated[LEGACY_SLOTS[value.accessory]] = value.accessory; migrated.accessory = 'none'; }
+            selection = validateSelection(migrated);
+        }
         for (const [slot, id] of Object.entries(selection)) {
             if (!state.catalog.find(entry => entry.id === id && entry.slot === slot)?.unlocked) throw new Error('Unlock this item before equipping it');
         }
+        return { state, selection };
+    }
+    async function saveSelection(userId, value) {
+        const { state, selection } = await checked(userId, value);
         await database.withWriteTransaction(() => database.db.run(`INSERT INTO user_avatars (user_id, selection) VALUES (?, ?)
             ON CONFLICT(user_id) DO UPDATE SET selection = excluded.selection, updated_at = CURRENT_TIMESTAMP`, [userId, JSON.stringify(selection)]));
         return { ...state, selection };
     }
-    return { getState, saveSelection };
+    async function saveLook(userId, slot, body) {
+        if (!Number.isInteger(slot) || slot < 1 || slot > 5 || !body || Object.keys(body).some(k => !['name', 'selection'].includes(k))
+            || typeof body.name !== 'string' || !body.name.trim() || body.name.trim().length > 40) throw new Error('Invalid saved look: choose a slot from 1 to 5 and a name up to 40 characters');
+        const { selection } = await checked(userId, body.selection);
+        await database.withWriteTransaction(() => database.db.run(`INSERT INTO user_avatar_looks (user_id, slot, name, selection) VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id, slot) DO UPDATE SET name = excluded.name, selection = excluded.selection, updated_at = CURRENT_TIMESTAMP`, [userId, slot, body.name.trim(), JSON.stringify(selection)]));
+        return getState(userId);
+    }
+    async function deleteLook(userId, slot) {
+        if (!Number.isInteger(slot) || slot < 1 || slot > 5) throw new Error('Invalid saved look slot');
+        await database.withWriteTransaction(() => database.db.run('DELETE FROM user_avatar_looks WHERE user_id = ? AND slot = ?', [userId, slot]));
+        return getState(userId);
+    }
+
+    return { getState, saveSelection, saveLook, deleteLook };
 }
 module.exports = { createAvatarService, DEFAULT_SELECTION, CATALOG, validateSelection };

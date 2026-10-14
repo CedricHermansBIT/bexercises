@@ -1,65 +1,110 @@
 # Avatar studio: instructor preview
 
-Find **Avatar studio** on the admin dashboard. The page and API remain restricted
-to administrators. Students receive 403 from the API. Public profiles and
-leaderboards do not display avatars yet.
+Find **Avatar studio** on the admin dashboard. The page, equipped selection and
+saved-look API are restricted to administrators. Students receive 403. Avatars
+are not displayed on public profiles or leaderboards yet.
 
-The preview uses original, rounded 3D human characters modeled in Blender. Drag
-the preview, use its arrow buttons, or focus the canvas and press left/right to
-rotate. Scroll, use the zoom buttons, or press +/− while focusing the canvas to
-zoom. Categories frame the relevant area: hats/hair/glasses focus on the head,
-trousers and shoes focus lower, and outfits/wings show the whole character.
-**Full view** restores the overview. **Wave** and **Celebrate** trigger brief
-gestures and return to the idle pose.
+## Wardrobe and preview
 
-Character, hairstyle, skin tone, hair color, outfit, top color, trouser
-color, shoe color and hats are independent choices. Helmets and covering hats hide
-hair without changing the chosen hairstyle; removing the hat reveals it again.
-Picking competing headwear replaces the conflicting item (for example, a helmet
-replaces headphones, and a crown replaces a hat). Old saved combinations retain
-their selection and show a fit note when an accessory is covered. Crowns and
-bird nests perch above taller hairstyles, headphones expand around large hair,
-and wings sit behind the space-suit backpack.
+The studio has 156 choices across 16 categories. Every category has at least five
+visible, actual choices, excluding “none” and secret rewards. Glasses, audio,
+jewellery, back gear and shoulder companions are independent slots. Hats include
+crowns. Colors, hair, clothing, face shape and personality can be mixed separately.
+Existing one-accessory records migrate into the appropriate new slot.
 
-Changing a character preserves customized colors and hair. The space suit has a
-life-support backpack, hose, gloves, pressure seals,
-armored knees and moon boots; its helmet can also be worn with other outfits.
-Outfits such as the space suit cover the trousers,
-so the trouser color is visible with everyday outfits.
+Drag or use the arrow buttons to rotate; scroll or use +/− to zoom. Categories
+frame the relevant area. Back gear turns the character around to show backpacks.
+**Full view** restores the overview. **Surprise me** remixes unlocked choices
+without saving. **Unlocked only** filters the current category. The document and
+short-screen preview panel both scroll; on phones the preview follows the normal
+page flow. Saved looks and next unlocks are collapsible panels.
 
-There are 123 wardrobe choices, including 16 hairstyles, 15 hat choices,
-14 accessories, 23 top colors, nine skin tones, 14 hair colors, and 12 colors
-each for trousers and shoes. Two secret rewards appear only once earned.
-Alex, Mika, everyday clothes, basic hairstyles, all skin tones and basic colors are free.
-Locked items can be previewed, but both the UI and server prevent saving them.
-Use **Surprise me** to remix unlocked choices without saving. **Unlocked only**
-filters the current category. The page scrolls normally; on desktop the preview
-and its controls stay beside the wardrobe, and the preview panel can scroll on
-short screens. On phones everything follows the document flow.
+Competing headwear replaces conflicting gear when choosing new items. Saved
+combinations show a fit note if gear is covered. Crowns and nests perch above
+large hair, headphones expand around hair, covering hats conceal hair, and back
+gear clears or replaces the space-suit backpack. Long hair covers the hoodie hood.
+The space suit has gloves, pressure seals, knee armor, moon boots and an oxygen
+hose; its helmet is a separate choice.
 
-Saved looks belong to the signed-in account and survive changing devices.
+## Personality
+
+Five idle personalities have distinct silhouettes: relaxed, hands-on-hips
+confidence, shy folded arms, happy bouncing, and sleepy nodding with closed eyes.
+Five celebrations use articulated shoulders, elbows and a waist: a one-handed
+wave, overhead victory cheer, happy hopping, alternating-arm dance and a waist bow.
+Select a favourite celebration and use **Celebrate** to play it. Personality and
+celebration are saved with the equipped avatar and each named look.
+
+The propeller spins, wings flap, ducks bob, birds hop, tassels sway, flames flicker
+and decorative accents pulse. Reduced motion keeps the selected static personality
+but disables movement, blinking and gesture buttons. Offscreen/hidden previews
+pause rendering. Every frame starts from rest transforms to avoid drift.
+
+The photo booth has been removed while the editor and character poses mature.
+
+## Saved looks
+
+Five named slots per account hold favourite looks. Names must contain 1–40
+characters. Loading a slot previews it; **Save avatar** equips it. Saving or
+replacing a named look does not equip it. Deleting a slot leaves the preview and
+equipped avatar intact. The server validates every selected item against that
+account’s unlocked wardrobe. No points are spent and no exercise progress changes.
+
+`user_avatars` stores the equipped selection, `user_avatar_looks` stores named
+slots, and `user_avatar_unlocks` stores permanent rewards. All reference the user
+with cascading deletion. Startup creates missing tables.
+
+- `GET /api/admin/avatar`: selection, catalog, next unlocks, and own saved looks.
+- `PUT /api/admin/avatar`: complete equipped selection.
+- `PUT /api/admin/avatar/looks/:slot`: `{name, selection}`, with slot 1–5.
+- `DELETE /api/admin/avatar/looks/:slot`: clear only that account’s slot.
+
+Selection fields are `character`, `outfit`, `accessory` (glasses), `color`, `skin`,
+`hair`, `hairColor`, `pantsColor`, `shoesColor`, `hat`, `audio`, `jewellery`, `back`,
+`companion`, `idle` and `celebration`. Legacy four-, nine- and ten-field selections
+are accepted and preserve newer customization. Unknown IDs, extra fields,
+incomplete selections and locked items are rejected.
+
+## Achievement rewards and progress
+
+Rewards require actually earned achievements. Opening the studio records earned
+unlocks permanently; it never grants achievements based on counters. Unlocks
+survive progress resets. Secret rewards appear only after they are earned.
+
+Next unlocks group the closest measurable rewards by achievement. They use real
+completion, first-try, attempt, persistence, speed, streak and chapter counters.
+First-try counts use attempts at completion, so later reruns do not change them.
+Time/action achievements with no meaningful numerical measure show their actual
+requirement instead. A reached counter can still require earning the achievement;
+previewing does not award it. No eligible chapters means no fabricated progress.
+
+Complete Mastery counts nonempty chapters only in enabled (published) languages.
+Locked languages do not block it, and an empty published curriculum cannot award
+it. Language rewards require the matching existing language mastery achievement:
+Python unlocks the shoulder snake, Bash the terminal backpack, and SQL/MySQL/
+MariaDB/PostgreSQL the database hat. Any language mastery also unlocks the code medal.
 
 | Existing achievement | Avatar rewards |
 | --- | --- |
-| Answer to Everything | Answer-to-everything propeller |
-| Nice | Nice 69 glasses |
+| Answer to Everything | Answer-to-everything propeller, Tiny robot pal |
+| Nice | Nice 69 glasses, Cat-ear headphones |
 | Centurion | Centurion helmet |
 | Snoop Dogg | 420 mushroom |
 | Thousandaire | Thousandaire top hat |
-| 1337 Elite | 1337 pixel shades |
-| Helpful Nudge | Bright ideas, Rubber duck debugger |
-| First Steps | Lab coat |
-| Chapter Master | Chapter wizard |
+| 1337 Elite | 1337 pixel shades, RGB gaming headset |
+| Helpful Nudge | Bright ideas, Rubber duck debugger, Rubber duck pal |
+| First Steps | Lab coat, First-step star pin |
+| Chapter Master | Chapter wizard, Scholar bookbag |
 | Complete Mastery | Graduation cap |
 | Comeback Kid | Comeback crest |
 | Persistent | Focus headphones |
-| Never Give Up | Never-give-up Viking |
-| Quick Learner | Robin, Learner gold |
-| Dedicated | Sage, Explorer braid |
-| Master | Space suit, Space helmet |
+| Never Give Up | Never-give-up Viking, Slow-and-steady shell |
+| Quick Learner | Robin, Curious cat pal, Learner gold |
+| Dedicated | Sage, Explorer braid, Studio headset |
+| Master | Space suit, Space helmet, Rocket backpack |
 | Legendary | Problem-solver crown |
 | Six Seven | Six Seven specs |
-| Never Gonna Give You Up | Retro pop pompadour |
+| Never Gonna Give You Up | Retro pop pompadour, Retro headphones |
 | Hackerman | Matrix shades |
 | Perfectionist | Top knot, First-try bow tie |
 | Flawless | Flawless silver |
@@ -69,49 +114,18 @@ Saved looks belong to the signed-in account and survive changing devices.
 | Streak Starter | Streak ember |
 | Committed | Streak flame |
 | Unstoppable | Unstoppable wings |
-| Night Owl | Night owl eyes |
+| Night Owl | Night owl eyes, Night owl pal |
 | Early Bird | Early bird nest |
-| Any language mastery achievement | Language master medal |
 
-The studio shows each achievement's name and description beside its reward.
-Achievements must actually be earned; the studio does not infer them from a
-completion count. Unlocks are recorded when opening the studio and remain
-available even if progress is reset later. Avatar changes do not spend points
-or modify achievements or exercise progress.
+## Artwork and validation
 
-`user_avatars` holds the equipped selection; `user_avatar_unlocks` holds permanent
-item unlocks. Both reference the user with cascading deletion. Startup migrations
-create these tables. Existing four-field selections retain their character IDs
-and expand to matching hair/skin presets; existing permanent unlocks are retained.
-Old clients preserve customized hair and colors when saving their four fields.
+All artwork, thumbnails and the Three.js viewer are served locally under the
+existing CSP. `frontend/js/vendor/avatar3d.bundle.js` is committed, so production
+needs no compiler. Run `npm run build:avatar` after editing viewer code. WebGL
+failure shows a static character render that cannot reflect every attribute.
 
-- `GET /api/admin/avatar`: own selection, catalog, named achievement requirements.
-- `PUT /api/admin/avatar`: complete selection (`character`, `outfit`, `accessory`,
-  `color`, `skin`, `hair`, `hairColor`, `pantsColor`, `shoesColor`, `hat`). Legacy
-  four-field and nine-field selections preserve newer customization. Unknown IDs,
-  extra fields, incomplete new selections
-  and locked items are rejected.
-
-The viewer, model and thumbnails are served locally under the existing CSP.
-Three.js is bundled into `frontend/js/vendor/avatar3d.bundle.js`; this generated
-bundle is committed so production does not need a compiler or development
-packages. After changing viewer source, run `npm run build:avatar`. WebGL failure
-falls back to a static character render; that fallback does not reflect every
-customized attribute. Offscreen/hidden previews pause rendering, and reduced
-motion disables idle movement, blinks, prop motions and gesture buttons.
-The propeller spins, wings flap, the duck bobs, the bird hops, the graduation
-tassel sways, the flame flickers, wizard stars sparkle and headphone accents
-pulse. Motion uses rest transforms to avoid drift, and pauses while hidden.
-
-Complete Mastery counts only nonempty chapters in enabled (published) languages.
-Disabled/locked languages do not block it. An empty published curriculum cannot
-award the achievement. Previously earned achievements and avatar unlocks remain
-permanent.
-
-See [the model source workflow](../src/avatar-models/README.md) for the editable
-Blender project and regeneration instructions. Blender is only needed to edit
-or regenerate the artwork, not to run BITLab.
-
-Run `node --test src/tests/avatars.test.js` for authentication, persistence,
-legacy compatibility, achievement unlocks, palette safety and model checks.
-Restart BITLab after deploying backend changes.
+See [the model workflow](../src/avatar-models/README.md) for editable Blender source
+and regeneration. Blender is needed only for editing artwork, not for production.
+Run `node --test src/tests/avatars.test.js src/tests/avatarStudio.test.js` for
+account isolation, legacy migration, saved looks, unlock counters, slot coverage,
+model fitting and distinct poses. Restart BITLab after deploying backend changes.

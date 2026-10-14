@@ -6,6 +6,7 @@ from mathutils import Vector
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 OUT = os.path.join(ROOT, 'frontend/assets/avatars')
 os.makedirs(OUT, exist_ok=True)
+THUMBNAIL_ONLY=next((a.split('=',1)[1] for a in sys.argv if a.startswith('--thumbnail-id=')),None)
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
 
 def material(name, color, metallic=0):
@@ -24,9 +25,10 @@ def group(name,slot=None,item=None):
     if slot: o['avatar_slot']=slot; o['avatar_id']=item
     return o
 body=group('Body'); groups={}
+ITEM_SLOTS={'headphones':'audio','crown':'hat','lightning':'jewellery','bow-tie':'jewellery','language-medal':'jewellery','wings':'back'}
 HAIRS=['crop','curls','bob','bun','mohawk','braid','bald','buzz','pixie','afro','ponytail','twin-buns','spiky','long-waves','dreads','pompadour']
 ACCESSORIES=['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','bow-tie','wings','language-medal','matrix-shades']
-HATS=['cap','beanie','duck','propeller','wizard','graduation','space-helmet','viking','centurion-helmet','mushroom','top-hat','runner','early-bird-hat','flame']
+HATS=['cap','beanie','duck','propeller','wizard','graduation','space-helmet','viking','centurion-helmet','mushroom','top-hat','runner','early-bird-hat','flame','database-hat']
 def assign(obj,name,mat,parent):
     obj.name=name; obj.data.materials.append(mat); obj.parent=parent
     for p in obj.data.polygons: p.use_smooth=True
@@ -68,7 +70,8 @@ for side in [-1,1]:
     ellipsoid('Ear',(side*.348,.015,2.0),(.058,.052,.087),skin,body)
     ellipsoid('Eye',(side*.117,-.274,2.055),(.026,.013,.04),eyes,body,16)
     line('Brow',[(side*.15,-.263,2.145),(side*.12,-.279,2.15),(side*.09,-.278,2.145)],.011,hair,body)
-    limb('Arm',(side*.295,.0,1.55),(side*.455,-.01,1.065),.088,skin,body)
+    limb('Arm',(side*.295,.0,1.55),(side*.385,0,1.285),.088,skin,body)
+    limb('Forearm',(side*.385,0,1.285),(side*.455,-.01,1.065),.087,skin,body)
     ellipsoid('Hand',(side*.46,-.025,1.01),(.087,.085,.108),skin,body)
     ellipsoid('Thumb',(side*.395,-.075,1.03),(.04,.042,.065),skin,body,16)
     limb('Trouser leg',(side*.145,0,1.04),(side*.155,.018,.255),.123,denim,body)
@@ -80,7 +83,7 @@ line('Smile',[(-.075,-.27,1.9),(0,-.281,1.881),(.075,-.27,1.9)],.008,eyes,body)
 
 # Independent face shapes keep characters distinct when hair/skin are customized.
 face_parts=[o for o in body.children if o.name.startswith(('Head','Ear','Eye','Brow','Nose','Smile'))]
-for key,sx,sz in [('robot',1,1),('sprout',1.055,1.015),('fox',.955,1.025),('cat',1.035,.965)]:
+for key,sx,sz in [('robot',1,1),('sprout',1.055,1.015),('fox',.955,1.025),('cat',1.035,.965),('nova',.90,1.10)]:
     g=group('Character_'+key,'character',key)
     for original in face_parts:
         o=original.copy(); o.data=original.data.copy(); bpy.context.collection.objects.link(o); o.parent=g
@@ -157,13 +160,16 @@ for key in HAIRS:
         ellipsoid('Retro quiff',(0,-.12,2.42),(.32,.22,.21),hair,g)
         for side in [-1,1]: box('Retro sideburn',(side*.326,0,2.07),(.032,.075,.13),hair,g,.022)
 
-for key in ['tee','hoodie','lab-coat','space-suit']:
+for key in ['tee','hoodie','lab-coat','space-suit','dungarees']:
     g=group('Outfit_'+key,'outfit',key); groups[key]=g
     m=white if key in ['lab-coat','space-suit'] else cloth
     box('Torso',(0,.006,1.355),(.30,.165,.30 if key!='lab-coat' else .405),m,g,.12)
     for side in [-1,1]:
         end=(side*.335,0,1.44) if key=='tee' else (side*.44,-.01,1.105)
-        limb('Sleeve',(side*.284,0,1.56),end,.10,m,g)
+        if key=='tee': limb('Sleeve',(side*.284,0,1.56),end,.10,m,g)
+        else:
+            limb('Sleeve',(side*.284,0,1.56),(side*.385,0,1.285),.10,m,g)
+            limb('Sleeve forearm',(side*.385,0,1.285),end,.10,m,g)
     if key=='tee':
         line('Neck trim',[(-.106,-.105,1.642),(0,-.165,1.63),(.106,-.105,1.642)],.018,white,g)
     elif key=='hoodie':
@@ -171,6 +177,12 @@ for key in ['tee','hoodie','lab-coat','space-suit']:
         hood['avatar_hide_hair']=['bob','braid','long-waves','dreads']
         for x in [-.055,.055]: line('Drawstring',[(x,-.178,1.63),(x,-.177,1.47)],.012,white,g)
         box('Kangaroo pocket',(0,-.161,1.2),(.155,.027,.06),cloth,g,.035)
+    elif key=='dungarees':
+        box('Overall bib',(0,-.184,1.28),(.22,.025,.19),denim,g,.05)
+        for side in [-1,1]:
+            box('Suspender',(side*.15,-.175,1.51),(.035,.018,.15),denim,g,.01)
+            ellipsoid('Overall button',(side*.15,-.203,1.37),(.018,.007,.018),gold,g,12)
+        box('Bib pocket',(0,-.216,1.26),(.10,.012,.06),denim,g,.018)
     elif key=='lab-coat':
         box('Inner shirt',(0,-.171,1.55),(.075,.012,.10),cloth,g,.012)
         for side in [-1,1]:
@@ -197,10 +209,10 @@ for key in ['tee','hoodie','lab-coat','space-suit']:
         line('Pressure collar',[(-.12,0,1.69),(-.10,-.11,1.70),(0,-.15,1.70),(.10,-.11,1.70),(.12,0,1.69)],.032,dark,g)
 # Hide the everyday limbs and shoes inside the fully pressurized suit.
 for o in body.children:
-    if o.name.startswith(('Arm','Hand','Thumb','Trouser','Sneaker','Shoe sole')): o['avatar_hide_outfits']=['space-suit']
+    if o.name.startswith(('Arm','Forearm','Hand','Thumb','Trouser','Sneaker','Shoe sole')): o['avatar_hide_outfits']=['space-suit']
 
 for key in ['glasses','headphones','crown']:
-    g=group('Accessory_'+key,'accessory',key); groups[key]=g
+    g=group('Accessory_'+key,ITEM_SLOTS.get(key,'accessory'),key); groups[key]=g
     if key=='glasses':
         for side in [-1,1]:
             x=side*.118
@@ -243,7 +255,7 @@ visor.diffuse_color=(.82,.54,.11,.22); visor.node_tree.nodes.get('Principled BSD
 visor.surface_render_method='DITHERED'
 for key in ACCESSORIES:
     if key in ['glasses','headphones','crown']: continue
-    g=group('Accessory_'+key,'accessory',key); groups[key]=g
+    g=group('Accessory_'+key,ITEM_SLOTS.get(key,'accessory'),key); groups[key]=g
     if key in ['glasses-69','glasses-67']:
         text_mesh('Novelty number frames','69' if key=='glasses-69' else '67',(0,-.335,1.967),.34,gold if key=='glasses-69' else cloth,g,center=True)
     elif key=='star-glasses':
@@ -354,12 +366,119 @@ for key in HATS:
         text_mesh('Thousandaire badge','$',(-.055,-.316,2.40),.18,gold,g)
     elif key=='runner':
         band=torus('Sweatband',(0,0,2.19),.35,.022,cloth,g); band.scale.y=.80
+    elif key=='database-hat':
+        for z in [2.30,2.45,2.60]:
+            cone('Database tier',(0,0,z),.34,.34,.13,cloth,g)
+            torus('Database rim',(0,0,z+.055),.32,.018,white,g)
+        text_mesh('SQL label','SQL',(-.14,-.343,2.46),.15,white,g)
     elif key=='early-bird-hat':
         for z in [2.40,2.43,2.46]: torus('Nest',(0,.06,z),.15,.025,hair,g)
         ellipsoid('Bird body',(0,.02,2.56),(.095,.08,.09),cloth,g)
         ellipsoid('Bird head',(0,-.04,2.66),(.06,.06,.06),cloth,g)
         cone('Bird beak',(0,-.108,2.64),.035,.002,.065,gold,g).rotation_euler[0]=math.pi/2
         for side in [-1,1]: ellipsoid('Bird eye',(side*.035,-.087,2.68),(.009,.009,.009),eyes,g,12)
+
+# Language mastery rewards, each attached to its own independent slot.
+g=group('Companion_python','companion','python-snake');groups['python-snake']=g
+line('Snake coils',[(-.32,.03,1.67),(-.40,-.04,1.73),(-.30,-.09,1.78),(-.23,-.02,1.73),(-.29,.07,1.79),(-.49,.05,1.89)],.043,emerald,g)
+ellipsoid('Snake head',(-.49,.045,1.94),(.065,.065,.075),emerald,g)
+for x in [-.515,-.465]: ellipsoid('Snake eye',(x,-.012,1.97),(.009,.01,.012),eyes,g,12)
+line('Snake smile',[(-.51,-.02,1.92),(-.49,-.028,1.915),(-.47,-.02,1.92)],.004,eyes,g)
+g['avatar_motion']='snake'
+g=group('Back_terminal','back','terminal-pack');groups['terminal-pack']=g
+box('Terminal shell',(0,.31,1.38),(.27,.14,.28),dark,g,.09)
+box('Terminal screen',(0,.455,1.43),(.21,.018,.16),eyes,g,.022)
+label=text_mesh('Terminal prompt','$ _',(.13,.48,1.45),.17,emerald,g);label.rotation_euler[2]=math.pi
+for x in [-.12,-.04,.04,.12]: box('Terminal key',(x,.47,1.20),(.022,.012,.014),cloth,g,.005)
+for side in [-1,1]: line('Backpack strap',[(side*.22,.25,1.63),(side*.21,-.17,1.64),(side*.22,-.185,1.13),(side*.22,.23,1.14)],.018,cloth,g)
+for o in groups['space-suit'].children:
+    if o.name.startswith(('Life support backpack','Oxygen pack stripe','Oxygen hose')): o['avatar_hide_back']=['terminal-pack']
+
+# Additional distinct audio, back and companion choices.
+for key in ['studio-headset','cat-headphones','earbuds','retro-headphones','gamer-headset']:
+    g=group('Audio_'+key,'audio',key);groups[key]=g
+    if key!='earbuds':
+        band=line('Audio arch',[(-.40,.015,2.02),(-.37,.02,2.31),(0,.02,2.49),(.37,.02,2.31),(.40,.015,2.02)],.035,dark if key!='retro-headphones' else cloth,g)
+        pivot_stub=group('Audio_fit_arch');pivot_stub.parent=g;pivot_stub.location=(0,0,2.02)
+        bpy.context.view_layer.update();matrix=band.matrix_world.copy();band.parent=pivot_stub;band.matrix_world=matrix;pivot_stub['avatar_fit']='headband'
+    for side in [-1,1]:
+        if key=='earbuds':
+            ear=ellipsoid('Earbud',(side*.39,-.005,2.0),(.033,.040,.040),white,g,16)
+            limb('Earbud stem',(side*.39,-.01,1.99),(side*.39,-.01,1.92),.015,white,g)
+        elif key=='gamer-headset':
+            ear=cone('Gaming ear cup',(side*.42,.01,2.03),.115,.115,.08,dark,g,6);ear.rotation_euler[1]=math.pi/2
+            for z in [1.97,2.03,2.09]: box('RGB light',(side*.469,.01,z),(.008,.052,.01),emerald if z==2.03 else cloth,g,.002)
+        elif key=='retro-headphones':
+            ear=ellipsoid('Retro ear cup',(side*.42,.01,2.02),(.045,.10,.10),cloth,g)
+            ellipsoid('Retro disc',(side*.46,.01,2.02),(.01,.055,.055),white,g)
+        else:
+            ear=box('Studio ear cup',(side*.42,.012,2.03),(.06,.095,.11),dark,g,.045)
+            box('Studio accent',(side*.477,.012,2.03),(.012,.06,.075),cloth,g,.01)
+        if key!='earbuds': ear['avatar_fit']='earcup';ear['avatar_side']=side
+    if key=='studio-headset': line('Mic boom',[(.43,-.06,1.99),(.37,-.27,1.89),(.16,-.32,1.87)],.014,dark,g)
+    for detail in g.children:
+        if detail.name.startswith(('Studio accent','Retro disc','RGB light')): detail['avatar_fit']='earcup';detail['avatar_side']=1 if detail.location.x>0 else -1
+        if detail.name.startswith('Mic boom'): detail['avatar_hide_hair']=['afro']
+    if key=='cat-headphones':
+        for side in [-1,1]:
+            cone('Headphone cat ear',(side*.27,.02,2.51),.10,.004,.20,cloth,g,3)
+
+for key in ['rocket-pack','bookbag','turtle-shell']:
+    g=group('Back_'+key,'back',key);groups[key]=g
+    if key=='rocket-pack':
+        box('Rocket harness',(0,.29,1.4),(.27,.05,.23),dark,g,.05)
+        for side in [-1,1]:
+            cone('Rocket tank',(side*.15,.36,1.44),.11,.11,.50,white,g)
+            ellipsoid('Rocket cap',(side*.15,.36,1.72),(.11,.11,.12),cloth,g)
+            cone('Rocket nozzle',(side*.15,.36,1.15),.055,.09,.11,dark,g)
+            cone('Rocket exhaust',(side*.15,.36,.98),.003,.065,.24,gold,g)['avatar_motion']='flame'
+    elif key=='bookbag':
+        box('Bookbag',(0,.30,1.38),(.26,.14,.29),cloth,g,.09)
+        box('Bag flap',(0,.455,1.54),(.24,.023,.095),denim,g,.04)
+        box('Bookbag pocket',(0,.457,1.24),(.15,.028,.085),denim,g,.04)
+        for x in [-.13,.13]: box('Buckle',(x,.485,1.43),(.023,.012,.04),gold,g,.005)
+    else:
+        ellipsoid('Turtle shell',(0,.33,1.4),(.31,.18,.38),emerald,g)
+        line('Shell middle',[(0,.51,1.73),(0,.52,1.4),(0,.50,1.08)],.014,gold,g)
+        for z in [1.2,1.4,1.6]: line('Shell seam',[(-.25,.44,z),(0,.52,z),(.25,.44,z)],.012,gold,g)
+    for side in [-1,1]: line('Gear strap',[(side*.22,.25,1.63),(side*.21,-.17,1.64),(side*.22,-.18,1.13),(side*.22,.23,1.14)],.018,cloth,g)
+for key in ['owl-pal','duck-pal','robot-pal','cat-pal']:
+    g=group('Pal_'+key,'companion',key);groups[key]=g;g['avatar_motion']='snake'
+    x=-.49; y=.02
+    if key=='duck-pal':
+        for original in groups['duck'].children:
+            if original.name.startswith('Duck '):
+                o=original.copy();o.data=original.data.copy();bpy.context.collection.objects.link(o);o.parent=g
+                o.location.x+=x;o.location.z-=.70
+    elif key=='robot-pal':
+        box('Robot body',(x,y,1.75),(.06,.06,.065),cloth,g,.018)
+        box('Robot head',(x,y,1.88),(.08,.07,.07),white,g,.026)
+        for dx in [-.035,.035]: ellipsoid('Robot eye',(x+dx,-.052,1.89),(.012,.008,.015),emerald,g,12)
+        limb('Robot antenna',(x,y,1.96),(x,y,2.02),.008,gold,g)
+        ellipsoid('Antenna tip',(x,y,2.025),(.019,.019,.019),gold,g,12)
+    else:
+        ellipsoid('Pal body',(x,y,1.76),(.08,.07,.09),hair if key=='cat-pal' else gold,g)
+        ellipsoid('Pal head',(x,y,1.90),(.095,.075,.085),hair if key=='cat-pal' else gold,g)
+        for dx in [-.04,.04]:
+            ellipsoid('Pal eye white',(x+dx,-.05,1.92),(.03,.012,.03),white,g,16)
+            ellipsoid('Pal pupil',(x+dx,-.064,1.92),(.012,.008,.016),eyes,g,12)
+        if key=='cat-pal':
+            for dx in [-.06,.06]: cone('Pal cat ear',(x+dx,y,1.99),.039,.002,.09,hair,g,3)
+            line('Pal tail',[(x+.04,.07,1.72),(x+.11,.08,1.78),(x+.12,.03,1.81)],.015,hair,g)
+        else:
+            cone('Owl beak',(x,-.07,1.875),.018,.002,.03,ruby,g,3).rotation_euler[0]=math.pi/2
+            for dx in [-.09,.09]: ellipsoid('Owl wing',(x+dx,y,1.78),(.025,.06,.065),white,g)
+for key in ['star-pin','scarf']:
+    g=group('Jewellery_'+key,'jewellery',key);groups[key]=g
+    if key=='star-pin':
+        for i in range(5):
+            a=i*2*math.pi/5;limb('Star pin ray',(.17,-.20,1.43),(.17+.045*math.cos(a),-.20,1.43+.045*math.sin(a)),.014,gold,g)
+    else:
+        torus('Scarf collar',(0,0,1.66),.15,.04,cloth,g)
+        box('Scarf tail',(.08,-.21,1.50),(.045,.022,.15),cloth,g,.02)
+        for z in [1.44,1.50,1.56]: box('Scarf stripe',(.08,-.235,z),(.046,.004,.012),white,g,.004)
+for o in groups['space-suit'].children:
+    if o.get('avatar_hide_back'): o['avatar_hide_back']=['terminal-pack','rocket-pack','bookbag','turtle-shell']
 
 # Semantic pivots keep animations and fitting independent of exported mesh names.
 def reparent_world(o,parent):
@@ -403,12 +522,21 @@ for o in groups['wizard'].children:
     if o.name.startswith('Wizard star'): o['avatar_motion']='sparkle'
 
 # Articulated shoulder groups include skin, sleeves and suit gloves together.
-for parent in [body]+[groups[key] for key in ['tee','hoodie','lab-coat','space-suit']]:
+for parent in [body]+[groups[key] for key in ['tee','hoodie','lab-coat','space-suit','dungarees']]:
     for side in [-1,1]:
-        children=[o for o in parent.children if o.name.startswith(('Arm','Hand','Thumb','Sleeve','Pressure glove','Glove thumb','Suit wrist','Shoulder armor','Mission patch')) and o.location.x*side>0]
-        pivot('Shoulder_'+parent.name+'_'+str(side),parent,(side*.284,0,1.56),children,'arm',side)
-head_children=[o for o in bpy.context.scene.objects if o.get('avatar_slot') in ['character','hair','hat'] or o.get('avatar_slot')=='accessory' and o.get('avatar_id') in ['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','matrix-shades']]
+        children=[o for o in parent.children if o.name.startswith(('Arm','Forearm','Hand','Thumb','Sleeve','Pressure glove','Glove thumb','Suit wrist','Shoulder armor','Mission patch')) and o.location.x*side>0]
+        shoulder=pivot('Shoulder_'+parent.name+'_'+str(side),parent,(side*.284,0,1.56),children,'arm',side)
+        forearms=[o for o in shoulder.children if o.name.startswith(('Forearm','Hand','Thumb','Sleeve forearm','Pressure glove','Glove thumb','Suit wrist'))]
+        pivot('Elbow_'+parent.name+'_'+str(side),shoulder,(side*.101,0,-.275),forearms,'elbow',side)
+head_children=[o for o in bpy.context.scene.objects if o.get('avatar_slot') in ['character','hair','hat','audio'] or o.get('avatar_slot') in ['accessory','audio','jewellery'] and o.get('avatar_id') in ['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','matrix-shades']]
 head=pivot('Head_pose',None,(0,0,1.78),head_children,'head')
+# Torso pivots allow a real waist bow without tipping the feet or podium.
+pivot('Waist_head',None,(0,0,1.05),[head],'torso')
+for parent in [body]+[groups[key] for key in ['tee','hoodie','lab-coat','space-suit','dungarees']]:
+    top=[o for o in parent.children if o.name.startswith(('Neck','Shoulder','Torso','Hood','Drawstring','Kangaroo','Inner shirt','Lapel','Coat','Suit control','Suit belt','Life support','Oxygen','Pressure collar','Overall','Suspender','Bib'))]
+    pivot('Waist_'+parent.name,parent,(0,0,1.05),top,'torso')
+for key in ['wings','terminal-pack','rocket-pack','bookbag','turtle-shell','python-snake','owl-pal','duck-pal','robot-pal','cat-pal','bow-tie','language-medal','star-pin','scarf']:
+    g=groups[key]; pivot('Waist_'+key,None,(0,0,1.05),[g],'torso')
 for o in bpy.context.scene.objects:
     if o.name.startswith('Eye') and o.parent and o.parent.get('avatar_slot')=='character': o['avatar_motion']='blink'
 
@@ -431,27 +559,30 @@ area('Key softbox',(-3,-4,5),450,4); area('Fill softbox',(3,-2,3),250,3); area('
 bpy.ops.object.camera_add(location=(3.1,-6.8,3.05)); camera=bpy.context.object
 camera.rotation_euler=(Vector((0,0,1.28))-camera.location).to_track_quat('-Z','Y').to_euler(); camera.data.type='ORTHO';camera.data.ortho_scale=3.05;scene.camera=camera
 scene.view_settings.view_transform='Standard'
-profiles={'robot':((.67,.40,.25),(.10,.055,.035)),'sprout':((.31,.17,.105),(.035,.025,.025)),'fox':((.88,.64,.46),(.23,.10,.055)),'cat':((.60,.42,.30),(.06,.065,.075))}
+profiles={'robot':((.67,.40,.25),(.10,.055,.035)),'sprout':((.31,.17,.105),(.035,.025,.025)),'fox':((.88,.64,.46),(.23,.10,.055)),'cat':((.60,.42,.30),(.06,.065,.075)),'nova':((.78,.51,.36),(.10,.055,.035))}
 colors={'sky':(.12,.36,.72),'mint':(.10,.56,.40),'rose':(.74,.22,.40),'amber':(.87,.48,.12),'violet':(.43,.27,.73),'slate':(.25,.34,.45)}
-def select(character='robot',outfit='tee',accessory='none',color='sky',hair_style=None,hat='hat-none'):
-    hair_style=hair_style or {'robot':'crop','sprout':'curls','fox':'bob','cat':'bun'}[character]
+def select(character='robot',outfit='tee',accessory='none',color='sky',hair_style=None,hat='hat-none',back='back-none',companion='companion-none',audio='audio-none',jewellery='jewel-none'):
+    hair_style=hair_style or {'robot':'crop','sprout':'curls','fox':'bob','cat':'bun','nova':'crop'}[character]
     for key,g in groups.items():
-        shown=key in [hair_style,outfit,accessory,hat]
+        shown=key in [hair_style,outfit,accessory,hat,back,companion,audio,jewellery]
         if g.get('avatar_slot')=='hair' and groups.get(hat) and groups[hat].get('avatar_covers_hair'): shown=False
         for o in g.children_recursive: o.hide_render=not shown
     for o in bpy.context.scene.objects:
+        if o.get('avatar_hide_back'): o.hide_render=back in o['avatar_hide_back']
         if o.get('avatar_hide_outfits'): o.hide_render=outfit in o['avatar_hide_outfits']
         if o.get('avatar_slot')=='character':
             for child in o.children_recursive: child.hide_render=o.get('avatar_id')!=character
     for m,value in [(skin,profiles[character][0]),(hair,profiles[character][1]),(cloth,colors[color])]:
         m.diffuse_color=(*value,1);m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(*value,1)
-for slot,ids in [('character',['robot','sprout','fox','cat']),('outfit',['tee','hoodie','lab-coat','space-suit']),('accessory',['none']+ACCESSORIES),('hair',HAIRS),('hat',['hat-none']+HATS),('color',list(colors))]:
+for slot,ids in [('character',['robot','sprout','fox','cat','nova']),('outfit',['tee','hoodie','lab-coat','space-suit','dungarees']),('accessory',['none']+ACCESSORIES),('hair',HAIRS),('hat',['hat-none']+HATS),('audio',['studio-headset','cat-headphones','earbuds','retro-headphones','gamer-headset']),('jewellery',['star-pin','scarf']),('back',['terminal-pack','rocket-pack','bookbag','turtle-shell']),('companion',['python-snake','owl-pal','duck-pal','robot-pal','cat-pal']),('color',list(colors))]:
     for item in ids:
-        closeup=slot in ['hair','hat','accessory']
+        closeup=slot in ['hair','hat','accessory','companion','audio']
         camera.location=(2.8,-7,2.8) if closeup else (3.1,-6.8,3.05)
         target=Vector((0,0,2.17 if closeup else 1.28));camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler();camera.data.ortho_scale=1.6 if closeup else 3.05
         args={'hair_style' if slot=='hair' else slot:item}; select(**args); scene.render.filepath=os.path.join(OUT,slot+'-'+item+'.png')
-        if '--skip-thumbnails' not in sys.argv: bpy.ops.render.render(write_still=True)
+        if slot=='back':
+            camera.location=(3.1,6.8,3.05);camera.rotation_euler=(Vector((0,0,1.28))-camera.location).to_track_quat('-Z','Y').to_euler()
+        if '--skip-thumbnails' not in sys.argv and (THUMBNAIL_ONLY is None or item==THUMBNAIL_ONLY): bpy.ops.render.render(write_still=True)
 bpy.context.preferences.filepaths.save_version=0
 select(); bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'src/avatar-models/wardrobe.blend'))
 print('Saved original Blender wardrobe, GLB and modular thumbnails.')

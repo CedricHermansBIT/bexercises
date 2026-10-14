@@ -20,7 +20,8 @@ export function applyAvatarSelection(model, selection) {
     if (coversHair) { hairTop = 2.40; hairWidth = 0.355; }
     model.traverse(object => {
         const { avatar_slot: slot, avatar_id: id } = object.userData;
-        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id && !(slot === 'hair' && coversHair) && !(slot === 'accessory' && fit.hideAccessory);
+        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id && !(slot === 'hair' && coversHair) && !fit.hiddenSlots.includes(slot);
+        if (object.userData.avatar_hide_back) object.visible = !object.userData.avatar_hide_back.includes(selection.back);
         if (object.userData.avatar_hide_hair) object.visible = coversHair || !object.userData.avatar_hide_hair.includes(selection.hair);
         if (object.userData.avatar_hide_outfits) object.visible = !object.userData.avatar_hide_outfits.includes(selection.outfit);
         if (object.userData.avatar_fit) {
@@ -81,15 +82,17 @@ export async function createAvatarViewer(container, url, selection) {
         scene.add(model); applyAvatarSelection(model, selection);
         const animator = createAvatarAnimator(model);
         let elapsed = 0, lastTime = null;
+        let targetRotation = null;
         let framing = { y: 1.42, zoom: 0.9 };
         const frame = slot => {
-            const head = ['hair', 'hairColor', 'skin', 'character'].includes(slot);
-            const faceAccessory = !['wings', 'bow-tie', 'language-medal'].includes(selection.accessory);
+            targetRotation = slot === 'back' ? Math.PI : 0;
+            const head = ['hair', 'hairColor', 'skin', 'character', 'companion'].includes(slot);
+            const faceAccessory = ['accessory', 'audio'].includes(slot);
             if (slot === 'hat') framing = { y: 2.30, zoom: 1.6 };
-            else if (head || slot === 'accessory' && faceAccessory) framing = { y: 2.17, zoom: 1.8 };
+            else if (head || faceAccessory) framing = { y: 2.17, zoom: 1.8 };
             else if (slot === 'shoesColor') framing = { y: 0.45, zoom: 1.8 };
             else if (slot === 'pantsColor') framing = { y: 0.85, zoom: 1.4 };
-            else if (slot === 'color' || slot === 'accessory' && selection.accessory !== 'wings') framing = { y: 1.45, zoom: 1.5 };
+            else if (slot === 'color' || slot === 'jewellery') framing = { y: 1.45, zoom: 1.5 };
             else framing = { y: 1.42, zoom: 0.9 };
         };
         let visible = true;
@@ -107,7 +110,12 @@ export async function createAvatarViewer(container, url, selection) {
             const delta = lastTime === null ? 0 : Math.min((time - lastTime) / 1000, 0.05); lastTime = time;
             if (document.hidden || !visible) return;
             elapsed += delta;
-            animator.update(elapsed, reducedMotion.matches);
+            const bodyMotion = animator.update(elapsed, reducedMotion.matches, selection);
+            if (targetRotation !== null) {
+                const difference = Math.atan2(Math.sin(targetRotation - model.rotation.y), Math.cos(targetRotation - model.rotation.y));
+                model.rotation.y += difference * (reducedMotion.matches ? 1 : 1 - Math.exp(-delta * 9));
+                if (Math.abs(difference) < 0.002) targetRotation = null;
+            }
             if (framing) {
                 const blend = reducedMotion.matches ? 1 : 1 - Math.exp(-delta * 9);
                 const target = framing.y - controls.target.y;
@@ -115,10 +123,12 @@ export async function createAvatarViewer(container, url, selection) {
                 camera.zoom += (framing.zoom - camera.zoom) * blend; camera.updateProjectionMatrix();
                 if (Math.abs(target) < 0.002 && Math.abs(framing.zoom - camera.zoom) < 0.002) framing = null;
             }
-            model.position.y = reducedMotion.matches ? 0 : Math.sin(time / 1100) * 0.006;
+            model.position.y = reducedMotion.matches ? 0 : Math.sin(elapsed / 1.1) * 0.006 + bodyMotion.bounce;
+            model.rotation.z = bodyMotion.sway;
             controls.update(); renderer.render(scene, camera);
         });
-        const rotate = delta => { model.rotation.y += delta; };
+        const rotate = delta => { targetRotation = null; model.rotation.y += delta; };
+        controls.addEventListener('start', () => { framing = null; targetRotation = null; });
         canvas.addEventListener('keydown', event => {
             if (['+', '=', '-'].includes(event.key)) {
                 event.preventDefault(); framing = null; camera.zoom = THREE.MathUtils.clamp(camera.zoom + (event.key === '-' ? -0.25 : 0.25), 0.8, 2.8); camera.updateProjectionMatrix(); return;

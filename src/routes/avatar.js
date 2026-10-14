@@ -14,9 +14,17 @@ function createAvatarRouter(database = require('../services/databaseService')) {
     router.put('/', asyncHandler(async (req, res) => {
         try { res.json(await service.saveSelection(req.user.id, req.body)); }
         catch (error) {
-            if (/Choose a complete avatar|Unknown avatar|Unlock this item/.test(error.message)) throw ApiError.badRequest(error.message);
+            if (/Invalid saved look|Choose a complete avatar|Unknown avatar|Unlock this item/.test(error.message)) throw ApiError.badRequest(error.message);
             throw error;
         }
+    }));
+    router.put('/looks/:slot', asyncHandler(async (req, res) => {
+        try { res.json(await service.saveLook(req.user.id, Number(req.params.slot), req.body)); }
+        catch (error) { if (/Invalid saved look|Choose|Unknown avatar|Unlock this item/.test(error.message)) throw ApiError.badRequest(error.message); throw error; }
+    }));
+    router.delete('/looks/:slot', asyncHandler(async (req, res) => {
+        try { res.json(await service.deleteLook(req.user.id, Number(req.params.slot))); }
+        catch (error) { if (/Invalid saved look/.test(error.message)) throw ApiError.badRequest(error.message); throw error; }
     }));
     return router;
 }
