@@ -89,8 +89,8 @@ test('avatar API requires authentication and cannot equip items for another acco
         assert.equal((await (await fetch(url, { headers: { 'x-user': '1' } })).json()).selection.color, 'violet');
         assert.equal((await (await fetch(url, { headers: { 'x-user': '3' } })).json()).selection.color, 'sky');
         const source = fs.readFileSync('src/app.js', 'utf8');
-        assert.ok(source.indexOf("mountAtBothPaths('/pages/avatar.html', ensureAuthenticated)") < source.indexOf('express.static('));
-        assert.ok(source.includes("mountAtBothPaths('/pages/avatar.html', ensureAuthenticated)"));
+        assert.ok(source.indexOf("app.use(require('./middleware/pageAccess')(basePath))") < source.indexOf('express.static('));
+        assert.ok(source.includes("app.use(require('./middleware/pageAccess')(basePath))"));
     } finally { await new Promise(resolve => server.close(resolve)); db.cache.clear(); await db.db.close(); }
 });
 
