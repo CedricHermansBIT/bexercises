@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { getAvatarFit } from './avatarFit.js';
+import { getAvatarFit, chooseAvatarItem } from './avatarFit.js';
 import { createAvatarAnimator } from './avatarMotion.js';
 import { AVATAR_PALETTES, AVATAR_OPTIONS } from './avatarRenderer.js';
 
@@ -21,7 +21,7 @@ export function applyAvatarSelection(model, selection) {
     if (coversHair) { hairTop = 2.40; hairWidth = 0.355; }
     model.traverse(object => {
         const { avatar_slot: slot, avatar_id: id } = object.userData;
-        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id && !(slot === 'hair' && coversHair) && !fit.hiddenSlots.includes(slot);
+        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id && !(slot === 'hair' && coversHair) && !fit.hiddenSlots.includes(slot) && !(slot === 'pants' && fit.coversPants);
         if (object.userData.avatar_hide_back) object.visible = !object.userData.avatar_hide_back.includes(selection.back);
         if (object.userData.avatar_hide_hair) object.visible = coversHair || !object.userData.avatar_hide_hair.includes(selection.hair);
         if (object.userData.avatar_hide_outfits) object.visible = !object.userData.avatar_hide_outfits.includes(selection.outfit);
@@ -45,14 +45,16 @@ export function applyAvatarSelection(model, selection) {
 // Select a reward's own geometry; untagged body parts never enter item previews.
 export function selectAvatarReward(model, selection, item) {
     model.traverse(object => { object.visible = true; });
-    applyAvatarSelection(model, { ...selection, [item.slot]: item.id });
+    applyAvatarSelection(model, chooseAvatarItem(selection, item.slot, item.id).selection);
     if (item.slot !== 'character') {
         model.traverse(object => { object.visible = true; });
         model.traverse(object => {
             if (!object.isMesh) return;
             let owner = object;
             while (owner && !owner.userData.avatar_slot) owner = owner.parent;
-            object.visible = owner?.userData.avatar_slot === item.slot && owner?.userData.avatar_id === item.id;
+            const materials = Array.isArray(object.material) ? object.material : [object.material];
+            object.visible = owner?.userData.avatar_slot === item.slot && owner?.userData.avatar_id === item.id
+                && !materials.some(material => material.name === 'Skin');
         });
     }
     model.updateMatrixWorld(true);

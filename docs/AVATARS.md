@@ -27,12 +27,12 @@ and animation loop for every row. Devices without WebGL use local artwork.
 
 ## Wardrobe and preview
 
-The studio has 188 choices across 18 categories. Every category has at least five
+The studio has 200 choices across 18 categories. Every category has at least five
 visible, actual choices, excluding “none” and secret rewards. Glasses, audio,
 jewellery, back gear and shoulder companions are independent slots. Hats include
 crowns. Colors, hair, clothing, face shape and personality can be mixed separately.
-Pants and shoes have independent style and colour categories: six pants styles
-and eight shoe styles, including shorts, cargo trousers, joggers, high-tops,
+Pants and shoes have independent style and colour categories: ten pants/skirt styles
+and ten shoe styles, including shorts, cargo trousers, joggers, high-tops,
 boots, sandals and clogs. Older equipped characters and saved looks retain
 classic trousers and sneakers; older clients preserve newly equipped styles.
 Existing one-accessory records migrate into the appropriate new slot.
@@ -55,6 +55,17 @@ Mix lab goggles and clogs with the lab coat, a raised welding visor with worksho
 dungarees and boots, or the chef jacket and toque with clogs. Halloween pumpkin
 knits/hats and Christmas knits/Santa hats/elf shoes unlock through achievements
 year-round. Pieces remain independent; there is no date restriction or bundle lock.
+
+Dresses include a ribbon sundress, campus pinafore, tiered party dress and
+starlight dress. Pair separate pleated, button-front, wrap or tulle skirts with
+any top; ballet flats and Mary Janes complete the look. Dress colours use Top
+color, separate skirts use Bottom color. Dresses cover your saved bottoms and
+restore them when changing tops. Choosing separate bottoms switches a dress to
+a tee. Shoes stay independent. All characters can wear every style.
+
+Chapter Master also unlocks a long wizard robe with wide cuffs and gold trim,
+which pairs with the existing Chapter Wizard hat. It covers saved bottoms in
+the same way as dresses.
 
 ## Personality
 
@@ -133,13 +144,13 @@ MariaDB/PostgreSQL the database hat. Any language mastery also unlocks the code 
 | 1337 Elite | 1337 pixel shades, RGB gaming headset |
 | Helpful Nudge | Bright ideas, Rubber duck debugger, Rubber duck pal |
 | First Steps | Lab coat, Lab safety goggles, Lab & kitchen clogs, First-step star pin |
-| Chapter Master | Chapter wizard, Scholar bookbag, Chapter varsity jacket |
+| Chapter Master | Chapter wizard, Scholar bookbag, Chapter varsity jacket, Starlight dress, Wizard robe |
 | Complete Mastery | Graduation cap |
 | Comeback Kid | Comeback crest |
 | Persistent | Focus headphones, Workshop welding visor |
 | Never Give Up | Never-give-up Viking, Slow-and-steady shell |
-| Quick Learner | Robin, Curious cat pal, Learner gold |
-| Dedicated | Sage, Explorer braid, Studio headset, Rainy-day explorer |
+| Quick Learner | Robin, Curious cat pal, Learner gold, Party dress |
+| Dedicated | Sage, Explorer braid, Studio headset, Rainy-day explorer, Tulle skirt |
 | Master | Space suit, Space helmet, Rocket backpack |
 | Legendary | Problem-solver crown |
 | Six Seven | Six Seven specs |

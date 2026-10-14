@@ -145,7 +145,7 @@ class AvatarPage {
                 const { selection, removedSlot } = chooseAvatarItem(this.selection, this.slot, item.id);
                 this.selection = selection; this.render(); this.viewer?.frame(this.slot);
                 if (this.slot === 'celebration') this.viewer?.gesture(item.id.replace('cel-', ''));
-                const fitMessage = removedSlot ? `Removed the ${removedSlot === 'hat' ? 'hat' : removedSlot === 'audio' ? 'headphones' : 'accessory'} so your new choice fits. ` : '';
+                const fitMessage = removedSlot === 'outfit' ? 'Switched to a tee to show your new bottoms. ' : removedSlot ? `Removed the ${removedSlot === 'hat' ? 'hat' : removedSlot === 'audio' ? 'headphones' : 'accessory'} so your new choice fits. ` : '';
                 const locked = this.lockedSelections();
                 this.status(fitMessage + (locked.length ? `Preview only. ${[...new Set(locked.map(item => item.requirement))].join('; ')} to save this look.` : 'Looking good. Save when you’re ready.'));
             });

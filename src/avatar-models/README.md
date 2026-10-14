@@ -2,7 +2,7 @@
 
 `wardrobe.blend` is the editable Blender source. `build_avatar.py` generates the
 rounded human models from Blender primitives: five face shapes, 16 hairstyles,
-13 outfits, six pants styles, eight shoe styles, hats/helmets, independent audio, jewellery, back gear and shoulder
+19 outfits, ten pants/skirt styles, ten shoe styles, hats/helmets, independent audio, jewellery, back gear and shoulder
 companions. Each studio category has at least five visible actual choices. The full space suit
 includes boots, gloves, seals, an oxygen hose and life-support backpack. This artwork was created for
 BITLab; it does not contain GeoGuessr assets or downloaded character models.
@@ -51,7 +51,7 @@ selected outfit.
 Language mastery artwork includes a Python shoulder snake, Bash terminal backpack
 and SQL database hat. New slot metadata is `audio`, `jewellery`, `back` and
 `companion`; existing legacy thumbnail filenames are mapped by the renderer.
-`-- --thumbnail-id=ITEM` regenerates one chosen thumbnail together with the model
+`-- --thumbnail-id=ITEM` (or comma-separated IDs) regenerates chosen thumbnails together with the model
 and editable project. Preserve `avatar_hide_back` when exporting: replacement
 backpacks hide the built-in space-suit oxygen pack.
 
@@ -60,7 +60,17 @@ Pants and shoes use independent `pants` / `shoes` slot groups. Their meshes carr
 and arm pivots as existing clothes. Matrix glyphs use `avatar_phase` and
 `avatar_code_row` to loop within their lenses; thruster geometry pivots at each
 nozzle so flickering does not move the attachment. Reduced motion restores all
-rest transforms. The shared wardrobe has a 10 MiB asset budget.
+rest transforms. The shared wardrobe has a 12 MiB asset budget.
 
 Use `-- --thumbnail-missing` to render missing PNGs while rebuilding the model.
 Pants/shoes thumbnails frame the lower body.
+
+Dresses and the wizard robe own their bare legs and flared lower fabric; the
+viewer hides the saved pants group while wearing them. Separate skirts use the
+existing `pants` slot and `Denim` material for Bottom color. Their shells have
+fabric thickness and shaped/pleated hems. Dress bodices and robe sleeves use
+the existing articulated waist and elbow pivots.
+
+Legacy accessory thumbnail filenames stay compatible after slot migrations. The
+Blender selector maps these IDs to their current slots before rendering and
+asserts that each rendered subject has visible geometry.

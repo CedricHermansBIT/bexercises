@@ -6,7 +6,7 @@ from mathutils import Vector
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 OUT = os.path.join(ROOT, 'frontend/assets/avatars')
 os.makedirs(OUT, exist_ok=True)
-THUMBNAIL_ONLY=next((a.split('=',1)[1] for a in sys.argv if a.startswith('--thumbnail-id=')),None)
+THUMBNAIL_ONLY=next((set(a.split('=',1)[1].split(',')) for a in sys.argv if a.startswith('--thumbnail-id=')),None)
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
 
 def material(name, color, metallic=0):
@@ -26,9 +26,9 @@ def group(name,slot=None,item=None):
     return o
 body=group('Body'); groups={}
 ITEM_SLOTS={'headphones':'audio','crown':'hat','lightning':'jewellery','bow-tie':'jewellery','language-medal':'jewellery','wings':'back'}
-OUTFITS=['tee','hoodie','lab-coat','space-suit','dungarees','bomber','varsity','rugby','cardigan','raincoat','chef-jacket','pumpkin-knit','festive-knit']
-PANTS=['straight','chinos','cargo','shorts','joggers','wide-leg']
-SHOES=['sneakers','high-tops','boots','loafers','sandals','trainers','clogs','elf-shoes']
+OUTFITS=['tee','hoodie','lab-coat','space-suit','dungarees','bomber','varsity','rugby','cardigan','raincoat','chef-jacket','pumpkin-knit','festive-knit','sundress','pinafore','party-dress','starlight-dress','blouse','wizard-robe']
+PANTS=['straight','chinos','cargo','shorts','joggers','wide-leg','pleated-skirt','denim-skirt','wrap-skirt','tulle-skirt']
+SHOES=['sneakers','high-tops','boots','loafers','sandals','trainers','clogs','elf-shoes','ballet-flats','mary-janes']
 HAIRS=['crop','curls','bob','bun','mohawk','braid','bald','buzz','pixie','afro','ponytail','twin-buns','spiky','long-waves','dreads','pompadour']
 ACCESSORIES=['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','bow-tie','wings','language-medal','matrix-shades','safety-goggles']
 HATS=['cap','beanie','duck','propeller','wizard','graduation','space-helmet','viking','centurion-helmet','mushroom','top-hat','runner','early-bird-hat','flame','database-hat','chef-hat','welding-visor','pumpkin-hat','santa-hat']
@@ -66,6 +66,29 @@ def line(name,points,radius,mat,parent):
     bpy.context.view_layer.objects.active=o; o.select_set(True); bpy.ops.object.convert(target='MESH'); o.select_set(False)
     return o
 
+DRESSES=['sundress','pinafore','party-dress','starlight-dress','wizard-robe']
+SKIRTS=['pleated-skirt','denim-skirt','wrap-skirt','tulle-skirt']
+
+def flared_skirt(name,parent,mat,hem=.60,flare=.40,pleats=0):
+    vertices=[]; faces=[]; count=64
+    for z,r in [(1.10,.27),(1.04,.28),(hem+.025,flare),(hem,flare)]:
+        for i in range(count):
+            a=2*math.pi*i/count
+            wave=1+pleats*math.cos(a*16)*(1 if z<1 else .2)
+            vertices.append((math.cos(a)*r*wave,math.sin(a)*r*.65*wave,z))
+    for row in range(3):
+        for i in range(count):
+            j=row*count+i; k=row*count+(i+1)%count
+            faces.append((j,k,k+count,j+count))
+    mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],faces);mesh.update()
+    o=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(o);assign(o,name,mat,parent)
+    solid=o.modifiers.new('Fabric thickness','SOLIDIFY');solid.thickness=.012
+    bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=solid.name)
+    return o
+
+def bare_legs(parent):
+    for side in [-1,1]: limb('Bare leg',(side*.145,0,1.04),(side*.155,.018,.255),.096,skin,parent)
+
 # A relaxed standing pose: oversized head, soft hands and chunky sneakers.
 limb('Neck',(0,0,1.61),(0,0,1.81),.105,skin,body)
 ellipsoid('Head',(0,0,2.02),(.355,.285,.385),skin,body)
@@ -84,7 +107,19 @@ line('Smile',[(-.075,-.27,1.9),(0,-.281,1.881),(.075,-.27,1.9)],.008,eyes,body)
 # retain their dimensions so older saved characters keep their appearance.
 for key in PANTS:
     g=group('Pants_'+key,'pants',key); groups[key]=g
-    for side in [-1,1]:
+    if key in SKIRTS:
+        bare_legs(g)
+        flared_skirt('Skirt fabric',g,denim,hem=.55 if key=='tulle-skirt' else .64,flare=.43 if key=='tulle-skirt' else .37,pleats=.055 if key in ['pleated-skirt','tulle-skirt'] else 0)
+        if key=='denim-skirt':
+            line('Skirt button seam',[(0,-.186,1.05),(0,-.245,.65)],.007,sole,g)
+            for z in [.96,.85,.74]: ellipsoid('Skirt button',(0,-(.186+(1.05-z)*.15),z),(.014,.012,.014),gold,g,12)
+        elif key=='wrap-skirt':
+            line('Wrap diagonal',[(-.16,-.17,1.07),(.18,-.225,.66)],.009,white,g)
+            for side in [-1,1]: ellipsoid('Skirt ribbon bow',(.17+side*.04,-.20,1.04),(.05,.022,.03),white,g,16)
+        elif key=='tulle-skirt':
+            flared_skirt('Tulle upper tier',g,denim,hem=.77,flare=.36,pleats=.075)
+        box('Skirt waistband',(0,0,1.075),(.27,.17,.035),denim,g,.025)
+    for side in ([] if key in SKIRTS else [-1,1]):
         x=side*.155
         if key=='shorts':
             limb('Bare shin',(x,.012,.62),(x,.018,.255),.096,skin,g)
@@ -119,7 +154,7 @@ for key in SHOES:
             box('Heel strap',(x,.085,.16),(.117,.024,.05),shoe,g,.016)
         else:
             boot=key=='boots'; high=key=='high-tops'
-            box('Sneaker',(x,-.075,.13),(.13,.22,.11 if key not in ['loafers','clogs'] else .075),shoe,g,.075)
+            box('Sneaker',(x,-.075,.13),(.13,.22,.11 if key not in ['loafers','clogs','ballet-flats','mary-janes'] else .065),shoe,g,.075)
             box('Shoe sole',(x,-.077,.06),(.133,.223,.035),sole if not boot else dark,g,.028)
             if boot or high:
                 box('Ankle upper',(x,.025,.265),(.125,.13,.16 if boot else .12),shoe,g,.04)
@@ -131,6 +166,15 @@ for key in SHOES:
             elif key=='loafers':
                 box('Penny strap',(x,-.11,.211),(.105,.03,.014),shoe,g,.008)
                 box('Penny buckle',(x,-.11,.228),(.035,.022,.008),gold,g,.006)
+            elif key in ['ballet-flats','mary-janes']:
+                # Exposed instep keeps flats distinct from closed trainers.
+                ellipsoid('Shoe instep',(x,.015,.205),(.085,.10,.045),skin,g)
+                if key=='mary-janes':
+                    box('Mary Jane strap',(x,-.025,.24),(.12,.023,.017),shoe,g,.012)
+                    ellipsoid('Mary Jane buckle',(x+side*.11,-.025,.24),(.014,.025,.02),gold,g,12)
+                else:
+                    for bow_side in [-1,1]: ellipsoid('Ballet ribbon',(x+bow_side*.035,-.17,.20),(.038,.024,.018),white,g,16)
+                    ellipsoid('Ribbon knot',(x,-.17,.20),(.015,.018,.018),gold,g,12)
             elif key=='elf-shoes':
                 line('Curled elf toe',[(x,-.22,.14),(x,-.34,.15),(x,-.39,.23)],.065,shoe,g)
                 ellipsoid('Elf bell',(x,-.39,.25),(.035,.035,.035),gold,g,12)
@@ -229,14 +273,53 @@ for key in HAIRS:
 for key in OUTFITS:
     g=group('Outfit_'+key,'outfit',key); groups[key]=g
     m=white if key in ['lab-coat','space-suit','chef-jacket'] else cloth
-    box('Torso',(0,.006,1.355),(.30,.165,.405 if key in ['lab-coat','raincoat'] else .30),m,g,.12)
-    for side in [-1,1]:
+    box('Torso',(0,.006,1.355),(.27 if key in DRESSES else .30,.165,.405 if key in ['lab-coat','raincoat'] else .30),m,g,.10 if key in DRESSES else .12)
+    for side in ([] if key in ['sundress','party-dress','starlight-dress'] else [-1,1]):
         end=(side*.335,0,1.44) if key in ['tee','rugby'] else (side*.44,-.01,1.105)
         if key in ['tee','rugby']: limb('Sleeve',(side*.284,0,1.56),end,.10,m,g)
         else:
             limb('Sleeve',(side*.284,0,1.56),(side*.385,0,1.285),.10,m,g)
             limb('Sleeve forearm',(side*.385,0,1.285),end,.10,m,g)
-    if key=='tee':
+    if key in DRESSES:
+        bare_legs(g)
+        flared_skirt('Dress skirt',g,cloth,hem=.30 if key=='wizard-robe' else .53 if key=='starlight-dress' else .62,flare=.40 if key=='wizard-robe' else .43 if key in ['party-dress','starlight-dress'] else .37,pleats=.045 if key in ['party-dress','starlight-dress','wizard-robe'] else 0)
+        box('Dress waist ribbon',(0,-.005,1.09),(.28,.174,.025),white,g,.018)
+        if key=='wizard-robe':
+            for side in [-1,1]:
+                line('Chest robe lapel',[(side*.13,-.14,1.65),(side*.07,-.18,1.37),(side*.04,-.18,1.11)],.018,gold,g)
+                limb('Sleeve robe cuff',(side*.41,-.01,1.19),(side*.44,-.01,1.10),.145,cloth,g)
+                limb('Sleeve cuff gold',(side*.435,-.01,1.12),(side*.445,-.01,1.09),.15,gold,g)
+            for side in [-1,1]:
+                line('Robe gold trim',[(side*.04,-.18,1.1),(side*.065,-.226,.72),(side*.09,-.26,.31)],.012,gold,g)
+            for x,z in [(-.20,.55),(.23,.68),(-.16,.88)]:
+                r=.27+(1.1-z)/.8*.13; y=-math.sqrt(max(.001,r*r-x*x))*.65-.008
+                for angle in [0,math.pi/2]:
+                    dx,dz=math.cos(angle)*.027,math.sin(angle)*.027
+                    line('Robe star',[(x-dx,y,z-dz),(x+dx,y,z+dz)],.007,gold,g)
+        elif key=='pinafore':
+            for side in [-1,1]:
+                box('Chest pinafore strap',(side*.17,-.165,1.51),(.035,.025,.13),white,g,.013)
+                ellipsoid('Chest pinafore button',(side*.17,-.19,1.39),(.02,.01,.02),gold,g,12)
+            box('Chest pinafore pocket',(0,-.176,1.30),(.095,.02,.065),cloth,g,.022)
+        else:
+            for side in [-1,1]:
+                ellipsoid('Chest ribbon bow',(side*.055,-.182,1.58),(.06,.028,.035),white,g,16)
+                limb('Chest shoulder strap',(side*.17,-.10,1.64),(side*.19,.10,1.64),.022,cloth,g)
+            if key=='party-dress':
+                flared_skirt('Party overskirt',g,cloth,hem=.83,flare=.35,pleats=.06)
+                for z in [1.23,1.35,1.47]: ellipsoid('Chest pearl',(0,-.178,z),(.012,.009,.012),white,g,12)
+            elif key=='starlight-dress':
+                for x,z in [(-.22,.72),(.16,.81),(-.08,.91),(.27,.65)]:
+                    for angle in [0,math.pi/2]:
+                        dx,dz=math.cos(angle)*.025,math.sin(angle)*.025
+                        r=.27+(1.1-z)/.57*.16; y=-math.sqrt(max(.001,r*r-x*x))*.65-.008
+                        line('Starlight embroidery',[(x-dx,y,z-dz),(x+dx,y,z+dz)],.006,gold,g)
+    elif key=='blouse':
+        for side in [-1,1]:
+            ellipsoid('Chest rounded collar',(side*.07,-.155,1.60),(.075,.035,.055),white,g)
+            limb('Sleeve blouse cuff',(side*.43,-.01,1.13),(side*.445,-.01,1.09),.106,white,g)
+        for z in [1.20,1.35,1.50]: ellipsoid('Chest blouse button',(0,-.17,z),(.013,.009,.013),gold,g,12)
+    elif key=='tee':
         line('Neck trim',[(-.106,-.105,1.642),(0,-.165,1.63),(.106,-.105,1.642)],.018,white,g)
     elif key=='hoodie':
         hood=ellipsoid('Hood',(0,.125,1.68),(.18,.18,.135),cloth,g)
@@ -698,7 +781,7 @@ for parent in [body]+[groups[key] for key in OUTFITS]:
     for side in [-1,1]:
         children=[o for o in parent.children if o.name.startswith(('Arm','Forearm','Hand','Thumb','Sleeve','Pressure glove','Glove thumb','Suit wrist','Shoulder armor','Mission patch')) and o.location.x*side>0]
         shoulder=pivot('Shoulder_'+parent.name+'_'+str(side),parent,(side*.284,0,1.56),children,'arm',side)
-        forearms=[o for o in shoulder.children if o.name.startswith(('Forearm','Hand','Thumb','Sleeve forearm','Sleeve cuff','Sleeve knit cuff','Pressure glove','Glove thumb','Suit wrist'))]
+        forearms=[o for o in shoulder.children if o.name.startswith(('Forearm','Hand','Thumb','Sleeve forearm','Sleeve cuff','Sleeve knit cuff','Sleeve blouse cuff','Sleeve robe cuff','Pressure glove','Glove thumb','Suit wrist'))]
         pivot('Elbow_'+parent.name+'_'+str(side),shoulder,(side*.101,0,-.275),forearms,'elbow',side)
 head_children=[o for o in bpy.context.scene.objects if o.get('avatar_slot') in ['character','hair','hat','audio'] or o.get('avatar_slot') in ['accessory','audio','jewellery'] and o.get('avatar_id') in ['glasses','headphones','crown','glasses-69','glasses-67','star-glasses','pixel-shades','owl-glasses','lightning','matrix-shades','safety-goggles']]
 head=pivot('Head_pose',None,(0,0,1.78),head_children,'head')
@@ -736,12 +819,15 @@ colors={'sky':(.12,.36,.72),'mint':(.10,.56,.40),'rose':(.74,.22,.40),'amber':(.
 def select(character='robot',outfit='tee',accessory='none',color='sky',hair_style=None,hat='hat-none',back='back-none',companion='companion-none',audio='audio-none',jewellery='jewel-none',pants='straight',shoes='sneakers'):
     hair_style=hair_style or {'robot':'crop','sprout':'curls','fox':'bob','cat':'bun','nova':'crop'}[character]
     chosen={'character':character,'outfit':outfit,'accessory':accessory,'hair':hair_style,'hat':hat,'back':back,'companion':companion,'audio':audio,'jewellery':jewellery,'pants':pants,'shoes':shoes}
+    if accessory in ITEM_SLOTS:
+        chosen[ITEM_SLOTS[accessory]]=accessory; chosen['accessory']='none'
     covers_hair=bool(groups.get(hat) and groups[hat].get('avatar_covers_hair'))
     for o in bpy.context.scene.objects:
         if o.type!='MESH': continue
         owner=o
         while owner and not owner.get('avatar_slot'): owner=owner.parent
         shown=not owner or chosen.get(owner.get('avatar_slot'))==owner.get('avatar_id')
+        if owner and owner.get('avatar_slot')=='pants' and outfit in DRESSES: shown=False
         if owner and owner.get('avatar_slot')=='hair' and covers_hair: shown=False
         if o.get('avatar_hide_back') and back in o['avatar_hide_back']: shown=False
         if o.get('avatar_hide_outfits') and outfit in o['avatar_hide_outfits']: shown=False
@@ -751,16 +837,25 @@ def select(character='robot',outfit='tee',accessory='none',color='sky',hair_styl
         m.diffuse_color=(*value,1);m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(*value,1)
 for slot,ids in [('character',['robot','sprout','fox','cat','nova']),('outfit',OUTFITS),('pants',PANTS),('shoes',SHOES),('accessory',['none']+ACCESSORIES),('hair',HAIRS),('hat',['hat-none']+HATS),('audio',['studio-headset','cat-headphones','earbuds','retro-headphones','gamer-headset']),('jewellery',['star-pin','scarf']),('back',['terminal-pack','rocket-pack','bookbag','turtle-shell']),('companion',['python-snake','owl-pal','duck-pal','robot-pal','cat-pal']),('color',list(colors))]:
     for item in ids:
-        closeup=slot in ['hair','hat','accessory','companion','audio']
+        display_slot=ITEM_SLOTS.get(item,slot)
+        closeup=display_slot in ['hair','hat','accessory','companion','audio'] or item=='lightning'
         camera.location=(2.8,-7,2.8) if closeup else (3.1,-6.8,3.05)
         target=Vector((0,0,2.17 if closeup else 1.28));camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler();camera.data.ortho_scale=1.6 if closeup else 3.05
         if slot in ['pants','shoes']:
             target=Vector((0,0,.65 if slot=='pants' else .22)); camera.location=(2,-5,1.9 if slot=='pants' else 1.2)
             camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler(); camera.data.ortho_scale=1.4 if slot=='pants' else .9
         args={'hair_style' if slot=='hair' else slot:item}; select(**args); scene.render.filepath=os.path.join(OUT,slot+'-'+item+'.png')
-        if slot=='back':
+        if display_slot=='jewellery' and item!='lightning':
+            target=Vector((0,0,1.46)); camera.location=(2.8,-7,2.1)
+            camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler(); camera.data.ortho_scale=1.1
+        if display_slot=='back':
             camera.location=(3.1,6.8,3.05);camera.rotation_euler=(Vector((0,0,1.28))-camera.location).to_track_quat('-Z','Y').to_euler()
-        if '--skip-thumbnails' not in sys.argv and (THUMBNAIL_ONLY is None or item==THUMBNAIL_ONLY) and ('--thumbnail-missing' not in sys.argv or not os.path.exists(scene.render.filepath)): bpy.ops.render.render(write_still=True)
+        if '--skip-thumbnails' not in sys.argv and (THUMBNAIL_ONLY is None or item in THUMBNAIL_ONLY) and ('--thumbnail-missing' not in sys.argv or not os.path.exists(scene.render.filepath)):
+            # Catch blank subjects, including legacy filenames whose item moved slots.
+            if slot!='color' and item not in ['none','hat-none','bald']:
+                subject=next(o for o in scene.objects if o.get('avatar_slot')==ITEM_SLOTS.get(item,slot) and o.get('avatar_id')==item)
+                assert any(o.type=='MESH' and not o.hide_render for o in subject.children_recursive), 'Hidden thumbnail subject: '+item
+            bpy.ops.render.render(write_still=True)
 bpy.context.preferences.filepaths.save_version=0
 select(); bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ROOT,'src/avatar-models/wardrobe.blend'))
 print('Saved original Blender wardrobe, GLB and modular thumbnails.')

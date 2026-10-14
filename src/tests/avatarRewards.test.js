@@ -31,7 +31,7 @@ test('standalone wearable previews contain only the selected item meshes, withou
     const data = fs.readFileSync('frontend/assets/avatars/wardrobe.glb');
     const { scene } = await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset, data.byteOffset + data.length), '');
     const { DEFAULT_SELECTION } = require('../services/avatarService');
-    for (const [slot, id] of [['accessory', 'glasses-69'], ['audio', 'cat-headphones'], ['hat', 'propeller'], ['back', 'wings'], ['outfit', 'space-suit'], ['companion', 'cat-pal']]) {
+    for (const [slot, id] of [['accessory', 'glasses-69'], ['audio', 'cat-headphones'], ['hat', 'propeller'], ['back', 'wings'], ['outfit', 'space-suit'], ['companion', 'cat-pal'], ['outfit', 'party-dress'], ['outfit', 'wizard-robe'], ['pants', 'tulle-skirt'], ['shoes', 'mary-janes']]) {
         const box = selectAvatarReward(scene, DEFAULT_SELECTION, { slot, id });
         assert.ok(!box.isEmpty());
         let count = 0;
@@ -42,6 +42,8 @@ test('standalone wearable previews contain only the selected item meshes, withou
             while (owner && !owner.userData.avatar_slot) owner = owner.parent;
             assert.equal(owner?.userData.avatar_slot, slot);
             assert.equal(owner?.userData.avatar_id, id);
+            const materials = Array.isArray(object.material) ? object.material : [object.material];
+            assert.ok(materials.every(material => material.name !== 'Skin'));
         });
         assert.ok(count > 0);
     }

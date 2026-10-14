@@ -112,7 +112,7 @@ test('Blender wardrobe exports all modular selections and local thumbnails', asy
     assert.equal(data.toString('utf8', 0, 4), 'glTF');
     assert.equal(data.readUInt32LE(4), 2);
     assert.equal(data.readUInt32LE(8), data.length);
-    assert.ok(data.length < 10 * 1024 * 1024);
+    assert.ok(data.length < 12 * 1024 * 1024);
     const jsonLength = data.readUInt32LE(12);
     const gltf = JSON.parse(data.subarray(20, 20 + jsonLength).toString());
     assert.ok(gltf.buffers.every(buffer => !buffer.uri));
@@ -495,4 +495,36 @@ test('matching set models contain their distinctive details rather than generic 
         assert.equal(detail, true, `${id} needs ${prefix}`);
     }
     assert.ok(scene);
+});
+
+test('dresses and wizard robes cover saved bottoms while skirts mix with tops and shoes', async () => {
+    const { scene, find, applyAvatarSelection, selectAvatarReward, createAvatarAnimator } = await loadWardrobe();
+    const source = fs.readFileSync('frontend/js/utils/avatarFit.js', 'utf8');
+    const { chooseAvatarItem, DRESS_OUTFITS } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+    for (const outfit of DRESS_OUTFITS) {
+        const selected = { ...DEFAULT_SELECTION, outfit, pants: 'cargo', shoes: 'mary-janes' };
+        applyAvatarSelection(scene, selected);
+        assert.equal(find(o => o.userData.avatar_id === 'cargo').visible, false, outfit);
+        assert.equal(find(o => o.userData.avatar_id === 'mary-janes').visible, true);
+        const dress = find(o => o.userData.avatar_id === outfit);
+        assert.equal(dress.visible, true);
+        const animator = createAvatarAnimator(scene); animator.gesture('bow', 0); animator.update(1, false, selected);
+        const upper = dress.children.find(o => o.userData.avatar_motion === 'torso');
+        assert.ok(dress.children.length > 0);
+        assert.ok(upper?.rotation.x > 0.4, `${outfit} should bow at the waist`);
+        animator.update(1, true, selected);
+        applyAvatarSelection(scene, { ...selected, outfit: 'blouse' });
+        assert.equal(find(o => o.userData.avatar_id === 'cargo').visible, true);
+        const next = chooseAvatarItem(selected, 'pants', 'pleated-skirt');
+        assert.equal(next.selection.outfit, 'tee'); assert.equal(next.selection.shoes, 'mary-janes');
+        assert.equal(next.removedSlot, 'outfit'); assert.equal(selected.outfit, outfit);
+        assert.ok(!selectAvatarReward(scene, selected, { slot: 'pants', id: 'tulle-skirt' }).isEmpty());
+        scene.traverse(o => { o.visible = true; });
+    }
+    for (const pants of ['pleated-skirt','denim-skirt','wrap-skirt','tulle-skirt']) {
+        applyAvatarSelection(scene, { ...DEFAULT_SELECTION, outfit: 'blouse', pants, shoes: 'ballet-flats' });
+        assert.equal(find(o => o.userData.avatar_id === pants).visible, true);
+        assert.equal(find(o => o.userData.avatar_id === 'blouse').visible, true);
+        assert.equal(find(o => o.userData.avatar_id === 'ballet-flats').visible, true);
+    }
 });

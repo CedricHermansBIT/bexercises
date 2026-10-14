@@ -20,8 +20,8 @@ export const AVATAR_SHOES_COLORS = { 'shoes-cream': [0.92, 0.92, 0.85], 'shoes-i
     ...Object.fromEntries(['crimson','orange','lemon','violet','cyan','white','chocolate'].map(id => [`shoes-${id}`, AVATAR_COLORS[id]])), 'shoes-silver': [.60,.65,.70] };
 export const AVATAR_PALETTES = { color: AVATAR_COLORS, skin: AVATAR_SKINS, hairColor: AVATAR_HAIR_COLORS,
     pantsColor: AVATAR_PANTS_COLORS, shoesColor: AVATAR_SHOES_COLORS };
-export const AVATAR_OPTIONS = { character: ['robot', 'sprout', 'fox', 'cat', 'nova'], outfit: ['tee', 'hoodie', 'lab-coat', 'space-suit', 'dungarees', 'bomber', 'varsity', 'rugby', 'cardigan', 'raincoat', 'chef-jacket', 'pumpkin-knit', 'festive-knit'],
-    pants: ['straight', 'chinos', 'cargo', 'shorts', 'joggers', 'wide-leg'], shoes: ['sneakers', 'high-tops', 'boots', 'loafers', 'sandals', 'trainers', 'clogs', 'elf-shoes'],
+export const AVATAR_OPTIONS = { character: ['robot', 'sprout', 'fox', 'cat', 'nova'], outfit: ['tee', 'hoodie', 'lab-coat', 'space-suit', 'dungarees', 'bomber', 'varsity', 'rugby', 'cardigan', 'raincoat', 'chef-jacket', 'pumpkin-knit', 'festive-knit', 'sundress', 'pinafore', 'party-dress', 'starlight-dress', 'blouse', 'wizard-robe'],
+    pants: ['straight', 'chinos', 'cargo', 'shorts', 'joggers', 'wide-leg', 'pleated-skirt', 'denim-skirt', 'wrap-skirt', 'tulle-skirt'], shoes: ['sneakers', 'high-tops', 'boots', 'loafers', 'sandals', 'trainers', 'clogs', 'elf-shoes', 'ballet-flats', 'mary-janes'],
     accessory: ['none', 'glasses', 'glasses-69', 'glasses-67', 'star-glasses', 'pixel-shades', 'owl-glasses', 'matrix-shades', 'safety-goggles'],
     audio: ['audio-none', 'headphones', 'studio-headset', 'cat-headphones', 'earbuds', 'retro-headphones', 'gamer-headset'], jewellery: ['jewel-none', 'lightning', 'bow-tie', 'language-medal', 'star-pin', 'scarf'],
     back: ['back-none', 'wings', 'terminal-pack', 'rocket-pack', 'bookbag', 'turtle-shell'], companion: ['companion-none', 'python-snake', 'owl-pal', 'duck-pal', 'robot-pal', 'cat-pal'],
