@@ -406,6 +406,43 @@ async function removeRunnerContainer(runtime, containerName, mayStillBeStarting)
 	console.error(`Failed to remove ${containerName}:`, lastError || 'Timed out waiting for removal');
 }
 
+// docker cp reads the underlying filesystem and may miss tmpfs mounts. Stream
+// the live workspace through tar instead. keep-old-files prevents an archive
+// from replacing a previously extracted symlink and traversing it on the host.
+function collectContainerWorkspace(runtime, containerName, workdir, destination, timeoutMs = 15000,
+    maxBytes = config.docker.maxArchiveBytes) {
+    return new Promise(resolve => {
+        const source = spawn(runtime, ['exec', containerName, 'tar', '-C', workdir, '--one-file-system', '-cf', '-', '.'],
+            { stdio: ['ignore', 'pipe', 'pipe'] });
+        const target = spawn('tar', ['--extract', '--file', '-', '--directory', destination,
+            '--no-same-owner', '--no-same-permissions', '--keep-old-files'],
+            { stdio: ['pipe', 'ignore', 'pipe'] });
+        let bytes = 0, stderr = '', error = null, timedOut = false, outputLimited = false;
+        let sourceCode, targetCode;
+        const abort = () => { source.kill('SIGKILL'); target.kill('SIGKILL'); };
+        const timer = setTimeout(() => { timedOut = true; error = 'Output collection timed out'; abort(); }, timeoutMs);
+        const capture = chunk => { stderr = (stderr + chunk.toString('utf8')).slice(0, 4096); };
+        source.stderr.on('data', capture);
+        target.stderr.on('data', capture);
+        target.stdin.on('error', () => {}); // The extractor may reject the archive early.
+        source.stdout.on('data', chunk => {
+            bytes += chunk.length;
+            if (bytes > maxBytes) { outputLimited = true; error = 'Output archive exceeds size limit'; abort(); }
+        });
+        source.stdout.pipe(target.stdin);
+        const finish = () => {
+            if (sourceCode === undefined || targetCode === undefined) return;
+            clearTimeout(timer);
+            resolve({ stdout: '', stderr, error, timedOut, outputLimited,
+                exitCode: !error && sourceCode === 0 && targetCode === 0 ? 0 : -1 });
+        };
+        source.on('error', err => { error = err.message; abort(); });
+        target.on('error', err => { error = err.message; abort(); });
+        source.on('close', code => { sourceCode = code; finish(); });
+        target.on('close', code => { targetCode = code; finish(); });
+    });
+}
+
 /**
  * Run a script in a bounded, private workspace. Inputs are mounted read-only;
  * the script only writes to container tmpfs mounts. Copy output back while the
@@ -499,9 +536,7 @@ async function runScriptInContainer(tmpdir, scriptFilename, languageConfig, args
 		}
 
 		outputDir = await fs.mkdtemp(path.join(path.dirname(tmpdir), 'bex-output-'));
-		const copied = await runContainerCommand(runtime, [
-			'cp', `${containerName}:${containerWorkdir}/.`, outputDir
-		], 15000, config.docker.maxOutputBytes);
+		const copied = await collectContainerWorkspace(runtime, containerName, containerWorkdir, outputDir);
 		if (copied.exitCode !== 0 || copied.error || copied.timedOut || copied.outputLimited) {
 			return { ...result, exitCode: null,
 				error: copied.error || copied.stderr || 'Could not collect output files' };
@@ -769,6 +804,7 @@ async function hashOutputFiles(tmpdir, filenames = []) {
 }
 
 module.exports = {
+    collectContainerWorkspace,
 	getContainerCommand,
 	normalizeOutput,
 	removeRecursive,
