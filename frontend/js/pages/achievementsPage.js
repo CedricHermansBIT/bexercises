@@ -82,10 +82,13 @@ class AchievementsPage {
         // Filter buttons
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const filter = e.target.dataset.filter;
+                const filter = e.currentTarget.dataset.filter;
                 this.filterAchievements(filter);
             });
         });
+
+        document.getElementById('achievement-search').addEventListener('input', () => this.displayAchievements());
+        document.getElementById('achievement-category').addEventListener('change', () => this.displayAchievements());
 
         // Leaderboard button
         const leaderboardBtn = document.getElementById('leaderboard-btn-achievements');
@@ -111,8 +114,6 @@ class AchievementsPage {
                 this.authComponent.logout();
             });
         }
-
-        this.setupThemeToggle();
 
         const userMenu = document.getElementById('user-menu');
         if (userMenu) {
@@ -187,55 +188,66 @@ class AchievementsPage {
             document.getElementById('earned-count').textContent = earnedCount;
             document.getElementById('total-count').textContent = totalCount;
             document.getElementById('progress-percent').textContent = `${progressPercent}%`;
+            document.getElementById('collection-progress').value = progressPercent;
+            document.getElementById('collection-points').textContent = `${totalPoints} points`;
+            const categories = [...new Set(this.achievements.map(a => a.category || 'other'))].sort();
+            const select = document.getElementById('achievement-category');
+            for (const category of categories) {
+                const option = document.createElement('option'); option.value = category;
+                option.textContent = this.formatCategoryName(category); select.append(option);
+            }
 
             // Display achievements
             this.displayAchievements();
         } catch (error) {
             console.error('Failed to load achievements:', error);
+            const status = document.getElementById('collection-results');
+            status.textContent = 'Could not load achievements. ';
+            const retry = document.createElement('button'); retry.textContent = 'Try again';
+            retry.addEventListener('click', () => { status.textContent = 'Loading achievements…'; void this.loadAchievements(); });
+            status.append(retry);
+            document.getElementById('achievements-grid').setAttribute('aria-busy', 'false');
         }
     }
 
     displayAchievements() {
         const grid = document.getElementById('achievements-grid');
-        grid.innerHTML = '';
-
-        // Group by category
-        const categories = {};
-        this.achievements.forEach(achievement => {
-            const category = achievement.category || 'other';
-            if (!categories[category]) {
-                categories[category] = [];
-            }
-            categories[category].push(achievement);
+        grid.replaceChildren(); grid.setAttribute('aria-busy', 'false');
+        const query = document.getElementById('achievement-search').value.trim().toLocaleLowerCase();
+        const categoryFilter = document.getElementById('achievement-category').value;
+        const matches = this.achievements.filter(a => {
+            const secret = a.hidden && !a.earned;
+            const text = secret ? 'Secret achievement' : `${a.name} ${a.description}`;
+            return (this.currentFilter === 'all' || (this.currentFilter === 'earned' ? a.earned : !a.earned)) &&
+                (categoryFilter === 'all' || (a.category || 'other') === categoryFilter) && text.toLocaleLowerCase().includes(query);
         });
-
-        // Display by category
-        Object.keys(categories).sort().forEach(category => {
-            const categorySection = document.createElement('div');
-            categorySection.className = 'achievement-category';
-
-            const categoryTitle = document.createElement('h2');
-            categoryTitle.className = 'category-title';
-            categoryTitle.textContent = this.formatCategoryName(category);
-            categorySection.appendChild(categoryTitle);
-
-            const achievementsList = document.createElement('div');
-            achievementsList.className = 'achievements-list';
-
-            categories[category].forEach(achievement => {
-                const card = this.createAchievementCard(achievement);
-                achievementsList.appendChild(card);
-            });
-
-            categorySection.appendChild(achievementsList);
-            grid.appendChild(categorySection);
-        });
-        this.filterAchievements(this.currentFilter);
+        document.getElementById('collection-results').textContent = matches.length
+            ? `${matches.length} achievement${matches.length === 1 ? '' : 's'} · Open character rewards to preview your unlocks.`
+            : 'No achievements match. Try another search or filter.';
+        const categories = new Map();
+        for (const achievement of matches) {
+            const key = achievement.category || 'other';
+            if (!categories.has(key)) categories.set(key, []);
+            categories.get(key).push(achievement);
+        }
+        const order = ['getting-started', 'progress', 'skill', 'mastery', 'persistence', 'attempts', 'speed', 'streak', 'time', 'secret'];
+        const rank = category => order.includes(category) ? order.indexOf(category) : order.length - 1;
+        for (const category of [...categories.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))) {
+            const achievements = categories.get(category);
+            const section = document.createElement('section'); section.className = 'collection-category';
+            const heading = document.createElement('h2');
+            heading.textContent = `${this.formatCategoryName(category)} · ${achievements.filter(a => a.earned).length}/${achievements.length} earned`;
+            const list = document.createElement('div'); list.className = 'collection-cards';
+            achievements.sort((a, b) => Number(a.earned) - Number(b.earned) || (b.measure?.fraction || 0) - (a.measure?.fraction || 0) || (a.points || 0) - (b.points || 0));
+            for (const achievement of achievements) list.append(this.createAchievementCard(achievement));
+            section.append(heading, list); grid.append(section);
+        }
     }
 
     createAchievementCard(achievement) {
-        const card = document.createElement('div');
-        card.className = 'achievement-card';
+        const card = document.createElement('article');
+        card.className = 'collection-card';
+        const secret = achievement.hidden && !achievement.earned;
 
         if (achievement.earned) {
             card.classList.add('earned');
@@ -245,28 +257,40 @@ class AchievementsPage {
 
         const icon = document.createElement('div');
         icon.className = 'achievement-icon';
-        icon.textContent = achievement.earned ? achievement.icon : '🔒';
+        icon.textContent = secret ? '🔒' : achievement.icon;
+        icon.setAttribute('aria-hidden', 'true');
         card.appendChild(icon);
 
         const content = document.createElement('div');
         content.className = 'achievement-content';
 
-        const name = document.createElement('div');
+        const name = document.createElement('h3');
         name.className = 'achievement-name';
-        name.textContent = achievement.earned ? achievement.name : '???';
+        name.textContent = secret ? 'Secret achievement' : achievement.name;
         content.appendChild(name);
 
         const description = document.createElement('div');
         description.className = 'achievement-description';
-        description.textContent = achievement.earned ? achievement.description : 'Locked';
+        description.textContent = secret ? 'Keep exploring BITLab to discover this achievement.' : achievement.description;
         content.appendChild(description);
+
+        if (!achievement.hidden && !achievement.earned && achievement.measure?.target != null) {
+            const measure = achievement.measure;
+            const progress = document.createElement('progress'); progress.max = measure.target || 1;
+            progress.value = measure.current; progress.setAttribute('aria-label', `${achievement.name}: ${measure.current} of ${measure.target}`);
+            const hint = document.createElement('p'); hint.className = 'collection-hint';
+            hint.textContent = `${measure.current}/${measure.target} · ${measure.label}`;
+            content.append(progress, hint);
+        }
 
         const footer = document.createElement('div');
         footer.className = 'achievement-footer';
 
         const points = document.createElement('span');
         points.className = 'achievement-points';
-        points.textContent = `${achievement.points} pts`;
+        points.textContent = secret ? 'Secret' : `${achievement.points} pts`;
+        const status = document.createElement('span'); status.textContent = achievement.earned ? '✓ Earned' : 'To earn';
+        footer.append(status);
         footer.appendChild(points);
 
         if (achievement.earned && achievement.earned_at) {
@@ -275,15 +299,14 @@ class AchievementsPage {
             dateSpan.className = 'achievement-date';
             // Format date as MM/DD/YYYY -> DD/MM/YYYY
             dateSpan.textContent = earnedDate.toLocaleDateString('en-GB');
-            const newLine = document.createTextNode(' | ');
-            footer.appendChild(newLine);
+            dateSpan.textContent = `Earned ${dateSpan.textContent}`;
             footer.appendChild(dateSpan);
         }
 
         const rewards = getAchievementRewards(achievement, this.avatarState?.catalog);
         if (rewards.length) {
-            const section = document.createElement('section'); section.className = 'achievement-rewards';
-            const heading = document.createElement('h3'); heading.textContent = 'Character rewards'; section.append(heading);
+            const section = document.createElement('details'); section.className = 'achievement-rewards';
+            const heading = document.createElement('summary'); heading.textContent = `Character rewards (${rewards.length})`; section.append(heading);
             const list = document.createElement('div'); list.className = 'achievement-reward-list';
             for (const item of rewards) {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
@@ -316,18 +339,10 @@ class AchievementsPage {
         // Update active filter button
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.filter === filter);
+            btn.setAttribute('aria-pressed', String(btn.dataset.filter === filter));
         });
 
-        // Show/hide achievements
-        document.querySelectorAll('.achievement-card').forEach(card => {
-            if (filter === 'all') {
-                card.style.display = 'flex';
-            } else if (filter === 'earned') {
-                card.style.display = card.classList.contains('earned') ? 'flex' : 'none';
-            } else if (filter === 'locked') {
-                card.style.display = card.classList.contains('locked') ? 'flex' : 'none';
-            }
-        });
+        this.displayAchievements();
     }
 }
 

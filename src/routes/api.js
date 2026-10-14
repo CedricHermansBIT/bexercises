@@ -10,6 +10,9 @@ const executionLimiter = require('../services/executionLimiter');
 const { classifyFailure } = require('../services/submissionFeedback');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
+const { getAvatarProgress } = require('../services/avatarProgressService');
+const { presentAchievements } = require('../services/achievementPresentation');
+
 const router = express.Router();
 router.use('/avatar', require('./avatar')());
 const avatarService = require('../services/avatarService').createAvatarService(databaseService);
@@ -271,12 +274,13 @@ router.get('/achievements/user', asyncHandler(async (req, res) => {
 		throw ApiError.unauthorized();
 	}
 
-	const [progress, points] = await Promise.all([
+	const [progress, points, stats] = await Promise.all([
 		databaseService.getUserAchievementProgress(req.user.id),
-		databaseService.getUserAchievementPoints(req.user.id)
+		databaseService.getUserAchievementPoints(req.user.id),
+        getAvatarProgress(databaseService.db, req.user.id)
 	]);
 
-	res.json({ achievements: progress, totalPoints: points });
+	res.json({ achievements: presentAchievements(progress, stats), totalPoints: points });
 }));
 
 /**

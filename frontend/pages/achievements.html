@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BITLab ~ achievements</title>
     <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../achievements.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -55,39 +56,34 @@
             </div>
         </div>
 
-        <div class="achievements-content">
-            <div class="achievements-header">
-                <h1 class="page-title">$ cat /achievements/*.badge</h1>
-                <a href="avatar.html" class="achievement-character-entry">
-                    <span id="achievement-character" class="achievement-character-avatar" aria-hidden="true"></span>
-                    <span><strong>Your character</strong><small>Wear your achievement rewards in the character studio →</small></span>
-                </a>
-                <div class="achievements-stats">
-                    <div class="stat-card">
-                        <span class="stat-label">Earned</span>
-                        <span class="stat-value" id="earned-count">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">Total</span>
-                        <span class="stat-value" id="total-count">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">Progress</span>
-                        <span class="stat-value" id="progress-percent">0%</span>
-                    </div>
+        <main class="achievements-content">
+            <div class="achievement-collection">
+                <header class="collection-header">
+                    <div><h1>Achievements</h1><p>Your milestones, next goals, and character rewards.</p></div>
+                    <a href="avatar.html" class="achievement-character-entry">
+                        <span id="achievement-character" class="achievement-character-avatar" aria-hidden="true"></span>
+                        <span><strong>Character studio →</strong><small>Put your rewards to use</small></span>
+                    </a>
+                </header>
+                <div class="collection-summary" aria-label="Achievement summary">
+                    <span><strong id="earned-count">—</strong> of <strong id="total-count">—</strong> earned</span>
+                    <progress id="collection-progress" value="0" max="100" aria-label="Overall achievement progress"></progress>
+                    <span id="progress-percent">—</span>
+                    <span id="collection-points">— points</span>
                 </div>
+                <div class="collection-toolbar">
+                    <div class="collection-filters" role="group" aria-label="Achievement status">
+                        <button class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+                        <button class="filter-btn" data-filter="locked" aria-pressed="false">To earn</button>
+                        <button class="filter-btn" data-filter="earned" aria-pressed="false">Earned</button>
+                    </div>
+                    <label class="collection-search"><span >Search achievements</span><input type="search" id="achievement-search" placeholder="Search achievements…"></label>
+                    <label><span >Category</span><select id="achievement-category"><option value="all">All categories</option></select></label>
+                </div>
+                <p id="collection-results" class="collection-results" role="status" aria-live="polite">Loading achievements…</p>
+                <div id="achievements-grid" class="collection-sections" aria-busy="true"></div>
             </div>
-
-            <div class="achievements-filters">
-                <button class="filter-btn active" data-filter="all">all</button>
-                <button class="filter-btn" data-filter="earned">earned</button>
-                <button class="filter-btn" data-filter="locked">locked</button>
-            </div>
-
-            <div class="achievements-grid" id="achievements-grid">
-                <!-- Achievements will be populated by JavaScript -->
-            </div>
-        </div>
+        </main>
     </div>
 
     <script type="module" src="../js/pages/achievementsPage.js"></script>
