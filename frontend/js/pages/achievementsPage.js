@@ -87,7 +87,6 @@ class AchievementsPage {
             });
         });
 
-        document.getElementById('achievement-search').addEventListener('input', () => this.displayAchievements());
         document.getElementById('achievement-category').addEventListener('change', () => this.displayAchievements());
 
         // Leaderboard button
@@ -213,35 +212,39 @@ class AchievementsPage {
     displayAchievements() {
         const grid = document.getElementById('achievements-grid');
         grid.replaceChildren(); grid.setAttribute('aria-busy', 'false');
-        const query = document.getElementById('achievement-search').value.trim().toLocaleLowerCase();
         const categoryFilter = document.getElementById('achievement-category').value;
         const matches = this.achievements.filter(a => {
-            const secret = a.hidden && !a.earned;
-            const text = secret ? 'secret ???' : `${a.earned ? a.name : '???'} ${a.description}`;
             return (this.currentFilter === 'all' || (this.currentFilter === 'earned' ? a.earned : !a.earned)) &&
-                (categoryFilter === 'all' || (a.category || 'other') === categoryFilter) && text.toLocaleLowerCase().includes(query);
+                (categoryFilter === 'all' || (a.category || 'other') === categoryFilter);
         });
         document.getElementById('collection-results').textContent = matches.length
             ? `${matches.length} achievement${matches.length === 1 ? '' : 's'} · Click a character reward to preview it.`
-            : 'No achievements match. Try another search or filter.';
-        const categories = new Map();
-        for (const achievement of matches) {
-            const key = achievement.category || 'other';
-            if (!categories.has(key)) categories.set(key, []);
-            categories.get(key).push(achievement);
-        }
+            : 'No achievements match. Try another filter.';
         const order = ['getting-started', 'progress', 'skill', 'mastery', 'persistence', 'attempts', 'speed', 'streak', 'time', 'secret'];
         const rank = category => order.includes(category) ? order.indexOf(category) : order.length - 1;
-        for (const category of [...categories.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))) {
-            const achievements = categories.get(category);
-            const section = document.createElement('section'); section.className = 'collection-category';
-            const heading = document.createElement('h2');
-            heading.textContent = this.formatCategoryName(category);
-            const count = document.createElement('span'); count.textContent = `${achievements.filter(a => a.earned).length} / ${achievements.length} earned`; heading.append(count);
-            const list = document.createElement('div'); list.className = 'collection-cards';
-            achievements.sort((a, b) => Number(a.earned) - Number(b.earned) || (b.measure?.fraction || 0) - (a.measure?.fraction || 0) || (a.points || 0) - (b.points || 0));
-            for (const achievement of achievements) list.append(this.createAchievementCard(achievement));
-            section.append(heading, list); grid.append(section);
+        // Separate states before grouping categories so every earned achievement comes first.
+        for (const earned of [true, false]) {
+            const group = matches.filter(a => Boolean(a.earned) === earned);
+            if (!group.length) continue;
+            const state = document.createElement('section'); state.className = `collection-state ${earned ? 'is-earned' : 'is-locked'}`;
+            const title = document.createElement('h2'); title.className = 'collection-state-title';
+            title.textContent = `${earned ? '✓ Earned' : '🔒 To earn'} · ${group.length}`; state.append(title);
+            const categories = new Map();
+            for (const achievement of group) {
+                const key = achievement.category || 'other';
+                if (!categories.has(key)) categories.set(key, []);
+                categories.get(key).push(achievement);
+            }
+            for (const category of [...categories.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))) {
+                const achievements = categories.get(category);
+                const section = document.createElement('section'); section.className = 'collection-category';
+                const heading = document.createElement('h3'); heading.textContent = this.formatCategoryName(category);
+                const list = document.createElement('div'); list.className = 'collection-cards';
+                achievements.sort((a, b) => (b.measure?.fraction || 0) - (a.measure?.fraction || 0) || (a.points || 0) - (b.points || 0));
+                for (const achievement of achievements) list.append(this.createAchievementCard(achievement));
+                section.append(heading, list); state.append(section);
+            }
+            grid.append(state);
         }
     }
 
@@ -258,14 +261,14 @@ class AchievementsPage {
 
         const icon = document.createElement('div');
         icon.className = 'achievement-icon';
-        icon.textContent = secret ? '🔒' : achievement.icon;
+        icon.textContent = achievement.earned ? achievement.icon : '🔒';
         icon.setAttribute('aria-hidden', 'true');
         card.appendChild(icon);
 
         const content = document.createElement('div');
         content.className = 'achievement-content';
 
-        const name = document.createElement('h3');
+        const name = document.createElement('h4');
         name.className = 'achievement-name';
         name.textContent = achievement.earned ? achievement.name : '???';
         content.appendChild(name);
@@ -290,8 +293,8 @@ class AchievementsPage {
         const points = document.createElement('span');
         points.className = 'achievement-points';
         points.textContent = secret ? 'Secret' : `${achievement.points} pts`;
-        const status = document.createElement('span'); status.className = 'collection-status'; status.textContent = achievement.earned ? '✓ Earned' : 'To earn';
-        footer.append(status);
+        const status = document.createElement('span'); status.className = 'collection-status'; status.textContent = achievement.earned ? '✓ Earned' : '🔒 Locked';
+        name.append(status);
         footer.appendChild(points);
 
         if (achievement.earned && achievement.earned_at) {

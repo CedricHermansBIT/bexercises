@@ -20,28 +20,28 @@
 .collection-toolbar .filter-btn { padding:7px 12px; margin:0; font-size:.75rem; border:1px solid transparent; background:transparent; }
 .collection-toolbar .filter-btn.active { background:var(--accent-blue); color:var(--bg-primary); }
 .collection-toolbar input,.collection-toolbar select { width:100%; padding:9px 10px; border:1px solid var(--border-color); border-radius:7px; background:var(--bg-secondary); color:var(--text-primary); font:inherit; font-size:.75rem; }
-.collection-search { flex:1; min-width:160px; }
+.collection-toolbar > label { margin-left:auto; min-width:180px; }
 .collection-toolbar label > span { display:block; margin-bottom:4px; font-size:.68rem; color:var(--text-secondary); }
 .collection-toolbar :focus-visible,.collection-card button:focus-visible { outline:2px solid var(--accent-blue); outline-offset:3px; }
 .collection-results { font-size:.68rem; color:var(--text-secondary); margin:10px 0 26px; }
 .collection-sections { display:grid; gap:28px; }
-.collection-category h2 { display:flex; align-items:center; gap:14px; margin:0 0 10px; font-size:.88rem; color:var(--text-primary); font-weight:600; }
-.collection-category h2::after { content:''; height:1px; background:var(--border-color); flex:1; }
-.collection-category h2 span { font-size:.65rem; font-weight:400; color:var(--text-secondary); }
+.collection-category > h3 { display:flex; align-items:center; gap:14px; margin:0 0 10px; font-size:.88rem; color:var(--text-primary); font-weight:600; }
+.collection-category > h3::after { content:''; height:1px; background:var(--border-color); flex:1; }
+.collection-category > h3 span { font-size:.65rem; font-weight:400; color:var(--text-secondary); }
 .collection-cards { display:grid; gap:8px; }
 .collection-card { display:flex; align-items:flex-start; gap:16px; padding:18px; border:1px solid var(--border-color); border-radius:10px; background:var(--bg-secondary); min-width:0; }
 .achievements-content .collection-card .achievement-icon { display:grid; place-items:center; width:48px; height:48px; flex:0 0 48px; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-primary); font-size:1.6rem; margin:0; line-height:1; }
 .collection-card.earned .achievement-icon { border-color:var(--accent-green); }
 .collection-card .achievement-content { min-width:0; flex:1; display:grid; grid-template-columns:minmax(0,1fr); align-items:start; }
 .collection-card.has-rewards .achievement-content { grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); column-gap:28px; }
-.achievements-content .collection-card .achievement-name { grid-column:1; margin:0 0 5px; font-size:1rem; color:var(--text-primary); line-height:1.4; }
+.achievements-content .collection-card .achievement-name { grid-column:1; display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; margin:0 0 8px; font-size:1rem; color:var(--text-primary); line-height:1.4; }
 .collection-card.locked .achievement-name { letter-spacing:3px; }
 .achievements-content .collection-card .achievement-description { grid-column:1; margin:0 0 12px; font-size:.77rem; line-height:1.6; color:var(--text-secondary); }
 .collection-card progress { grid-column:1; display:block; width:100%; max-width:340px; }
 .collection-hint { grid-column:1; margin:6px 0 12px; font-size:.67rem; line-height:1.5; color:var(--text-secondary); }
 .collection-card .achievement-footer { grid-column:1; display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; font-size:.65rem; color:var(--text-secondary); margin-top:3px; }
 .achievements-content .collection-card .achievement-points { font-size:.65rem; color:var(--text-secondary); }
-.collection-status { padding:2px 6px; border:1px solid var(--border-color); border-radius:4px; font-size:.6rem; }
+.collection-status { letter-spacing:0; font-weight:500; white-space:nowrap; padding:2px 6px; border:1px solid var(--border-color); border-radius:4px; font-size:.6rem; }
 .earned .collection-status { color:var(--accent-green); border-color:var(--accent-green); }
 .collection-card .achievement-date { font-size:.62rem; }
 .collection-card .achievement-rewards { grid-column:2; grid-row:1 / span 6; margin:0; padding:0 0 0 22px; border:0; border-left:1px solid var(--border-color); text-align:left; min-width:0; }
@@ -59,7 +59,7 @@
     .collection-summary progress { flex:1; min-width:40px; }
     .collection-summary #collection-points { margin-left:0; }
     .collection-filters { flex-basis:100%; width:fit-content; flex-grow:0; }
-    .collection-toolbar > label:last-child { max-width:48%; }
+    .collection-toolbar > label { margin-left:0; width:100%; }
     .collection-card { gap:10px; padding:14px; }
     .achievements-content .collection-card .achievement-icon { width:36px; height:36px; flex-basis:36px; border-radius:9px; font-size:1.3rem; }
     .collection-card.has-rewards .achievement-content { grid-template-columns:minmax(0,1fr); }
@@ -67,3 +67,12 @@
     .collection-card .achievement-footer { grid-row:5; }
     .collection-card .achievement-reward-button { width:64px; }
 }
+
+.collection-state { display:grid; gap:18px; }
+.collection-state-title { margin:0; padding:12px 16px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); font-size:1rem; }
+.is-earned .collection-state-title { color:var(--accent-green); border-left:4px solid var(--accent-green); }
+.collection-card.earned { border-left:4px solid var(--accent-green); }
+.collection-card.locked { background:var(--bg-primary); }
+.collection-card.locked .achievement-icon { border-style:dashed; color:var(--text-secondary); }
+.earned .collection-status { background:var(--accent-green); color:var(--bg-primary); }
+.locked .collection-status { background:var(--bg-secondary); color:var(--text-secondary); }
