@@ -4,6 +4,7 @@ import Navbar from '../../components/navbar.js';
 import { navigateTo } from '../../utils/navigationUtils.js';
 import { getAvatarFit, chooseAvatarItem } from '../../utils/avatarFit.js';
 import { renderAvatar } from '../../utils/avatarRenderer.js';
+import { setFavicon } from '../../utils/faviconUtils.js';
 
 class AvatarPage {
     constructor() {
@@ -21,6 +22,7 @@ class AvatarPage {
         status.dataset.error = String(error);
     }
     async init() {
+        setFavicon();
         const authenticated = await this.auth.checkAuth();
         if (authenticated === null) return;
         if (!authenticated) return navigateTo('login.html');
