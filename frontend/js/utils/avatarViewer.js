@@ -5,9 +5,12 @@ import { AVATAR_PALETTES, AVATAR_OPTIONS } from './avatarRenderer.js';
 
 export function applyAvatarSelection(model, selection) {
     const materialSlots = { Skin: 'skin', Hair: 'hairColor', Wardrobe: 'color', Denim: 'pantsColor', Shoes: 'shoesColor' };
+    let coversHair = false;
+    model.traverse(object => { if (object.userData.avatar_slot === 'hat' && object.userData.avatar_id === selection.hat) coversHair = !!object.userData.avatar_covers_hair; });
     model.traverse(object => {
         const { avatar_slot: slot, avatar_id: id } = object.userData;
-        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id;
+        if (slot && AVATAR_OPTIONS[slot]) object.visible = selection[slot] === id && !(slot === 'hair' && coversHair);
+        if (object.userData.avatar_hide_outfits) object.visible = !object.userData.avatar_hide_outfits.includes(selection.outfit);
         if (!object.isMesh) return;
         for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
             const palette = AVATAR_PALETTES[materialSlots[material.name]];
@@ -41,7 +44,7 @@ export async function createAvatarViewer(container, url, selection) {
         const camera = new THREE.OrthographicCamera(-1.4, 1.4, 1.6, -1.6, 0.1, 30);
         camera.position.set(3.1, 2.8, 6.8);
         controls = new OrbitControls(camera, canvas);
-        controls.target.set(0, 1.29, 0); controls.enablePan = false; controls.enableZoom = false;
+        controls.target.set(0, 1.42, 0); controls.enablePan = false; controls.enableZoom = false;
         controls.enableDamping = true; controls.minPolarAngle = Math.PI / 3; controls.maxPolarAngle = Math.PI / 2;
         controls.update();
         scene.add(new THREE.HemisphereLight(0xf9f4e8, 0x8799ad, 2.3));
@@ -60,8 +63,8 @@ export async function createAvatarViewer(container, url, selection) {
         const resize = () => {
             const width = container.clientWidth, height = container.clientHeight;
             if (!width || !height) return;
-            const halfWidth = 1.55 * width / height;
-            camera.left = -halfWidth; camera.right = halfWidth; camera.top = 1.55; camera.bottom = -1.55;
+            const halfWidth = 1.70 * width / height;
+            camera.left = -halfWidth; camera.right = halfWidth; camera.top = 1.70; camera.bottom = -1.70;
             camera.updateProjectionMatrix(); renderer.setSize(width, height, false);
         };
         resizeObserver = new ResizeObserver(resize); resizeObserver.observe(container); resize();

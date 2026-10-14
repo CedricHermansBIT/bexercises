@@ -111,15 +111,15 @@ test('Blender wardrobe exports all modular selections and local thumbnails', asy
     assert.equal(data.toString('utf8', 0, 4), 'glTF');
     assert.equal(data.readUInt32LE(4), 2);
     assert.equal(data.readUInt32LE(8), data.length);
-    assert.ok(data.length < 2 * 1024 * 1024);
+    assert.ok(data.length < 6 * 1024 * 1024);
     const jsonLength = data.readUInt32LE(12);
     const gltf = JSON.parse(data.subarray(20, 20 + jsonLength).toString());
     assert.ok(gltf.buffers.every(buffer => !buffer.uri));
     const ids = gltf.nodes.filter(node => node.extras?.avatar_slot).map(node => node.extras.avatar_id).sort();
-    assert.deepEqual(ids, ['crop', 'curls', 'bob', 'bun', 'mohawk', 'braid', 'robot', 'sprout', 'fox', 'cat', 'tee', 'hoodie', 'lab-coat', 'space-suit', 'glasses', 'headphones', 'crown'].sort());
-    assert.ok(gltf.materials.some(material => material.name === 'Skin'));
     const { CATALOG } = require('../services/avatarService');
-    for (const item of CATALOG.filter(item => ['character', 'outfit', 'accessory', 'hair'].includes(item.slot))) {
+    assert.deepEqual(ids, CATALOG.filter(item => ['character', 'outfit', 'accessory', 'hair', 'hat'].includes(item.slot) && !['none', 'hat-none'].includes(item.id)).map(item => item.id).sort());
+    assert.ok(gltf.materials.some(material => material.name === 'Skin'));
+    for (const item of CATALOG.filter(item => ['character', 'outfit', 'accessory', 'hair', 'hat'].includes(item.slot))) {
         const png = fs.readFileSync(`frontend/assets/avatars/${item.slot}-${item.id}.png`);
         assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     }
@@ -194,4 +194,76 @@ test('special styles require the named earned achievement and remain unlocked pe
         await db.db.run('DELETE FROM user_achievements WHERE user_id = 1');
         assert.deepEqual((await service.saveSelection(1, look)).selection, look);
     } finally { db.cache.clear(); await db.db.close(); }
+});
+
+
+test('every built-in achievement has a themed reward, with secrets revealed only after earning', async () => {
+    const db = await database();
+    try {
+        const { CATALOG } = require('../services/avatarService');
+        const achievements = await db.db.all('SELECT id FROM achievements');
+        for (const { id } of achievements) assert.ok(CATALOG.some(item => item.achievement === id), `Missing reward for ${id}`);
+        const service = createAvatarService(db);
+        const initial = await service.getState(1);
+        assert.ok(!initial.catalog.some(item => item.id === 'matrix-shades' || item.id === 'pompadour'));
+        await assert.rejects(service.saveSelection(1, { ...DEFAULT_SELECTION, accessory: 'glasses-69' }), /Unlock/);
+        await db.awardAchievement(1, 'nice');
+        await db.awardAchievement(1, 'hackerman');
+        const earned = await service.getState(1);
+        assert.equal(earned.catalog.find(item => item.id === 'glasses-69').reward.name, 'Nice');
+        assert.equal(earned.catalog.find(item => item.id === 'matrix-shades').unlocked, true);
+        const look = { ...DEFAULT_SELECTION, accessory: 'glasses-69', hat: 'cap', hair: 'long-waves', color: 'teal' };
+        await service.saveSelection(1, look);
+        const oldClient = { ...look }; delete oldClient.hat;
+        assert.equal((await service.saveSelection(1, { ...oldClient, color: 'lemon' })).selection.hat, 'cap');
+        const incomplete = { ...look }; delete incomplete.hairColor;
+        await assert.rejects(service.saveSelection(1, incomplete), /complete/);
+    } finally { db.cache.clear(); await db.db.close(); }
+});
+
+test('language mastery unlocks a permanent medal using existing language achievements', async () => {
+    const db = await database();
+    try {
+        await db.createLanguage({ id: 'bash', name: 'Bash' });
+        const service = createAvatarService(db);
+        assert.equal((await service.getState(1)).catalog.find(item => item.id === 'language-medal').unlocked, false);
+        await db.awardAchievement(1, 'language-master-bash');
+        const state = await service.getState(1);
+        assert.equal(state.catalog.find(item => item.id === 'language-medal').reward.name, 'Bash Master');
+        const look = { ...DEFAULT_SELECTION, accessory: 'language-medal' };
+        await service.saveSelection(1, look);
+        await db.db.run('DELETE FROM user_achievements WHERE user_id = 1');
+        assert.deepEqual((await service.saveSelection(1, look)).selection, look);
+    } finally { db.cache.clear(); await db.db.close(); }
+});
+
+test('browser palettes and modular IDs cover the server catalog exactly', async () => {
+    const source = fs.readFileSync('frontend/js/utils/avatarRenderer.js', 'utf8');
+    const { AVATAR_OPTIONS } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+    const { CATALOG } = require('../services/avatarService');
+    for (const [slot, ids] of Object.entries(AVATAR_OPTIONS)) {
+        assert.deepEqual([...ids].sort(), CATALOG.filter(item => item.slot === slot).map(item => item.id).sort(), slot);
+    }
+});
+
+test('helmets cover hair without changing the saved hairstyle and space suits hide everyday limbs', async () => {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const bundle = fs.readFileSync('frontend/js/vendor/avatar3d.bundle.js', 'utf8');
+    const { applyAvatarSelection } = await import(`data:text/javascript;base64,${Buffer.from(bundle).toString('base64')}`);
+    const data = fs.readFileSync('frontend/assets/avatars/wardrobe.glb');
+    const { scene } = await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset, data.byteOffset + data.length), '');
+    const selected = { ...DEFAULT_SELECTION, outfit: 'space-suit', hat: 'space-helmet', hair: 'afro', accessory: 'glasses-69' };
+    applyAvatarSelection(scene, selected);
+    let covered = 0, helmets = 0;
+    scene.traverse(object => {
+        if (object.userData.avatar_slot === 'hair') assert.equal(object.visible, false);
+        if (object.userData.avatar_id === 'space-helmet') { assert.equal(object.visible, true); helmets++; }
+        if (object.userData.avatar_hide_outfits) { assert.equal(object.visible, false); covered++; }
+    });
+    assert.equal(helmets, 1); assert.ok(covered > 10); assert.equal(selected.hair, 'afro');
+    applyAvatarSelection(scene, { ...selected, outfit: 'tee', hat: 'hat-none' });
+    scene.traverse(object => {
+        if (object.userData.avatar_id === 'afro') assert.equal(object.visible, true);
+        if (object.userData.avatar_hide_outfits) assert.equal(object.visible, true);
+    });
 });

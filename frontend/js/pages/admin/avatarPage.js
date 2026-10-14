@@ -40,6 +40,14 @@ class AvatarPage {
                 this.slot = button.dataset.slot;
                 this.render();
             });
+            document.getElementById('wardrobe-unlocked').addEventListener('change', () => this.render());
+            document.getElementById('avatar-shuffle').addEventListener('click', () => {
+                for (const slot of Object.keys(this.selection)) {
+                    const choices = this.state.catalog.filter(item => item.slot === slot && item.unlocked);
+                    if (choices.length) this.selection[slot] = choices[Math.floor(Math.random() * choices.length)].id;
+                }
+                this.render(); this.status('A fresh mix from your unlocked wardrobe. Save it or try another!');
+            });
             document.getElementById('avatar-save').addEventListener('click', () => this.save());
             document.getElementById('avatar-reset').addEventListener('click', () => {
                 this.selection = { ...this.saved }; this.render(); this.status('Back to your saved look.');
@@ -89,9 +97,15 @@ class AvatarPage {
             button.setAttribute('aria-pressed', String(button.dataset.slot === this.slot));
         });
         document.getElementById('avatar-reset').disabled = this.saving;
+        document.getElementById('avatar-shuffle').disabled = this.saving;
+        document.getElementById('wardrobe-unlocked').disabled = this.saving;
         const grid = document.getElementById('wardrobe-items');
         grid.replaceChildren();
-        this.state.catalog.filter(item => item.slot === this.slot).forEach(item => {
+        const items = this.state.catalog.filter(item => item.slot === this.slot && (!document.getElementById('wardrobe-unlocked').checked || item.unlocked));
+        document.getElementById('wardrobe-count').textContent = `${items.length} choices`;
+        grid.dataset.swatches = String(['color', 'skin', 'hairColor', 'pantsColor', 'shoesColor'].includes(this.slot));
+        if (!items.length) { const empty = document.createElement('p'); empty.textContent = 'No unlocked items here yet. Turn off the filter to explore the rewards.'; grid.append(empty); }
+        items.forEach(item => {
             const button = document.createElement('button');
             button.type = 'button'; button.className = 'wardrobe-item'; button.disabled = this.saving;
             button.dataset.locked = String(!item.unlocked);
@@ -108,7 +122,7 @@ class AvatarPage {
             button.addEventListener('click', () => {
                 this.selection[this.slot] = item.id; this.render();
                 const locked = this.lockedSelections();
-                this.status(locked.length ? `Preview only. ${locked.map(item => item.requirement).join('; ')} to save this look.` : 'Looking good. Save when you’re ready.');
+                this.status(locked.length ? `Preview only. ${[...new Set(locked.map(item => item.requirement))].join('; ')} to save this look.` : 'Looking good. Save when you’re ready.');
             });
             grid.appendChild(button);
         });

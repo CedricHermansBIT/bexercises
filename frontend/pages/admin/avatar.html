@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="../../styles.css">
     <link rel="stylesheet" href="../../avatar.css">
 </head>
-<body>
+<body class="avatar-studio-page">
     <div id="navbar-container"></div>
     <main class="avatar-studio">
         <header class="studio-heading"><div><p class="studio-eyebrow">A little more you</p><h1>Avatar studio</h1>
@@ -26,6 +26,7 @@
                 <h2 id="avatar-name">Alex</h2><p id="avatar-description"></p>
                 <p class="stage-progress" id="avatar-progress"></p>
                 <div class="stage-actions"><button type="button" class="studio-save" id="avatar-save">Save avatar</button>
+                    <button type="button" class="studio-reset" id="avatar-shuffle">Surprise me</button>
                     <button type="button" class="studio-reset" id="avatar-reset">Restore saved look</button></div>
                 <p class="stage-note">Your look is saved to your account. Only admins can access this preview.</p>
             </aside>
@@ -35,6 +36,7 @@
                     <button type="button" data-slot="character" aria-pressed="true">Characters</button>
                     <button type="button" data-slot="outfit" aria-pressed="false">Outfits</button>
                     <button type="button" data-slot="accessory" aria-pressed="false">Accessories</button>
+                    <button type="button" data-slot="hat" aria-pressed="false">Hats & helmets</button>
                     <button type="button" data-slot="color" aria-pressed="false">Top color</button>
                     <button type="button" data-slot="skin" aria-pressed="false">Skin tone</button>
                     <button type="button" data-slot="hair" aria-pressed="false">Hairstyles</button>
@@ -42,6 +44,7 @@
                     <button type="button" data-slot="pantsColor" aria-pressed="false">Trouser color</button>
                     <button type="button" data-slot="shoesColor" aria-pressed="false">Shoe color</button>
                 </div>
+                <div class="wardrobe-toolbar"><label><input type="checkbox" id="wardrobe-unlocked"> Unlocked only</label><span id="wardrobe-count" role="status"></span></div>
                 <div class="wardrobe-grid" id="wardrobe-items"></div>
             </section>
         </section>

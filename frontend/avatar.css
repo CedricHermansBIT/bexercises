@@ -1,3 +1,5 @@
+/* The workspace locks body scrolling globally; the studio is a document page. */
+body.avatar-studio-page { overflow-y: auto; overflow-x: hidden; }
 .avatar-studio { max-width: 1180px; margin: 0 auto; padding: 38px 28px 60px; color: var(--text-primary); }
 .studio-heading { display: flex; justify-content: space-between; gap: 24px; align-items: start; margin-bottom: 20px; }
 .studio-heading h1 { margin: 6px 0 12px; font-size: clamp(30px, 4vw, 44px); letter-spacing: -1.5px; }
@@ -8,7 +10,7 @@
 #studio-status[data-error="true"] { color: var(--accent-red); }
 .studio-layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 28px; }
 .studio-layout[hidden] { display: none; }
-.studio-stage { text-align: center; padding: 20px; border: 1px solid var(--border-color); border-radius: 24px; background: var(--bg-secondary); align-self: start; position: sticky; top: 24px; }
+.studio-stage { text-align: center; padding: 20px; border: 1px solid var(--border-color); border-radius: 24px; background: var(--bg-secondary); align-self: start; position: sticky; top: 52px; max-height: calc(100dvh - 68px); overflow-y: auto; }
 .stage-art { border-radius: 22px; background: radial-gradient(circle at 50% 42%, #cbe8ef 0, #e1eae8 46%, #d6e0df 100%); position: relative; height: clamp(180px, 30vh, 280px); overflow: hidden; }
 .stage-art canvas, .stage-art > img { display: block; width: 100%; height: 100%; object-fit: contain; touch-action: pan-y; }
 .stage-art canvas { touch-action: none; }
@@ -42,7 +44,7 @@
 .wardrobe-item .item-state { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent-blue); }
 .wardrobe-item[data-locked="true"] .item-state { color: var(--text-muted); }
 .avatar-studio button:focus-visible { outline: 3px solid var(--accent-blue); outline-offset: 4px; }
-@media (max-width: 760px) { .avatar-studio { padding: 24px 16px 40px; } .studio-layout { grid-template-columns: 1fr; gap: 24px; } .studio-stage { position: static; } .stage-art { max-width: 240px; margin: 0 auto; } .studio-heading { flex-wrap: wrap; } }
+@media (max-width: 760px) { .avatar-studio { padding: 24px 16px 40px; } .studio-layout { grid-template-columns: 1fr; gap: 24px; } .studio-stage { position: static; max-height: none; overflow: visible; } .stage-art { max-width: 240px; margin: 0 auto; } .studio-heading { flex-wrap: wrap; } }
 
 .avatar-swatch { display: block; width: 100%; height: 100%; border-radius: inherit; box-shadow: inset 0 0 0 1px #0001; }
 @media (max-width: 600px) {
@@ -52,3 +54,11 @@
     .topbar .topbar-btn { padding: 5px 8px; }
     .topbar .app-title { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 }
+
+.wardrobe-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; margin: 0 0 18px; font-size: 13px; }
+.wardrobe-toolbar label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+#wardrobe-count { color: var(--text-secondary); }
+.wardrobe-grid[data-swatches="true"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wardrobe-grid[data-swatches="true"] .wardrobe-item-art { width: 64px; height: 64px; }
+.wardrobe-grid[data-swatches="true"] .wardrobe-item { padding: 12px; }
+@media (max-width: 420px) { .wardrobe-grid[data-swatches="true"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
