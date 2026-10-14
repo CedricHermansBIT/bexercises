@@ -8,7 +8,7 @@ if (process.env.NODE_ENV === 'production' &&
 }
 
 // Extract base path first so we can use it in config
-const basePath = process.env.BASE_PATH || '';
+const basePath = (process.env.BASE_PATH ?? '/bitlab').replace(/\/+$/, '');
 
 const config = {
 	// Server configuration

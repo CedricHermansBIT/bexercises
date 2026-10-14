@@ -6,6 +6,7 @@ const { isAdmin } = require('../middleware/adminRole');
 
 const router = express.Router();
 const basePath = config.server.basePath || '';
+const homePath = `${basePath}/`;
 
 /**
  * Initiate Google OAuth
@@ -18,10 +19,10 @@ router.get('/google',
  * Google OAuth callback
  */
 router.get('/google/callback',
-	passport.authenticate('google', { failureRedirect: basePath || '/' }),
+	passport.authenticate('google', { failureRedirect: homePath }),
 	(req, res) => {
 		req.session.profilePicture = req.user?.picture || null;
-		res.redirect(basePath || '/');
+		res.redirect(homePath);
 	}
 );
 
@@ -33,7 +34,7 @@ router.get('/logout', (req, res) => {
 		if (err) {
 			return res.status(500).json({ error: 'Logout failed' });
 		}
-		res.redirect(basePath || '/');
+		res.redirect(homePath);
 	});
 });
 

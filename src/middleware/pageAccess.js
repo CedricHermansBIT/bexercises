@@ -14,7 +14,7 @@ function createPageAccess(basePath = '') {
         const page = pathname.slice(prefix.length).toLowerCase();
         if (page === '/login.html') return next();
         res.set('Cache-Control', 'no-store');
-        if (!req.isAuthenticated()) return res.redirect(302, `${prefix}/login.html`);
+        if (!req.isAuthenticated()) return res.redirect(302, `${basePath.replace(/\/+$/, '')}/`);
         const adminPage = page === '/admin' || page === '/admin.html' || page.startsWith('/admin/');
         // The former admin avatar URL redirects to the shared student studio.
         if (adminPage && page !== '/admin/avatar.html' && !isAdmin(req.user)) {

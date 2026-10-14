@@ -102,7 +102,7 @@ class AuthComponent {
 	 */
 	continueWithoutLogin() {
 		// No longer supported - redirect to login
-		window.location.href = '/';
+		window.location.href = `${this.apiService.baseUrl || '/bitlab'}/`;
 	}
 
 	/**

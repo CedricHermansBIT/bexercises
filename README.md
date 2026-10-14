@@ -106,7 +106,7 @@ Key environment variables in `.env`:
 ```env
 # Server
 PORT=3000
-BASE_PATH=                    # Optional: for subdirectory deployment
+BASE_PATH=/bitlab              # Default; set empty for root deployment
 
 # Authentication
 GOOGLE_CLIENT_ID=your-client-id
