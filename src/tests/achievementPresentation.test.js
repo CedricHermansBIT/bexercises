@@ -8,6 +8,7 @@ test('regular achievement hints use the same measures as character rewards', () 
     const stats = { completed: 4 };
     const [result] = presentAchievements([achievement], stats);
     assert.deepEqual(result.measure, progressFor(achievement, stats));
+    assert.equal(result.name, 'Locked achievement');
     assert.equal(result.measure.current, 4);
     assert.equal(result.measure.label, '6 more exercises to go');
 });

@@ -20,7 +20,7 @@
 .collection-toolbar .filter-btn { padding:8px 12px; margin:0; font-size:.8rem; }
 .collection-toolbar input,.collection-toolbar select { width:100%; padding:9px 10px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-secondary); color:var(--text-primary); font:inherit; font-size:.8rem; }
 .collection-search { flex:1; min-width:170px; }
-.collection-toolbar :focus-visible,.collection-card summary:focus-visible { outline:2px solid var(--accent-blue); outline-offset:3px; }
+.collection-toolbar :focus-visible,.collection-card button:focus-visible { outline:2px solid var(--accent-blue); outline-offset:3px; }
 .collection-results { font-size:.75rem; color:var(--text-secondary); margin:10px 0 20px; }
 .collection-sections { display:grid; gap:24px; }
 .collection-category h2 { margin:0 0 10px; font-size:.85rem; color:var(--text-secondary); font-weight:500; }
@@ -37,7 +37,7 @@
 .achievements-content .collection-card .achievement-points { font-size:.7rem; margin-left:auto; }
 .collection-card .achievement-date { flex-basis:100%; }
 .collection-card .achievement-rewards { margin:0 0 12px; padding-top:8px; text-align:left; }
-.collection-card summary { font-size:.75rem; color:var(--accent-blue); cursor:pointer; padding:3px 0; }
+.collection-card .achievement-rewards h4 { margin:0 0 8px; font-size:.75rem; font-weight:500; color:var(--text-secondary); }
 .collection-card .achievement-reward-list { justify-content:flex-start; margin-top:8px; }
 @media(max-width:720px) {
     #achievements-screen .achievements-content { padding:16px; }

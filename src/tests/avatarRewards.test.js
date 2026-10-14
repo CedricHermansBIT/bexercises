@@ -48,3 +48,19 @@ test('standalone wearable previews contain only the selected item meshes, withou
         assert.ok(count > 0);
     }
 });
+
+test('achievement collection can preview locked regular rewards without revealing secrets', async () => {
+    const source = fs.readFileSync('frontend/js/utils/avatarRewards.js', 'utf8');
+    const { getAchievementRewards } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+    const catalog = [
+        { id: 'regular', achievement: 'goal', unlocked: false },
+        { id: 'secret', achievement: 'goal', secret: true, unlocked: false },
+        { id: 'medal', languageMaster: true, unlocked: false },
+        { id: 'snake', languageIds: ['python'], unlocked: false }
+    ];
+    const options = { includeLocked: true };
+    assert.deepEqual(getAchievementRewards({ id: 'goal', earned: 0, hidden: 0 }, catalog, options).map(i => i.id), ['regular']);
+    assert.deepEqual(getAchievementRewards({ id: 'goal', earned: 0, hidden: 1 }, catalog, options), []);
+    assert.deepEqual(getAchievementRewards({ id: 'language-master-python', earned: 0 }, catalog, options).map(i => i.id), ['medal', 'snake']);
+    assert.deepEqual(getAchievementRewards({ id: 'goal', earned: 0 }, catalog), []);
+});

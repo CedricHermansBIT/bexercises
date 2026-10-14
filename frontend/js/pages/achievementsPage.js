@@ -217,12 +217,12 @@ class AchievementsPage {
         const categoryFilter = document.getElementById('achievement-category').value;
         const matches = this.achievements.filter(a => {
             const secret = a.hidden && !a.earned;
-            const text = secret ? 'Secret achievement' : `${a.name} ${a.description}`;
+            const text = secret ? 'Secret achievement' : `${a.earned ? a.name : 'Locked achievement'} ${a.description}`;
             return (this.currentFilter === 'all' || (this.currentFilter === 'earned' ? a.earned : !a.earned)) &&
                 (categoryFilter === 'all' || (a.category || 'other') === categoryFilter) && text.toLocaleLowerCase().includes(query);
         });
         document.getElementById('collection-results').textContent = matches.length
-            ? `${matches.length} achievement${matches.length === 1 ? '' : 's'} · Open character rewards to preview your unlocks.`
+            ? `${matches.length} achievement${matches.length === 1 ? '' : 's'} · Click a character reward to preview it.`
             : 'No achievements match. Try another search or filter.';
         const categories = new Map();
         for (const achievement of matches) {
@@ -266,7 +266,7 @@ class AchievementsPage {
 
         const name = document.createElement('h3');
         name.className = 'achievement-name';
-        name.textContent = secret ? 'Secret achievement' : achievement.name;
+        name.textContent = achievement.earned ? achievement.name : secret ? 'Secret achievement' : 'Locked achievement';
         content.appendChild(name);
 
         const description = document.createElement('div');
@@ -277,7 +277,7 @@ class AchievementsPage {
         if (!achievement.hidden && !achievement.earned && achievement.measure?.target != null) {
             const measure = achievement.measure;
             const progress = document.createElement('progress'); progress.max = measure.target || 1;
-            progress.value = measure.current; progress.setAttribute('aria-label', `${achievement.name}: ${measure.current} of ${measure.target}`);
+            progress.value = measure.current; progress.setAttribute('aria-label', `Achievement progress: ${measure.current} of ${measure.target}`);
             const hint = document.createElement('p'); hint.className = 'collection-hint';
             hint.textContent = `${measure.current}/${measure.target} · ${measure.label}`;
             content.append(progress, hint);
@@ -303,10 +303,10 @@ class AchievementsPage {
             footer.appendChild(dateSpan);
         }
 
-        const rewards = getAchievementRewards(achievement, this.avatarState?.catalog);
+        const rewards = getAchievementRewards(achievement, this.avatarState?.catalog, { includeLocked: true });
         if (rewards.length) {
-            const section = document.createElement('details'); section.className = 'achievement-rewards';
-            const heading = document.createElement('summary'); heading.textContent = `Character rewards (${rewards.length})`; section.append(heading);
+            const section = document.createElement('section'); section.className = 'achievement-rewards';
+            const heading = document.createElement('h4'); heading.textContent = `Character rewards (${rewards.length})`; section.append(heading);
             const list = document.createElement('div'); list.className = 'achievement-reward-list';
             for (const item of rewards) {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
