@@ -217,7 +217,7 @@ class AchievementsPage {
         const categoryFilter = document.getElementById('achievement-category').value;
         const matches = this.achievements.filter(a => {
             const secret = a.hidden && !a.earned;
-            const text = secret ? 'Secret achievement' : `${a.earned ? a.name : 'Locked achievement'} ${a.description}`;
+            const text = secret ? 'secret ???' : `${a.earned ? a.name : '???'} ${a.description}`;
             return (this.currentFilter === 'all' || (this.currentFilter === 'earned' ? a.earned : !a.earned)) &&
                 (categoryFilter === 'all' || (a.category || 'other') === categoryFilter) && text.toLocaleLowerCase().includes(query);
         });
@@ -236,7 +236,8 @@ class AchievementsPage {
             const achievements = categories.get(category);
             const section = document.createElement('section'); section.className = 'collection-category';
             const heading = document.createElement('h2');
-            heading.textContent = `${this.formatCategoryName(category)} · ${achievements.filter(a => a.earned).length}/${achievements.length} earned`;
+            heading.textContent = this.formatCategoryName(category);
+            const count = document.createElement('span'); count.textContent = `${achievements.filter(a => a.earned).length} / ${achievements.length} earned`; heading.append(count);
             const list = document.createElement('div'); list.className = 'collection-cards';
             achievements.sort((a, b) => Number(a.earned) - Number(b.earned) || (b.measure?.fraction || 0) - (a.measure?.fraction || 0) || (a.points || 0) - (b.points || 0));
             for (const achievement of achievements) list.append(this.createAchievementCard(achievement));
@@ -266,7 +267,7 @@ class AchievementsPage {
 
         const name = document.createElement('h3');
         name.className = 'achievement-name';
-        name.textContent = achievement.earned ? achievement.name : secret ? 'Secret achievement' : 'Locked achievement';
+        name.textContent = achievement.earned ? achievement.name : '???';
         content.appendChild(name);
 
         const description = document.createElement('div');
@@ -289,7 +290,7 @@ class AchievementsPage {
         const points = document.createElement('span');
         points.className = 'achievement-points';
         points.textContent = secret ? 'Secret' : `${achievement.points} pts`;
-        const status = document.createElement('span'); status.textContent = achievement.earned ? '✓ Earned' : 'To earn';
+        const status = document.createElement('span'); status.className = 'collection-status'; status.textContent = achievement.earned ? '✓ Earned' : 'To earn';
         footer.append(status);
         footer.appendChild(points);
 
@@ -306,7 +307,8 @@ class AchievementsPage {
         const rewards = getAchievementRewards(achievement, this.avatarState?.catalog, { includeLocked: true });
         if (rewards.length) {
             const section = document.createElement('section'); section.className = 'achievement-rewards';
-            const heading = document.createElement('h4'); heading.textContent = `Character rewards (${rewards.length})`; section.append(heading);
+            card.classList.add('has-rewards');
+            const heading = document.createElement('h4'); heading.textContent = achievement.earned ? 'Unlocked' : 'Unlocks'; section.append(heading);
             const list = document.createElement('div'); list.className = 'achievement-reward-list';
             for (const item of rewards) {
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'achievement-reward-button';
